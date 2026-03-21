@@ -1,0 +1,27 @@
+{
+  "info": {
+    "name": "10 - Dashboard",
+    "description": "Dashboard - Aggregated data and statistics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Tasks Overview",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/dashboard/tasks-overview",
+          "host": ["{{baseUrl}}"],
+          "path": ["dashboard", "tasks-overview"]
+        },
+        "description": "Get aggregated task statistics: total, by status, overdue, upcoming"
+      }
+    }
+  ]
+}

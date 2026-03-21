@@ -14,7 +14,10 @@ export class LogProgressDto {
   @Min(0)
   value: number;
 
-  @ApiPropertyOptional({ example: 'Completed 5km run today', description: 'Optional note for this progress log' })
+  @ApiPropertyOptional({
+    example: 'Completed 5km run today',
+    description: 'Optional note for this progress log',
+  })
   @IsString()
   @MaxLength(500)
   @IsOptional()

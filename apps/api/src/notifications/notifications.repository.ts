@@ -98,9 +98,7 @@ export class NotificationsRepository {
   /**
    * Count unread notifications for a user.
    */
-  async countUnread(
-    userId: string | Types.ObjectId,
-  ): Promise<number> {
+  async countUnread(userId: string | Types.ObjectId): Promise<number> {
     return this.notificationModel
       .countDocuments({
         userId: new Types.ObjectId(userId.toString()),
@@ -137,9 +135,7 @@ export class NotificationsRepository {
   /**
    * Mark all notifications as read for a user.
    */
-  async markAllAsRead(
-    userId: string | Types.ObjectId,
-  ): Promise<number> {
+  async markAllAsRead(userId: string | Types.ObjectId): Promise<number> {
     const result = await this.notificationModel
       .updateMany(
         {

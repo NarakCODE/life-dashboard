@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "06 - Budgets",
+    "description": "Budget planning - Monthly budgets by category",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Budget",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.data && response.data.id) {",
+              "  pm.environment.set('budgetId', response.data.id);",
+              "}",
+              "pm.test('Status code is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"category\": \"groceries\",\n  \"amount\": 500,\n  \"period\": \"monthly\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"alertThreshold\": 80,\n  \"notes\": \"Monthly grocery budget\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/budgets",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets"]
+        },
+        "description": "Create a new budget category"
+      }
+    },
+    {
+      "name": "List Budgets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/budgets?page=1&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "List all budgets"
+      }
+    },
+    {
+      "name": "Get Budget by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/budgets/{{budgetId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets", "{{budgetId}}"]
+        },
+        "description": "Get budget with spending info"
+      }
+    },
+    {
+      "name": "Update Budget",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 600,\n  \"alertThreshold\": 75\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/budgets/{{budgetId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets", "{{budgetId}}"]
+        },
+        "description": "Update budget amount or settings"
+      }
+    },
+    {
+      "name": "Delete Budget",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/budgets/{{budgetId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets", "{{budgetId}}"]
+        },
+        "description": "Delete a budget"
+      }
+    },
+    {
+      "name": "Get Budget Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/budgets/summary?dateFrom=2024-01-01&dateTo=2024-01-31",
+          "host": ["{{baseUrl}}"],
+          "path": ["budgets", "summary"],
+          "query": [
+            {
+              "key": "dateFrom",
+              "value": "2024-01-01"
+            },
+            {
+              "key": "dateTo",
+              "value": "2024-01-31"
+            }
+          ]
+        },
+        "description": "Get budget vs actual spending summary"
+      }
+    }
+  ]
+}

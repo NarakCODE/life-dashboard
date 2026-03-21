@@ -17,7 +17,10 @@ export class GoalEventsListener {
    * Removes the deleted task from all linked goals
    */
   @OnEvent('task.deleted', { async: true })
-  async handleTaskDeleted(payload: { taskId: string; userId: string }): Promise<void> {
+  async handleTaskDeleted(payload: {
+    taskId: string;
+    userId: string;
+  }): Promise<void> {
     try {
       this.logger.log(`Removing deleted task ${payload.taskId} from all goals`);
       await this.goalsService.handleTaskDeleted(payload.taskId);
@@ -33,9 +36,14 @@ export class GoalEventsListener {
    * Removes the deleted habit from all linked goals
    */
   @OnEvent('habit.deleted', { async: true })
-  async handleHabitDeleted(payload: { habitId: string; userId: string }): Promise<void> {
+  async handleHabitDeleted(payload: {
+    habitId: string;
+    userId: string;
+  }): Promise<void> {
     try {
-      this.logger.log(`Removing deleted habit ${payload.habitId} from all goals`);
+      this.logger.log(
+        `Removing deleted habit ${payload.habitId} from all goals`,
+      );
       await this.goalsService.handleHabitDeleted(payload.habitId);
     } catch (error) {
       this.logger.error(

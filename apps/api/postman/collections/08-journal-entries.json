@@ -1,0 +1,206 @@
+{
+  "info": {
+    "name": "08 - Journal Entries",
+    "description": "Journaling - Daily entries with mood tracking",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Journal Entry",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.data && response.data.id) {",
+              "  pm.environment.set('journalEntryId', response.data.id);",
+              "}",
+              "pm.test('Status code is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Productive Day\",\n  \"content\": \"Today was very productive. I completed all my tasks and even had time for a walk in the park.\",\n  \"mood\": 4,\n  \"tags\": [\"productive\", \"gratitude\"],\n  \"date\": \"2024-01-15\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries"]
+        },
+        "description": "Create a new journal entry"
+      }
+    },
+    {
+      "name": "List Journal Entries",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries?page=1&limit=20&mood=4",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "mood",
+              "value": "4"
+            }
+          ]
+        },
+        "description": "List journal entries with mood filter"
+      }
+    },
+    {
+      "name": "Get Journal Entry by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries/{{journalEntryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries", "{{journalEntryId}}"]
+        },
+        "description": "Get a specific journal entry"
+      }
+    },
+    {
+      "name": "Update Journal Entry",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Updated journal content...\",\n  \"mood\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries/{{journalEntryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries", "{{journalEntryId}}"]
+        },
+        "description": "Update a journal entry"
+      }
+    },
+    {
+      "name": "Delete Journal Entry",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries/{{journalEntryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries", "{{journalEntryId}}"]
+        },
+        "description": "Delete a journal entry"
+      }
+    },
+    {
+      "name": "Get Mood Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries/mood-summary?dateFrom=2024-01-01&dateTo=2024-01-31",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries", "mood-summary"],
+          "query": [
+            {
+              "key": "dateFrom",
+              "value": "2024-01-01"
+            },
+            {
+              "key": "dateTo",
+              "value": "2024-01-31"
+            }
+          ]
+        },
+        "description": "Get mood tracking statistics"
+      }
+    },
+    {
+      "name": "Search by Tags",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/journal-entries?tags=gratitude,productive&page=1&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["journal-entries"],
+          "query": [
+            {
+              "key": "tags",
+              "value": "gratitude,productive"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Search entries by tags"
+      }
+    }
+  ]
+}

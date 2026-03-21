@@ -33,7 +33,10 @@ export class NotificationsService {
     id: string,
     userId: string,
   ): Promise<NotificationResponseDto> {
-    const notification = await this.notificationsRepo.findByIdAndUser(id, userId);
+    const notification = await this.notificationsRepo.findByIdAndUser(
+      id,
+      userId,
+    );
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
@@ -47,10 +50,8 @@ export class NotificationsService {
     userId: string,
     query: QueryNotificationDto,
   ): Promise<PaginatedResultDto<NotificationResponseDto>> {
-    const { items, total } = await this.notificationsRepo.findWithPaginationAndFilters(
-      userId,
-      query,
-    );
+    const { items, total } =
+      await this.notificationsRepo.findWithPaginationAndFilters(userId, query);
 
     const data = items.map((item) => this.mapToResponseDto(item));
     return new PaginatedResultDto(data, total, query.page, query.limit);
@@ -88,7 +89,9 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found');
     }
 
-    this.logger.log(`Notification ${id} marked as ${isRead ? 'read' : 'unread'} by user ${userId}`);
+    this.logger.log(
+      `Notification ${id} marked as ${isRead ? 'read' : 'unread'} by user ${userId}`,
+    );
     return this.mapToResponseDto(updated);
   }
 
@@ -97,7 +100,9 @@ export class NotificationsService {
    */
   async markAllAsRead(userId: string): Promise<{ markedCount: number }> {
     const markedCount = await this.notificationsRepo.markAllAsRead(userId);
-    this.logger.log(`All notifications marked as read for user ${userId} (${markedCount} items)`);
+    this.logger.log(
+      `All notifications marked as read for user ${userId} (${markedCount} items)`,
+    );
     return { markedCount };
   }
 

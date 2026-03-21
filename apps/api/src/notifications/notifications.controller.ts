@@ -40,7 +40,9 @@ export class NotificationsController {
    * Note: In production, this might be restricted to internal services.
    */
   @Post()
-  @ApiOperation({ summary: 'Create a new notification for the authenticated user' })
+  @ApiOperation({
+    summary: 'Create a new notification for the authenticated user',
+  })
   @ApiCreatedResponse({
     description: 'The created notification',
     type: NotificationResponseDto,
@@ -56,7 +58,9 @@ export class NotificationsController {
    * List notifications for the authenticated user with pagination and filters.
    */
   @Get()
-  @ApiOperation({ summary: 'Get all notifications with pagination and filtering' })
+  @ApiOperation({
+    summary: 'Get all notifications with pagination and filtering',
+  })
   @ApiOkResponse({
     description: 'List of notifications and total count',
     type: PaginatedResultDto<NotificationResponseDto>,

@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "07 - Transactions",
+    "description": "Transaction tracking - Income and expense records with category filtering",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Transaction",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.data && response.data.id) {",
+              "  pm.environment.set('transactionId', response.data.id);",
+              "}",
+              "pm.test('Status code is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"expense\",\n  \"amount\": 45.50,\n  \"category\": \"groceries\",\n  \"description\": \"Weekly grocery shopping\",\n  \"date\": \"2024-01-15\",\n  \"paymentMethod\": \"credit_card\",\n  \"tags\": [\"food\", \"essentials\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transactions",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions"]
+        },
+        "description": "Create a new transaction (income or expense)"
+      }
+    },
+    {
+      "name": "List Transactions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions?page=1&limit=20&type=expense",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "type",
+              "value": "expense"
+            }
+          ]
+        },
+        "description": "List transactions with filters"
+      }
+    },
+    {
+      "name": "Get Transaction by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions", "{{transactionId}}"]
+        },
+        "description": "Get a specific transaction"
+      }
+    },
+    {
+      "name": "Update Transaction",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 50.00,\n  \"description\": \"Updated description\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions", "{{transactionId}}"]
+        },
+        "description": "Update a transaction"
+      }
+    },
+    {
+      "name": "Delete Transaction",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions", "{{transactionId}}"]
+        },
+        "description": "Delete a transaction"
+      }
+    },
+    {
+      "name": "Get Transaction Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions/summary?dateFrom=2024-01-01&dateTo=2024-01-31",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions", "summary"],
+          "query": [
+            {
+              "key": "dateFrom",
+              "value": "2024-01-01"
+            },
+            {
+              "key": "dateTo",
+              "value": "2024-01-31"
+            }
+          ]
+        },
+        "description": "Get income/expense summary for date range"
+      }
+    },
+    {
+      "name": "Filter by Category",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions?category=groceries&page=1&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "category",
+              "value": "groceries"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Filter transactions by category"
+      }
+    },
+    {
+      "name": "Filter by Date Range",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/transactions?dateFrom=2024-01-01&dateTo=2024-01-31&page=1&limit=50",
+          "host": ["{{baseUrl}}"],
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "dateFrom",
+              "value": "2024-01-01"
+            },
+            {
+              "key": "dateTo",
+              "value": "2024-01-31"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ]
+        },
+        "description": "Filter transactions by date range"
+      }
+    }
+  ]
+}
