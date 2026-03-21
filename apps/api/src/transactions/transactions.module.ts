@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { TransactionsRepository } from './transactions.repository';
 import { TransactionsService } from './transactions.service';
+import { TransactionsController } from './transactions.controller';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { TransactionsService } from './transactions.service';
       { name: Transaction.name, schema: TransactionSchema },
     ]),
   ],
+  controllers: [TransactionsController],
   providers: [TransactionsRepository, TransactionsService],
   exports: [TransactionsService, TransactionsRepository],
 })
