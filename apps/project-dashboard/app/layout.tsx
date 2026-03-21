@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
+import { AppProviders } from "@/components/providers/app-providers"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
@@ -28,9 +29,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <Analytics />
-          <Toaster richColors closeButton />
+          <AppProviders>
+            {children}
+            <Analytics />
+            <Toaster richColors closeButton />
+          </AppProviders>
         </ThemeProvider>
       </body>
     </html>

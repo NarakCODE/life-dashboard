@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -15,87 +15,99 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ProgressCircle } from "@/components/progress-circle"
+} from "@/components/ui/dropdown-menu";
+import { ProgressCircle } from "@/components/progress-circle";
 import {
-  MagnifyingGlass,
-  Tray,
-  CheckSquare,
-  Folder,
-  Users,
-  ChartBar,
+  MagnifyingGlassIcon,
+  TrayIcon,
+  CheckSquareIcon,
+  FolderIcon,
+  UsersIcon,
+  ChartBarIcon,
   Gear,
   Layout,
   Question,
   SignOut,
   CaretRight,
   CaretUpDown,
-} from "@phosphor-icons/react/dist/ssr"
-import { activeProjects, footerItems, navItems, type NavItemId, type SidebarFooterItemId } from "@/lib/data/sidebar"
-import { SettingsDialog } from "@/components/settings/SettingsDialog"
-import { AuthDialog, type AuthMode } from "@/components/auth/AuthDialog"
-import { ModeToggle } from "@/components/mode-toggle"
+  House,
+} from "@phosphor-icons/react/dist/ssr";
+import {
+  activeProjects,
+  footerItems,
+  navItems,
+  type NavItemId,
+  type SidebarFooterItemId,
+} from "@/lib/data/sidebar";
+import { useAuth } from "@/hooks/use-auth"
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 
-const navItemIcons: Record<NavItemId, React.ComponentType<{ className?: string }>> = {
-  inbox: Tray,
-  "my-tasks": CheckSquare,
-  projects: Folder,
-  clients: Users,
-  performance: ChartBar,
-}
+const navItemIcons: Record<
+  NavItemId,
+  React.ComponentType<{ className?: string }>
+> = {
+  dashboard: House,
+  inbox: TrayIcon,
+  "my-tasks": CheckSquareIcon,
+  projects: FolderIcon,
+  clients: UsersIcon,
+  performance: ChartBarIcon,
+};
 
-const footerItemIcons: Record<SidebarFooterItemId, React.ComponentType<{ className?: string }>> = {
+const footerItemIcons: Record<
+  SidebarFooterItemId,
+  React.ComponentType<{ className?: string }>
+> = {
   settings: Gear,
   templates: Layout,
   help: Question,
-}
+};
 
 export function AppSidebar() {
-  const pathname = usePathname()
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<AuthMode>("sign-in")
-
-  const openAuth = (mode: AuthMode) => {
-    setAuthMode(mode)
-    setIsAuthOpen(true)
-  }
+  const auth = useAuth()
+  const pathname = usePathname();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoggingOut, startLogout] = useTransition()
 
   const getHrefForNavItem = (id: NavItemId): string => {
-    if (id === "my-tasks") return "/tasks"
-    if (id === "projects") return "/"
-    if (id === "inbox") return "/inbox"
-    if (id === "clients") return "/clients"
-    if (id === "performance") return "/performance"
-    return "#"
-  }
+    if (id === "dashboard") return "/";
+    if (id === "my-tasks") return "/tasks";
+    if (id === "projects") return "/projects";
+    if (id === "inbox") return "/inbox";
+    if (id === "clients") return "/clients";
+    if (id === "performance") return "/performance";
+    return "#";
+  };
 
   const isItemActive = (id: NavItemId): boolean => {
+    if (id === "dashboard") {
+      return pathname === "/";
+    }
     if (id === "projects") {
-      return pathname === "/" || pathname.startsWith("/projects")
+      return pathname.startsWith("/projects");
     }
     if (id === "my-tasks") {
-      return pathname.startsWith("/tasks")
+      return pathname.startsWith("/tasks");
     }
     if (id === "inbox") {
-      return pathname.startsWith("/inbox")
+      return pathname.startsWith("/inbox");
     }
     if (id === "clients") {
-      return pathname.startsWith("/clients")
+      return pathname.startsWith("/clients");
     }
     if (id === "performance") {
-      return pathname.startsWith("/performance")
+      return pathname.startsWith("/performance");
     }
-    return false
-  }
+    return false;
+  };
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none border-none">
@@ -119,7 +131,7 @@ export function AppSidebar() {
       <SidebarContent className="px-0 gap-0">
         <SidebarGroup>
           <div className="relative px-0 py-0">
-            <MagnifyingGlass className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search"
               className="h-9 rounded-lg bg-muted/50 pl-8 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/20 border-border border shadow-none"
@@ -134,8 +146,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const href = getHrefForNavItem(item.id)
-                const active = isItemActive(item.id)
+                const href = getHrefForNavItem(item.id);
+                const active = isItemActive(item.id);
 
                 return (
                   <SidebarMenuItem key={item.label}>
@@ -146,8 +158,10 @@ export function AppSidebar() {
                     >
                       <Link href={href}>
                         {(() => {
-                          const Icon = navItemIcons[item.id]
-                          return Icon ? <Icon className="h-[18px] w-[18px]" /> : null
+                          const Icon = navItemIcons[item.id];
+                          return Icon ? (
+                            <Icon className="h-[18px] w-[18px]" />
+                          ) : null;
                         })()}
                         <span>{item.label}</span>
                       </Link>
@@ -158,7 +172,7 @@ export function AppSidebar() {
                       </SidebarMenuBadge>
                     )}
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -173,8 +187,14 @@ export function AppSidebar() {
               {activeProjects.map((project) => (
                 <SidebarMenuItem key={project.name}>
                   <SidebarMenuButton className="h-9 rounded-lg px-3 group">
-                    <ProgressCircle progress={project.progress} color={project.color} size={18} />
-                    <span className="flex-1 truncate text-sm">{project.name}</span>
+                    <ProgressCircle
+                      progress={project.progress}
+                      color={project.color}
+                      size={18}
+                    />
+                    <span className="flex-1 truncate text-sm">
+                      {project.name}
+                    </span>
                     <span className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-accent">
                       <span className="text-muted-foreground text-lg">···</span>
                     </span>
@@ -194,24 +214,18 @@ export function AppSidebar() {
                 className="h-9 rounded-lg px-3 text-muted-foreground"
                 onClick={() => {
                   if (item.id === "settings") {
-                    setIsSettingsOpen(true)
+                    setIsSettingsOpen(true);
                   }
                 }}
               >
                 {(() => {
-                  const Icon = footerItemIcons[item.id]
-                  return Icon ? <Icon className="h-[18px] w-[18px]" /> : null
+                  const Icon = footerItemIcons[item.id];
+                  return Icon ? <Icon className="h-[18px] w-[18px]" /> : null;
                 })()}
                 <span>{item.label}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          <SidebarMenuItem>
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-sm text-muted-foreground">Theme</span>
-              <ModeToggle />
-            </div>
-          </SidebarMenuItem>
         </SidebarMenu>
 
         <DropdownMenu>
@@ -222,11 +236,20 @@ export function AppSidebar() {
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/avatar-profile.jpg" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>
+                  {auth.user?.displayName
+                    ?.split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase() || "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col">
-                <span className="text-sm font-medium">Jason D</span>
-                <span className="text-xs text-muted-foreground">jason.duong@mail.com</span>
+                <span className="text-sm font-medium">{auth.user?.displayName ?? "Workspace User"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {auth.user?.email ?? "Loading..."}
+                </span>
               </div>
               <CaretRight className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -234,22 +257,21 @@ export function AppSidebar() {
           <DropdownMenuContent side="right" align="end" className="w-40">
             <DropdownMenuItem
               className="cursor-pointer text-destructive focus:text-destructive"
-              onSelect={() => openAuth("sign-in")}
+              disabled={isLoggingOut}
+              onSelect={() => {
+                startLogout(() => {
+                  void auth.logout()
+                })
+              }}
             >
               <SignOut className="h-4 w-4" />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
 
       <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
-      <AuthDialog
-        open={isAuthOpen}
-        onOpenChange={setIsAuthOpen}
-        mode={authMode}
-        onModeChange={setAuthMode}
-      />
     </Sidebar>
-  )
+  );
 }

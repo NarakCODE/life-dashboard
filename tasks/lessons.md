@@ -22,3 +22,22 @@
 5. Commit between phases for easy rollback
 
 **Applied In**: `apps/project-dashboard` dependency updates - completed Phase 1 & 2, deferred Phase 3 & 4 major updates.
+
+### Lesson: Consistency Layout with SidebarInset
+
+**Context**: Found duplicated layout wrapper code `<div className={"flex flex-1 flex-col bg-background mx-2 my-2 border border-border rounded-lg min-w-0"}>` implemented across every `page` and major content component (e.g., `projects-content.tsx`, `performance-content.tsx`, etc.).
+
+**Mistake/Risk Avoided**: 
+- Code duplication and harder maintenance if we decide to change the global padding/border of the main content area.
+- Breaking the single source of truth for app architecture by having every page manage its own outer layout container wrappers.
+
+**Root Cause**: 
+- Not utilizing the existing shared layout component correctly. Shadcn `SidebarInset` is already responsible for providing the main content area context and wrappers.
+- The `ProtectedAppShell` was already wrapping all routes with `SidebarInset` but the individual pages were still wrapped with manually duplicated CSS.
+
+**Preventative Rule**:
+1. Do not recreate layout wrappers like page borders, margins, or backgrounds within individual pages.
+2. Standardize all global layout constraints in `ProtectedAppShell` directly on the `SidebarInset` component.
+3. Page components should start at the semantic level of routing content (e.g., `flex flex-col flex-1` inside the inset) without asserting outer spacing or border bounds.
+
+**Applied In**: `apps/project-dashboard` components like `projects-content.tsx`, `clients-content.tsx`, `performance-content.tsx` and the dashboard `page.tsx` now rely on `ProtectedAppShell`'s injected `SidebarInset` layout class.

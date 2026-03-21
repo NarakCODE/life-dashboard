@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { format } from "date-fns"
-import { ChartBar, DotsSixVertical, FolderSimple, Plus, Sparkle } from "@phosphor-icons/react/dist/ssr"
+import { ChartBar, DotsSixVertical, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr"
 import {
   DndContext,
   type DragEndEvent,
@@ -29,7 +29,6 @@ import {
 } from "@/components/tasks/task-helpers"
 import { TaskRowBase } from "@/components/tasks/TaskRowBase"
 import { Button } from "@/components/ui/button"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ProgressCircle } from "@/components/progress-circle"
@@ -38,6 +37,7 @@ import { ChipOverflow } from "@/components/chip-overflow"
 import { ViewOptionsPopover } from "@/components/view-options-popover"
 import { cn } from "@/lib/utils"
 import { TaskQuickCreateModal, type CreateTaskContext } from "@/components/tasks/TaskQuickCreateModal"
+import { PageHeader, PageToolbar, AiButton } from "@/components/page-layout"
 
 export function MyTasksPage() {
   const [groups, setGroups] = useState<ProjectTaskGroup[]>(() => {
@@ -230,53 +230,42 @@ export function MyTasksPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-      <header className="flex flex-col border-b border-border/40">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/70">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
-            <p className="text-base font-medium text-foreground">Tasks</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => openCreateTask()}
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              New Task
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between px-4 pb-3 pt-3">
-          <div className="flex items-center gap-2">
-            <FilterPopover
-              initialChips={filters}
-              onApply={setFilters}
-              onClear={() => setFilters([])}
-              counts={counts}
-            />
-            <ChipOverflow
-              chips={filters}
-              onRemove={(key, value) =>
-                setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
-              }
-              maxVisible={6}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <ViewOptionsPopover options={viewOptions} onChange={setViewOptions} allowedViewTypes={["list", "board"]} />
-            <div className="relative">
-              <div className="relative">
-                <Button className="h-8 gap-2 shadow-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 relative z-10 px-3">
-                  <Sparkle className="h-4 w-4" weight="fill" />
-                  Ask AI
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Tasks"
+        actions={
+          <Button size="sm" variant="ghost" onClick={() => openCreateTask()}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            New Task
+          </Button>
+        }
+        toolbar={
+          <PageToolbar
+            left={
+              <>
+                <FilterPopover
+                  initialChips={filters}
+                  onApply={setFilters}
+                  onClear={() => setFilters([])}
+                  counts={counts}
+                />
+                <ChipOverflow
+                  chips={filters}
+                  onRemove={(key, value) =>
+                    setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
+                  }
+                  maxVisible={6}
+                />
+              </>
+            }
+            right={
+              <>
+                <ViewOptionsPopover options={viewOptions} onChange={setViewOptions} allowedViewTypes={["list", "board"]} />
+                <AiButton />
+              </>
+            }
+          />
+        }
+      />
 
       <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-4 py-4">
         {viewOptions.viewType === "list" && (

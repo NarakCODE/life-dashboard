@@ -14,7 +14,6 @@ import {
   WarningOctagon,
 } from "@phosphor-icons/react/dist/ssr"
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +27,7 @@ import { ChipOverflow } from "@/components/chip-overflow"
 import { ProgressCircle } from "@/components/progress-circle"
 import { cn } from "@/lib/utils"
 import { projects, type Project } from "@/lib/data/projects"
+import { PageHeader, PageToolbar } from "@/components/page-layout"
 
 const REFERENCE_TODAY = new Date(2024, 0, 23)
 const MS_DAY = 1000 * 60 * 60 * 24
@@ -658,88 +658,88 @@ export function PerformanceContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-      <header className="flex flex-col border-b border-border/40">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
-            <p className="text-base font-medium text-foreground">Performance</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-8">
-              Export
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between px-4 pb-3 pt-3">
-          <div className="flex items-center gap-2">
-            <PerformanceFilterPopover
-              projects={projects}
-              value={{ projectId: selectedProjectId, member: selectedMember }}
-              onApply={({ projectId, member }) => {
-                setSelectedProjectId(projectId)
-                setSelectedMember(member)
-              }}
-              onClear={() => {
-                setSelectedProjectId("all")
-                setSelectedMember("all")
-              }}
-            />
-            <ChipOverflow chips={filterChips} onRemove={handleRemoveChip} maxVisible={6} />
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={rangeId} onValueChange={(value) => setRangeId(value as RangeId)}>
-              <SelectTrigger className="h-8 w-[170px] rounded-lg border-border/60 bg-transparent px-3">
-                <SelectValue placeholder="Select range" />
-              </SelectTrigger>
-              <SelectContent>
-                {RANGE_OPTIONS.map((range) => (
-                  <SelectItem key={range.id} value={range.id}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {rangeId === "custom" && (
-              <Popover open={isCustomRangeOpen} onOpenChange={setIsCustomRangeOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-3"
-                  >
-                    <CalendarBlank className="h-4 w-4" />
-                    {rangeLabel}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-64 rounded-xl">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-[11px] font-medium text-muted-foreground">Start date</p>
-                      <Input
-                        type="date"
-                        value={dateRange.start}
-                        onChange={(event) => setDateRange((prev) => ({ ...prev, start: event.target.value }))}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[11px] font-medium text-muted-foreground">End date</p>
-                      <Input
-                        type="date"
-                        value={dateRange.end}
-                        onChange={(event) => setDateRange((prev) => ({ ...prev, end: event.target.value }))}
-                        className="h-9"
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="flex flex-1 flex-col min-w-0">
+      <PageHeader
+        title="Performance"
+        actions={
+          <Button variant="ghost" size="sm" className="h-8">
+            Export
+          </Button>
+        }
+        toolbar={
+          <PageToolbar
+            left={
+              <>
+                <PerformanceFilterPopover
+                  projects={projects}
+                  value={{ projectId: selectedProjectId, member: selectedMember }}
+                  onApply={({ projectId, member }) => {
+                    setSelectedProjectId(projectId)
+                    setSelectedMember(member)
+                  }}
+                  onClear={() => {
+                    setSelectedProjectId("all")
+                    setSelectedMember("all")
+                  }}
+                />
+                <ChipOverflow chips={filterChips} onRemove={handleRemoveChip} maxVisible={6} />
+              </>
+            }
+            right={
+              <>
+                <Select value={rangeId} onValueChange={(value) => setRangeId(value as RangeId)}>
+                  <SelectTrigger className="h-8 w-[170px] rounded-lg border-border/60 bg-transparent px-3">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RANGE_OPTIONS.map((range) => (
+                      <SelectItem key={range.id} value={range.id}>
+                        {range.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {rangeId === "custom" && (
+                  <Popover open={isCustomRangeOpen} onOpenChange={setIsCustomRangeOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-2 rounded-lg border-border/60 bg-transparent px-3"
+                      >
+                        <CalendarBlank className="h-4 w-4" />
+                        {rangeLabel}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-64 rounded-xl">
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-medium text-muted-foreground">Start date</p>
+                          <Input
+                            type="date"
+                            value={dateRange.start}
+                            onChange={(event) => setDateRange((prev) => ({ ...prev, start: event.target.value }))}
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-medium text-muted-foreground">End date</p>
+                          <Input
+                            type="date"
+                            value={dateRange.end}
+                            onChange={(event) => setDateRange((prev) => ({ ...prev, end: event.target.value }))}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </>
+            }
+          />
+        }
+      />
 
       <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">

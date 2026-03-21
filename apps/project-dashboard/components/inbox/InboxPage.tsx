@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Bell, ChatCircleDots, CheckCircle, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr"
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { InboxFilterPopover } from "./InboxFilterPopover"
+import { PageHeader, PageToolbarResponsive } from "@/components/page-layout"
 
 type InboxItemType = "comment" | "task" | "client" | "project" | "system"
 
@@ -188,46 +188,44 @@ export function InboxPage() {
 
     return (
         <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-            <header className="flex flex-col border-b border-border/40">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border/70">
-                    <div className="flex items-center gap-3">
-                        <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
-                        <p className="text-base font-medium text-foreground">Inbox</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button size="sm" variant="ghost" onClick={markAllAsRead}>
-                            Mark all as read
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-2 px-4 pb-3 pt-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex w-full md:w-auto md:justify-start">
-                        <InboxFilterPopover
-                            filters={filters}
-                            availableClients={availableClients}
-                            onChange={setFilters}
-                        />
-                    </div>
-
-                    <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} className="w-full md:w-auto">
-                        <TabsList className="inline-flex w-full justify-between rounded-full border border-border/50 bg-muted px-1 py-0.5 text-xs md:w-auto md:justify-start h-8">
-                            <TabsTrigger
-                                value="all"
-                                className="h-7 rounded-full px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
-                            >
-                                All
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="unread"
-                                className="h-7 rounded-full px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
-                            >
-                                Unread
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
-            </header>
+            <PageHeader
+                title="Inbox"
+                actions={
+                    <Button size="sm" variant="ghost" onClick={markAllAsRead}>
+                        Mark all as read
+                    </Button>
+                }
+                toolbar={
+                    <PageToolbarResponsive
+                        left={
+                            <InboxFilterPopover
+                                filters={filters}
+                                availableClients={availableClients}
+                                onChange={setFilters}
+                            />
+                        }
+                        right={
+                            <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} className="w-full md:w-auto">
+                                <TabsList className="inline-flex w-full justify-between rounded-full border border-border/50 bg-muted px-1 py-0.5 text-xs md:w-auto md:justify-start h-8">
+                                    <TabsTrigger
+                                        value="all"
+                                        className="h-7 rounded-full px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
+                                    >
+                                        All
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="unread"
+                                        className="h-7 rounded-full px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
+                                    >
+                                        Unread
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        }
+                    />
+                }
+                toolbarClassName="flex-col gap-2 md:flex-row md:items-center md:justify-between"
+            />
 
             <div className="flex-1 min-h-0 flex flex-col md:flex-row">
                 <div className="border-b border-border/40 md:border-b-0 md:border-r md:w-[320px] lg:w-[360px] flex flex-col min-h-0">

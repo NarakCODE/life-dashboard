@@ -1,3 +1,53 @@
+# Frontend Authentication UI Implementation Plan
+
+## Status: COMPLETE
+
+### 1. Contract and scope validation
+- [x] Confirm supported backend auth endpoints and response envelope
+- [x] Confirm unsupported flows are excluded instead of stubbed (`forgot-password`, `reset-password`)
+- [x] Review current frontend app shell and auth-related entry points
+
+### 2. Auth foundation
+- [x] Add centralized auth types, storage helpers, and API client integration
+- [x] Add current-user query and auth mutation hooks with TanStack Query
+- [x] Add token refresh flow with retry and synchronized session updates
+- [x] Wire auth provider/bootstrap into the root app layout
+
+### 3. Routes and UI
+- [x] Implement `/login`
+- [x] Implement `/register`
+- [x] Implement `/verify-email`
+- [x] Add reusable auth UI pieces: wrapper, password input, loading button, verification status
+
+### 4. Protection and navigation
+- [x] Add protected-app gating for dashboard routes
+- [x] Add guest-only redirects for auth pages
+- [x] Integrate logout and authenticated user state into the existing sidebar/app shell
+
+### 5. Verification
+- [x] Run relevant frontend validation (`lint`, `check-types`)
+- [x] Record review/results and any remaining limitations
+
+## Review / Results
+- Added a centralized frontend auth layer in `apps/project-dashboard` with:
+  - typed auth contracts
+  - local session storage
+  - API request wrapper with token refresh retry
+  - TanStack Query current-user and mutation hooks
+  - provider/bootstrap wiring in the root layout
+- Reorganized routes into App Router groups:
+  - `(auth)` for `/login`, `/register`, `/verify-email`
+  - `(protected)` for dashboard pages and the shared sidebar shell
+- Implemented client-side route protection and guest-only redirects with reduced flicker by waiting for auth hydration/current-user resolution.
+- Replaced the placeholder login UI with real backend integration and added register/verify-email forms, resend-verification actions, clear loading states, and auth status messaging.
+- Updated the sidebar to display authenticated user data and execute a real logout flow.
+- Explicitly did not implement `/forgot-password` or `/reset-password` because the current backend auth module does not expose those endpoints.
+- Verification results:
+  - `pnpm --filter my-v0-project lint` ✅
+  - `pnpm --filter my-v0-project check-types` ❌ blocked by pre-existing unrelated strict TypeScript errors in existing non-auth files such as `components/clients/ClientDetailsPage.tsx`, `components/inbox/InboxPage.tsx`, `components/performance-content.tsx`, `components/projects/TimelineGantt.tsx`, `components/projects/WorkstreamTab.tsx`, `components/tasks/TaskQuickCreateModal.tsx`, and `lib/data/project-details.ts`
+- Additional verification note:
+  - fixed the route-group migration issue by moving the empty `/projects/[id]/backlog` page into the protected route group and regenerating Next route types
+
 # Frontend Data Layer Setup
 
 ## Status: COMPLETE

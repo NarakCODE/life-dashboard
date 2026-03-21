@@ -49,7 +49,7 @@ export function ClientDetailsPage({ clientId }: ClientDetailsPageProps) {
     .toUpperCase()
 
   return (
-    <div className="flex flex-1 flex-col min-w-0 m-2 border border-border rounded-lg">
+    <div className="flex flex-1 flex-col min-w-0">
       <div className="flex items-center justify-between gap-4 px-4 py-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
@@ -204,7 +204,7 @@ export function ClientDetailsPage({ clientId }: ClientDetailsPageProps) {
 
 function ClientDetailsSkeleton() {
   return (
-    <div className="flex flex-1 flex-col bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+    <div className="flex flex-1 flex-col min-w-0">
       <div className="p-6">
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-24" />

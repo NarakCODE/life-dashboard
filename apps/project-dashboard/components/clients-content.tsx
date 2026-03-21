@@ -1,6 +1,5 @@
 "use client"
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -17,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CaretRight, CaretUpDown, ArrowDown, ArrowUp, DotsThreeVertical, Plus, MagnifyingGlass, Folder } from "@phosphor-icons/react/dist/ssr"
+import { PageHeader } from "@/components/page-layout"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -236,68 +236,65 @@ export function ClientsContent() {
   })()
 
   return (
-    <div className="flex flex-1 flex-col bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-      <header className="flex flex-col border-b border-border/40">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
-            <p className="text-base font-medium text-foreground">Clients</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(true)}>
-              <Plus className="h-4 w-4" weight="bold" />
-              New client
-            </Button>
-          </div>
-        </div>
+    <div className="flex flex-1 flex-col min-w-0">
+      <PageHeader
+        title="Clients"
+        actions={
+          <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(true)}>
+            <Plus className="h-4 w-4" weight="bold" />
+            New client
+          </Button>
+        }
+        toolbar={
+          <div className="flex items-center justify-between gap-3 flex-wrap w-full">
+            <div className="flex-1 min-w-[260px]">
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | ClientStatus)}>
+                <TabsList className="inline-flex bg-muted rounded-full px-1 py-0.5 text-xs border border-border/50 h-8">
+                  {[
+                    { id: "all" as const, label: "All" },
+                    { id: "active" as const, label: "Active" },
+                    { id: "prospect" as const, label: "Prospect" },
+                    { id: "on_hold" as const, label: "On hold" },
+                    { id: "archived" as const, label: "Archived" },
+                  ].map((tab) => (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="h-7 px-3 rounded-full text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
 
-        <div className="flex items-center justify-between px-4 pb-3 pt-3 gap-3 flex-wrap">
-          <div className="flex-1 min-w-[260px]">
-            <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | ClientStatus)}>
-              <TabsList className="inline-flex bg-muted rounded-full px-1 py-0.5 text-xs border border-border/50 h-8">
-                {[
-                  { id: "all" as const, label: "All" },
-                  { id: "active" as const, label: "Active" },
-                  { id: "prospect" as const, label: "Prospect" },
-                  { id: "on_hold" as const, label: "On hold" },
-                  { id: "archived" as const, label: "Archived" },
-                ].map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="h-7 px-3 rounded-full text-xs data-[state=active]:bg-background data-[state=active]:text-foreground"
-                  >
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-
-          <div className="flex items-center gap-3 flex-1 justify-end">
-            {selectedIds.size > 0 && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{selectedIds.size} selected</span>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleArchiveSelected}>
-                  Archive
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearSelection}>
-                  Clear
-                </Button>
+            <div className="flex items-center gap-3 flex-1 justify-end">
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{selectedIds.size} selected</span>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleArchiveSelected}>
+                    Archive
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                </div>
+              )}
+              <div className="flex-1 max-w-xs relative">
+                <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search clients or contacts"
+                  className="h-9 rounded-lg bg-muted/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/20 border-border border shadow-none pl-9"
+                />
               </div>
-            )}
-            <div className="flex-1 max-w-xs relative">
-              <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search clients or contacts"
-                className="h-9 rounded-lg bg-muted/50 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/20 border-border border shadow-none pl-9"
-              />
             </div>
           </div>
-        </div>
-      </header>
+        }
+        toolbarClassName="gap-3 flex-wrap"
+      />
 
       <div className="flex-1 overflow-auto px-4 pb-2 pt-5">
         <div className="w-full">
