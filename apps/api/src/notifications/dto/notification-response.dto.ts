@@ -1,0 +1,46 @@
+import { Exclude, Expose } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { NotificationType } from '../schemas/notification.schema';
+
+@Exclude()
+export class NotificationResponseDto {
+  @Expose()
+  @ApiProperty()
+  id: string;
+
+  @Expose()
+  @ApiProperty()
+  userId: string;
+
+  @Expose()
+  @ApiProperty({ enum: NotificationType })
+  type: NotificationType;
+
+  @Expose()
+  @ApiProperty()
+  title: string;
+
+  @Expose()
+  @ApiProperty()
+  body: string;
+
+  @Expose()
+  @ApiProperty()
+  data: Record<string, unknown>;
+
+  @Expose()
+  @ApiProperty()
+  isRead: boolean;
+
+  @Expose()
+  @ApiProperty()
+  createdAt: Date;
+
+  @Expose()
+  @ApiProperty()
+  updatedAt: Date;
+
+  constructor(partial: Partial<NotificationResponseDto>) {
+    Object.assign(this, partial);
+  }
+}

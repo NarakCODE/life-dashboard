@@ -3,19 +3,31 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WinstonModule } from 'nest-winston';
+import { MongooseModule } from '@nestjs/mongoose';
 import * as winston from 'winston';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
-import { appConfig } from './config/app.config';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { TasksModule } from './tasks/tasks.module';
+import { TransactionsModule } from './transactions/transactions.module';
+import { HabitsModule } from './habits/habits.module';
+import { HabitLogsModule } from './habit-logs/habit-logs.module';
+import { BudgetsModule } from './budgets/budgets.module';
+import { GoalsModule } from './goals/goals.module';
+import { JournalEntriesModule } from './journal-entries/journal-entries.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { OtpCodesModule } from './otp-codes/otp-codes.module';
+import { appConfig, databaseConfig } from './config';
 
 @Module({
   imports: [
     // ── Config: loads .env and validates env vars ──────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig],
+      load: [appConfig, databaseConfig],
       envFilePath: ['.env.local', '.env'],
       cache: true,
     }),
@@ -64,10 +76,27 @@ import { appConfig } from './config/app.config';
       }),
     }),
 
+    // ── MongoDB (database.config) ──────────────────────────────────────────
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get<string>('database.uri'),
+      }),
+    }),
+
     // ── Feature Modules ────────────────────────────────────────────────────
-    // Add your feature modules here as you implement them:
-    // UsersModule, AuthModule, etc.
     HealthModule,
+    UsersModule,
+    AuthModule,
+    TasksModule,
+    TransactionsModule,
+    HabitsModule,
+    HabitLogsModule,
+    BudgetsModule,
+    GoalsModule,
+    JournalEntriesModule,
+    NotificationsModule,
+    OtpCodesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
