@@ -3,11 +3,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Habit, HabitSchema } from './schemas/habit.schema';
 import { HabitsRepository } from './habits.repository';
 import { HabitsService } from './habits.service';
+import { HabitsController } from './habits.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Habit.name, schema: HabitSchema }]),
   ],
+  controllers: [HabitsController],
   providers: [HabitsRepository, HabitsService],
   exports: [HabitsService, HabitsRepository],
 })

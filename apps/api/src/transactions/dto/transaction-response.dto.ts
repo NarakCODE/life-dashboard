@@ -1,6 +1,9 @@
 import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { TransactionCategory, TransactionType } from '../schemas/transaction.schema';
+import {
+  TransactionCategory,
+  TransactionType,
+} from '../schemas/transaction.schema';
 
 @Exclude()
 export class TransactionResponseDto {

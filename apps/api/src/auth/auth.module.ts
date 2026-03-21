@@ -4,6 +4,8 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from '../users/users.module';
+import { OtpCodesModule } from '../otp-codes/otp-codes.module';
+import { EmailModule } from '../email/email.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -14,6 +16,8 @@ import { jwtConfig } from './config/jwt.config';
 @Module({
   imports: [
     UsersModule,
+    OtpCodesModule,
+    EmailModule,
     PassportModule,
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync({

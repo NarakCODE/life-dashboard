@@ -28,6 +28,7 @@ export class UsersRepository {
       email: dto.email.toLowerCase(),
       passwordHash: dto.passwordHash,
       displayName: dto.displayName,
+      isEmailVerified: false,
     });
     return user.save();
   }
@@ -42,6 +43,15 @@ export class UsersRepository {
   async clearRefreshToken(id: string | Types.ObjectId): Promise<void> {
     await this.userModel
       .findByIdAndUpdate(id, { refreshTokenHash: null })
+      .exec();
+  }
+
+  /**
+   * Mark a user's email as verified.
+   */
+  async markEmailVerified(id: string | Types.ObjectId): Promise<void> {
+    await this.userModel
+      .findByIdAndUpdate(id, { isEmailVerified: true })
       .exec();
   }
 }

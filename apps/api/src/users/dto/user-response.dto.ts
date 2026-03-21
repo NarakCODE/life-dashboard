@@ -20,6 +20,10 @@ export class UserResponseDto {
   displayName: string;
 
   @Expose()
+  @ApiProperty({ description: 'Whether the user has verified their email' })
+  isEmailVerified: boolean;
+
+  @Expose()
   @ApiProperty()
   createdAt: Date;
 

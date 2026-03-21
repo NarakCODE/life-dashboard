@@ -6,7 +6,9 @@ import { HabitLogsService } from './habit-logs.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: HabitLog.name, schema: HabitLogSchema }]),
+    MongooseModule.forFeature([
+      { name: HabitLog.name, schema: HabitLogSchema },
+    ]),
   ],
   providers: [HabitLogsRepository, HabitLogsService],
   exports: [HabitLogsService, HabitLogsRepository],

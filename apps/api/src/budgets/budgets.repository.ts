@@ -10,7 +10,8 @@ import { CreateBudgetDto } from './dto/create-budget.dto';
 @Injectable()
 export class BudgetsRepository {
   constructor(
-    @InjectModel(Budget.name) private readonly budgetModel: Model<BudgetDocument>,
+    @InjectModel(Budget.name)
+    private readonly budgetModel: Model<BudgetDocument>,
   ) {}
 
   // TODO: Implement repository methods

@@ -2,12 +2,16 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { UsersRepository } from '../users/users.repository';
+import { OtpCodesService } from '../otp-codes/otp-codes.service';
+import { BrevoEmailService } from '../email/brevo-email.service';
+import { OtpType } from '../otp-codes/schemas/otp-code.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokensDto, JwtPayload } from './dto/auth-tokens.dto';
@@ -23,6 +27,8 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly usersRepo: UsersRepository,
+    private readonly otpCodesService: OtpCodesService,
+    private readonly emailService: BrevoEmailService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {
@@ -32,7 +38,13 @@ export class AuthService {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  async register(dto: RegisterDto): Promise<AuthTokensDto> {
+  /**
+   * Register a new user.
+   * - Stores the user with isEmailVerified=false
+   * - Sends a 6-digit OTP via Brevo
+   * - Returns a message (no tokens yet — login requires verification)
+   */
+  async register(dto: RegisterDto): Promise<{ message: string }> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email is already registered');
@@ -40,9 +52,19 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.usersService.create({ ...dto, passwordHash });
-    return this.issueTokens(user);
+
+    // Send verification email (fire-and-forget)
+    await this.sendVerificationEmail(user);
+
+    return {
+      message:
+        'Registration successful. Please check your email for the verification code.',
+    };
   }
 
+  /**
+   * Login. Only verified users are granted tokens.
+   */
   async login(dto: LoginDto): Promise<AuthTokensDto> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
@@ -54,29 +76,110 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Email not verified. Please check your inbox for the verification code.',
+      );
+    }
+
     return this.issueTokens(user);
   }
 
+  /**
+   * Verify email with the OTP code.
+   */
+  async verifyEmail(params: {
+    userId: string;
+    code: string;
+  }): Promise<{ message: string }> {
+    // Validate (throws if invalid/expired)
+    await this.otpCodesService.validate({
+      userId: params.userId,
+      rawCode: params.code,
+      type: OtpType.EMAIL_VERIFY,
+    });
+
+    await this.usersService.markEmailVerified(params.userId);
+
+    return { message: 'Email verified successfully. You can now log in.' };
+  }
+
+  /**
+   * Verify email with the OTP code using only email (pre-login flow).
+   */
+  async verifyEmailByEmail(params: {
+    email: string;
+    code: string;
+  }): Promise<{ message: string }> {
+    const user = await this.usersService.findByEmail(params.email);
+    if (!user) {
+      throw new BadRequestException('Invalid email or code');
+    }
+
+    if (user.isEmailVerified) {
+      return { message: 'Email is already verified. You can log in.' };
+    }
+
+    return this.verifyEmail({ userId: user._id.toString(), code: params.code });
+  }
+
+  /**
+   * Resend verification email. Rate-limited by OtpCodesService.
+   */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByEmail(email);
+    // Security: always return 200 to avoid user enumeration
+    if (!user) {
+      return { message: 'If that email exists, a new code has been sent.' };
+    }
+
+    if (user.isEmailVerified) {
+      return { message: 'Email is already verified.' };
+    }
+
+    await this.sendVerificationEmail(user);
+    return { message: 'A new verification code has been sent to your email.' };
+  }
+
+  /**
+   * Rotate refresh tokens. The JwtRefreshStrategy already validated the token.
+   */
   async refresh(
     _userId: string,
     _refreshToken: string,
   ): Promise<AuthTokensDto> {
-    // JwtRefreshStrategy already validated the token against the stored hash.
-    // Re-fetch the user and issue a fresh token pair (rotation).
     const user = await this.usersService.findById(_userId);
     return this.issueTokens(user);
   }
 
+  /**
+   * Logout — clears the stored refresh token hash so the token is invalidated.
+   */
   async logout(userId: string): Promise<void> {
     await this.usersRepo.clearRefreshToken(userId);
   }
 
+  /**
+   * Get the authenticated user's profile.
+   */
   async getMe(userId: string): Promise<UserResponseDto> {
     const user = await this.usersService.findById(userId);
     return this.toResponseDto(user);
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
+
+  private async sendVerificationEmail(user: UserDocument): Promise<void> {
+    const rawCode = await this.otpCodesService.generate({
+      userId: user._id.toString(),
+      type: OtpType.EMAIL_VERIFY,
+    });
+
+    await this.emailService.sendEmailVerification({
+      to: { email: user.email, name: user.displayName },
+      code: rawCode,
+    });
+  }
 
   private async issueTokens(user: UserDocument): Promise<AuthTokensDto> {
     const payload: JwtPayload = {
@@ -122,6 +225,7 @@ export class AuthService {
       id: user._id.toString(),
       email: user.email,
       displayName: user.displayName,
+      isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

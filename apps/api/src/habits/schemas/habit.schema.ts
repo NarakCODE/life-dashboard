@@ -37,14 +37,27 @@ export class Habit {
   @Prop({ default: '#6b7280' })
   color: string;
 
+  @Prop({
+    required: true,
+    enum: ['active', 'archived'],
+    default: 'active',
+  })
+  status: string;
+
+  @Prop({ type: Date })
+  startDate: Date;
+
+  @Prop({ type: Date, default: null })
+  endDate?: Date;
+
+  @Prop({ type: Date, default: null })
+  archivedAt?: Date;
+
   @Prop({ default: 0 })
   currentStreak: number;
 
   @Prop({ default: 0 })
   longestStreak: number;
-
-  @Prop({ default: true })
-  isActive: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -52,4 +65,5 @@ export class Habit {
 
 export const HabitSchema = SchemaFactory.createForClass(Habit);
 
-HabitSchema.index({ userId: 1, isActive: 1 });
+HabitSchema.index({ userId: 1, status: 1 });
+HabitSchema.index({ userId: 1, startDate: 1 });

@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-  IsDate,
-  Length,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsDate, Length } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { OtpType } from '../schemas/otp-code.schema';

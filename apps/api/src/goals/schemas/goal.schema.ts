@@ -60,7 +60,10 @@ export class Goal {
 
   get progressPercent(): number {
     if (!this.targetValue) return 0;
-    return Math.min(Math.round((this.currentValue / this.targetValue) * 100), 100);
+    return Math.min(
+      Math.round((this.currentValue / this.targetValue) * 100),
+      100,
+    );
   }
 
   createdAt: Date;

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { JournalEntry, JournalEntryDocument } from './schemas/journal-entry.schema';
+import {
+  JournalEntry,
+  JournalEntryDocument,
+} from './schemas/journal-entry.schema';
 import { CreateJournalEntryDto } from './dto/create-journal-entry.dto';
 
 /**
@@ -10,7 +13,8 @@ import { CreateJournalEntryDto } from './dto/create-journal-entry.dto';
 @Injectable()
 export class JournalEntriesRepository {
   constructor(
-    @InjectModel(JournalEntry.name) private readonly journalEntryModel: Model<JournalEntryDocument>,
+    @InjectModel(JournalEntry.name)
+    private readonly journalEntryModel: Model<JournalEntryDocument>,
   ) {}
 
   // TODO: Implement repository methods

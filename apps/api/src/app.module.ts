@@ -21,13 +21,18 @@ import { JournalEntriesModule } from './journal-entries/journal-entries.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OtpCodesModule } from './otp-codes/otp-codes.module';
 import { appConfig, databaseConfig } from './config';
+import { emailConfig } from './email/email.config';
+import { validate } from './config/env.validation';
+
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
     // ── Config: loads .env and validates env vars ──────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, emailConfig],
+      validate,
       envFilePath: ['.env.local', '.env'],
       cache: true,
     }),
@@ -97,6 +102,7 @@ import { appConfig, databaseConfig } from './config';
     JournalEntriesModule,
     NotificationsModule,
     OtpCodesModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

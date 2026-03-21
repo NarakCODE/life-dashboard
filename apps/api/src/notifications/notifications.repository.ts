@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Notification, NotificationDocument } from './schemas/notification.schema';
+import {
+  Notification,
+  NotificationDocument,
+} from './schemas/notification.schema';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 
 /**
@@ -10,7 +13,8 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 @Injectable()
 export class NotificationsRepository {
   constructor(
-    @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>,
+    @InjectModel(Notification.name)
+    private readonly notificationModel: Model<NotificationDocument>,
   ) {}
 
   // TODO: Implement repository methods

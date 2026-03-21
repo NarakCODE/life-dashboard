@@ -9,8 +9,10 @@ import {
 import { Request, Response } from 'express';
 
 interface ErrorResponse {
+  success: boolean;
   statusCode: number;
-  message: string | string[];
+  message: string;
+  errors?: string[];
   error: string;
   timestamp: string;
   path: string;
@@ -30,7 +32,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status: number;
-    let message: string | string[];
+    let message: string;
+    let errors: string[] | undefined;
     let error: string;
 
     if (exception instanceof HttpException) {
@@ -42,7 +45,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         error = exception.name;
       } else {
         const parsed = exceptionResponse as Record<string, unknown>;
-        message = (parsed.message as string | string[]) ?? exception.message;
+        const parsedMessage = parsed.message;
+
+        if (Array.isArray(parsedMessage)) {
+          message = 'Validation failed';
+          errors = parsedMessage as string[];
+        } else {
+          message = (parsedMessage as string) ?? exception.message;
+        }
+
         error = (parsed.error as string) ?? exception.name;
       }
     } else {
@@ -58,8 +69,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const body: ErrorResponse = {
+      success: false,
       statusCode: status,
       message,
+      ...(errors && { errors }),
       error,
       timestamp: new Date().toISOString(),
       path: request.url,

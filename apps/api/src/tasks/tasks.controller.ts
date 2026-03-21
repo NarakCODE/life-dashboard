@@ -1,0 +1,80 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiCreatedResponse,
+} from '@nestjs/swagger';
+import { TasksService } from './tasks.service';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
+import { QueryTaskDto } from './dto/query-task.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+
+@ApiTags('tasks')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new task' })
+  @ApiCreatedResponse({ description: 'The created task object' })
+  create(
+    @CurrentUser('sub') userId: string,
+    @Body() createTaskDto: CreateTaskDto,
+  ) {
+    return this.tasksService.create(userId, createTaskDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all tasks with pagination and filtering' })
+  @ApiOkResponse({ description: 'List of matching tasks and total count' })
+  findAll(
+    @CurrentUser('sub') userId: string,
+    @Query() queryTaskDto: QueryTaskDto,
+  ) {
+    return this.tasksService.findMany(userId, queryTaskDto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific task by ID' })
+  @ApiOkResponse({ description: 'The task object' })
+  findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.tasksService.findByIdAndUser(id, userId);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a specific task' })
+  @ApiOkResponse({ description: 'The updated task object' })
+  update(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+  ) {
+    return this.tasksService.update(id, userId, updateTaskDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a task' })
+  @ApiOkResponse({ description: 'Task successfully deleted' })
+  remove(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.tasksService.delete(id, userId);
+  }
+}

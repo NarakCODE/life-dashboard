@@ -22,6 +22,13 @@ export class User {
   @Prop({ default: null, type: String })
   @Exclude()
   refreshTokenHash: string | null;
+
+  /**
+   * Whether the user has verified their email address.
+   * Unverified users cannot log in.
+   */
+  @Prop({ default: false })
+  isEmailVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

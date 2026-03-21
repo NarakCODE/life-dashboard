@@ -10,7 +10,8 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 @Injectable()
 export class TransactionsRepository {
   constructor(
-    @InjectModel(Transaction.name) private readonly transactionModel: Model<TransactionDocument>,
+    @InjectModel(Transaction.name)
+    private readonly transactionModel: Model<TransactionDocument>,
   ) {}
 
   // TODO: Implement repository methods

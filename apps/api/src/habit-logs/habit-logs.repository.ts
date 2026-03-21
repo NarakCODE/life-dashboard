@@ -10,7 +10,8 @@ import { CreateHabitLogDto } from './dto/create-habit-log.dto';
 @Injectable()
 export class HabitLogsRepository {
   constructor(
-    @InjectModel(HabitLog.name) private readonly habitLogModel: Model<HabitLogDocument>,
+    @InjectModel(HabitLog.name)
+    private readonly habitLogModel: Model<HabitLogDocument>,
   ) {}
 
   // TODO: Implement repository methods

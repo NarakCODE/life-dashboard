@@ -25,4 +25,8 @@ export class UsersService {
   ): Promise<UserDocument> {
     return this.usersRepo.create(dto);
   }
+
+  async markEmailVerified(id: string | Types.ObjectId): Promise<void> {
+    return this.usersRepo.markEmailVerified(id);
+  }
 }

@@ -10,7 +10,10 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TransactionCategory, TransactionType } from '../schemas/transaction.schema';
+import {
+  TransactionCategory,
+  TransactionType,
+} from '../schemas/transaction.schema';
 
 export class CreateTransactionDto {
   @ApiPropertyOptional({ example: '507f1f77bcf86cd799439011' })
@@ -27,7 +30,10 @@ export class CreateTransactionDto {
   @IsEnum(TransactionType)
   type: TransactionType;
 
-  @ApiProperty({ enum: TransactionCategory, default: TransactionCategory.OTHER })
+  @ApiProperty({
+    enum: TransactionCategory,
+    default: TransactionCategory.OTHER,
+  })
   @IsEnum(TransactionCategory)
   category: TransactionCategory;
 

@@ -8,8 +8,9 @@ import {
   Min,
   Max,
   MaxLength,
-  ArrayMinSize,
+  IsDate,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HabitFrequency } from '../schemas/habit.schema';
 
@@ -31,7 +32,10 @@ export class CreateHabitDto {
   @IsOptional()
   frequency?: HabitFrequency;
 
-  @ApiPropertyOptional({ example: [1, 2, 3, 4, 5], description: 'Days of week (0=Sun, 6=Sat) for CUSTOM frequency' })
+  @ApiPropertyOptional({
+    example: [1, 2, 3, 4, 5],
+    description: 'Days of week (0=Sun, 6=Sat) for CUSTOM frequency',
+  })
   @IsArray()
   @IsNumber({}, { each: true })
   @Min(0, { each: true })
@@ -50,4 +54,19 @@ export class CreateHabitDto {
   @MaxLength(7)
   @IsOptional()
   color?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-03-22T00:00:00Z',
+    default: 'current date',
+  })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @ApiPropertyOptional({ example: '2026-04-22T00:00:00Z' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  endDate?: Date;
 }

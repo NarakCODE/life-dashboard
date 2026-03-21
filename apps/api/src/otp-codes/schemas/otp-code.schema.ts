@@ -4,6 +4,7 @@ import { HydratedDocument, Types } from 'mongoose';
 export type OtpCodeDocument = HydratedDocument<OtpCode>;
 
 export enum OtpType {
+  EMAIL_VERIFY = 'email_verify',
   PASSWORD_RESET = 'password_reset',
   TWO_FACTOR = '2fa',
   PHONE_VERIFY = 'phone_verify',
