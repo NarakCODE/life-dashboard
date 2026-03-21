@@ -42,6 +42,7 @@ import {
 import { activeProjects, footerItems, navItems, type NavItemId, type SidebarFooterItemId } from "@/lib/data/sidebar"
 import { SettingsDialog } from "@/components/settings/SettingsDialog"
 import { AuthDialog, type AuthMode } from "@/components/auth/AuthDialog"
+import { ModeToggle } from "@/components/mode-toggle"
 
 const navItemIcons: Record<NavItemId, React.ComponentType<{ className?: string }>> = {
   inbox: Tray,
@@ -205,6 +206,12 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          <SidebarMenuItem>
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm text-muted-foreground">Theme</span>
+              <ModeToggle />
+            </div>
+          </SidebarMenuItem>
         </SidebarMenu>
 
         <DropdownMenu>
