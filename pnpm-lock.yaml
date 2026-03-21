@@ -409,6 +409,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: ^5.90.2
+        version: 5.91.3(react@19.2.0)
       axios:
         specifier: ^1.13.6
         version: 1.13.6
@@ -8190,6 +8193,11 @@ snapshots:
       tailwindcss: 4.2.2
 
   '@tanstack/query-core@5.91.2': {}
+
+  '@tanstack/react-query@5.91.3(react@19.2.0)':
+    dependencies:
+      '@tanstack/query-core': 5.91.2
+      react: 19.2.0
 
   '@tanstack/react-query@5.91.3(react@19.2.4)':
     dependencies:

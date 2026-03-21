@@ -1,3 +1,41 @@
+# Frontend Data Layer Setup
+
+## Status: COMPLETE
+
+### 1. Foundation design
+- [x] Define the target folder structure and separation for env, query, HTTP, and domain APIs in `apps/web`
+- [x] Preserve useful existing auth/token logic while removing ad hoc API coupling
+
+### 2. Environment setup
+- [x] Add central public env access for frontend-safe variables
+- [x] Add central server env access for server-only variables and runtime validation
+- [x] Document required env variables for local development
+
+### 3. Server-state and HTTP setup
+- [x] Add TanStack Query dependencies and global provider wiring
+- [x] Add reusable QueryClient factory with sensible defaults for retries, stale time, and GC
+- [x] Replace the current ad hoc API helper with a structured HTTP client and shared error handling
+
+### 4. API layer and examples
+- [x] Create modular API clients for auth and tasks as the initial domains
+- [x] Refactor one query example and one mutation example to use TanStack Query
+- [x] Keep the new API layer ready for future auth token refresh integration
+
+### 5. Verification
+- [x] Run dependency install and relevant `apps/web` validation commands
+- [x] Record review/results and any pre-existing frontend issues
+
+## Review / Results
+- Added a typed env layer in `apps/web` with explicit public vs server-only access modules and a documented `.env.example`.
+- Added TanStack Query foundation with a shared QueryClient, app-level provider, retry/stale/cache defaults, and query key factories.
+- Replaced the old single-file axios helper with layered HTTP utilities plus feature API modules for auth and dashboard data.
+- Refactored `useAuth` onto TanStack Query mutations and aligned registration with the backend’s verify-email flow by redirecting to login after successful signup.
+- Added a real query-driven home screen so the frontend now demonstrates one query example (`useTaskOverviewQuery`) and one mutation flow (`useLoginMutation` via `useAuth`).
+- Verification passed with:
+  - `CI=1 pnpm install --no-frozen-lockfile`
+  - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1 NEXT_PUBLIC_APP_ENV=development NEXT_PUBLIC_ENABLE_QUERY_DEVTOOLS=false API_INTERNAL_BASE_URL=http://localhost:3001/api/v1 pnpm --filter web lint`
+  - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1 NEXT_PUBLIC_APP_ENV=development NEXT_PUBLIC_ENABLE_QUERY_DEVTOOLS=false API_INTERNAL_BASE_URL=http://localhost:3001/api/v1 pnpm --filter web check-types`
+
 # Monorepo Workspace Repair Plan
 
 ## Status: COMPLETE

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { setTokens, clearTokens, type User, type AuthTokens } from '@/lib/auth';
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-}
+import { isHttpError } from '@/lib/http/http-error';
+import {
+  useCurrentUserQuery,
+} from '@/features/auth/hooks/use-current-user-query';
+import { useLoginMutation } from '@/features/auth/hooks/use-login-mutation';
+import { useLogoutMutation } from '@/features/auth/hooks/use-logout-mutation';
+import { useRegisterMutation } from '@/features/auth/hooks/use-register-mutation';
+import type { User } from '@/lib/auth';
 
 interface UseAuthReturn {
   user: User | null;
@@ -21,68 +22,56 @@ interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const currentUserQuery = useCurrentUserQuery();
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+  const logoutMutation = useLogoutMutation();
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { data } = await api.post<ApiResponse<AuthTokens>>('/auth/login', {
-          email,
-          password,
-        });
-        setTokens(data.data);
-        router.push('/');
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Login failed. Please check your credentials.';
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [router],
-  );
+  const login = async (email: string, password: string) => {
+    await loginMutation.mutateAsync({ email, password });
+    router.push('/');
+  };
 
-  const register = useCallback(
-    async (email: string, password: string, displayName: string) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { data } = await api.post<ApiResponse<AuthTokens>>('/auth/register', {
-          email,
-          password,
-          displayName,
-        });
-        setTokens(data.data);
-        router.push('/');
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : 'Registration failed. Please try again.';
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [router],
-  );
+  const register = async (email: string, password: string, displayName: string) => {
+    await registerMutation.mutateAsync({ email, password, displayName });
+    router.push('/login?registered=1');
+  };
 
-  const logout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await api.post('/auth/logout');
-    } finally {
-      clearTokens();
-      setUser(null);
-      setIsLoading(false);
-      router.push('/login');
+  const logout = async () => {
+    await logoutMutation.mutateAsync();
+    router.push('/login');
+  };
+
+  const error = useMemo(() => {
+    const mutationError =
+      loginMutation.error ?? registerMutation.error ?? logoutMutation.error ?? currentUserQuery.error;
+
+    if (!mutationError) {
+      return null;
     }
-  }, [router]);
 
-  return { user, isLoading, error, login, register, logout };
+    if (isHttpError(mutationError)) {
+      return mutationError.message;
+    }
+
+    return mutationError instanceof Error ? mutationError.message : 'Something went wrong.';
+  }, [
+    currentUserQuery.error,
+    loginMutation.error,
+    logoutMutation.error,
+    registerMutation.error,
+  ]);
+
+  return {
+    user: currentUserQuery.data ?? null,
+    isLoading:
+      currentUserQuery.isLoading ||
+      loginMutation.isPending ||
+      registerMutation.isPending ||
+      logoutMutation.isPending,
+    error,
+    login,
+    register,
+    logout,
+  };
 }

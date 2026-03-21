@@ -4,6 +4,15 @@ export interface AuthTokens {
   expiresIn: number;
 }
 
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterCredentials extends LoginCredentials {
+  displayName: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -28,4 +37,13 @@ export function clearTokens(): void {
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('access_token');
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refresh_token');
+}
+
+export function hasAuthTokens(): boolean {
+  return Boolean(getAccessToken() && getRefreshToken());
 }

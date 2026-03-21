@@ -20,7 +20,7 @@ const registerSchema = z
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
-export default function RegisterPage() {
+export default function RegisterPage(): React.JSX.Element {
   const { register: registerUser, isLoading, error } = useAuth();
 
   const {
