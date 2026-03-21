@@ -1,3 +1,35 @@
+# Monorepo Workspace Repair Plan
+
+## Status: COMPLETE
+
+### 1. Workspace package integrity
+- [x] Remove unused empty placeholder directories `packages/api-client` and `packages/types`
+- [x] Confirm no manifests or imports reference those removed directories
+
+### 2. Package task alignment
+- [x] Add `dev` and `check-types` scripts to `apps/api`
+- [x] Add `check-types` script to `apps/project-dashboard`
+- [x] Add shared ESLint and TypeScript config usage to `apps/project-dashboard`
+
+### 3. Turbo orchestration cleanup
+- [x] Add `dist/**` to cached build outputs while preserving Next.js outputs
+- [x] Remove unnecessary dependency fan-out from `lint` and `check-types`
+- [x] Add root `test` script that delegates through `turbo run test`
+
+### 4. Verification
+- [x] Run targeted workspace verification for package scripts and Turbo config
+- [x] Record review/results for this repair
+
+## Review / Results
+- Removed the two unused empty directories under `packages/` instead of creating fake workspaces; no imports or manifests referenced them.
+- Added package-level task coverage for `apps/api` and `apps/project-dashboard`, plus shared ESLint/TypeScript config wiring for `apps/project-dashboard`.
+- Updated root `package.json`, `turbo.json`, and `pnpm-lock.yaml` so `build`, `lint`, `check-types`, and `test` are orchestrated coherently through Turbo.
+- Verification passed for `pnpm exec turbo run test --filter=api -- --runInBand` and for Turbo dry-run task resolution.
+- Verification also exposed pre-existing code issues outside this infrastructure repair:
+  - `apps/web` `check-types` fails with existing TS2742 page/component annotation errors.
+  - `apps/project-dashboard` `check-types` now runs but fails on existing route-export and strict-nullability errors in app/components/lib files.
+  - `apps/project-dashboard` and `apps/api` `lint` run successfully but report existing warnings.
+
 # Dashboard Module Implementation Plan
 
 ## Status: ✅ COMPLETE
