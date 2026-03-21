@@ -49,7 +49,7 @@ export class GoalResponseDto {
 
   @Expose()
   @ApiProperty()
-  deadline?: Date;
+  dueDate?: Date;
 
   @Expose()
   @ApiProperty({ enum: GoalStatus })

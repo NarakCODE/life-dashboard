@@ -31,6 +31,9 @@ export class Notification {
   @Prop({ default: false, index: true })
   isRead: boolean;
 
+  @Prop({ type: Date, default: null })
+  readAt: Date | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

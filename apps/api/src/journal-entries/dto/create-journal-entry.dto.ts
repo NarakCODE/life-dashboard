@@ -4,14 +4,23 @@ import {
   IsOptional,
   IsEnum,
   IsArray,
-  Min,
-  Max,
+  IsDate,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MoodLevel } from '../schemas/journal-entry.schema';
 
 export class CreateJournalEntryDto {
+  @ApiPropertyOptional({
+    example: '2026-03-21T00:00:00Z',
+    description: 'Date of the journal entry (defaults to current date)',
+  })
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  entryDate?: Date;
+
   @ApiPropertyOptional({ example: 'My Day' })
   @IsString()
   @MaxLength(200)

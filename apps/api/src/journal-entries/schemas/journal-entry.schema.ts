@@ -11,10 +11,24 @@ export enum MoodLevel {
   VERY_GOOD = 5,
 }
 
+/**
+ * Mood labels for display purposes
+ */
+export const MoodLabels: Record<MoodLevel, string> = {
+  [MoodLevel.VERY_BAD]: 'Very Bad',
+  [MoodLevel.BAD]: 'Bad',
+  [MoodLevel.NEUTRAL]: 'Neutral',
+  [MoodLevel.GOOD]: 'Good',
+  [MoodLevel.VERY_GOOD]: 'Very Good',
+};
+
 @Schema({ timestamps: true, collection: 'journal_entries' })
 export class JournalEntry {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  entryDate: Date;
 
   @Prop({ trim: true })
   title?: string;
@@ -38,7 +52,16 @@ export class JournalEntry {
 
 export const JournalEntrySchema = SchemaFactory.createForClass(JournalEntry);
 
+// Text search index for content and title
 JournalEntrySchema.index({ content: 'text', title: 'text' });
+
+// User-scoped indexes for common queries
 JournalEntrySchema.index({ userId: 1, createdAt: -1 });
+JournalEntrySchema.index({ userId: 1, entryDate: -1 });
 JournalEntrySchema.index({ userId: 1, mood: 1 });
 JournalEntrySchema.index({ userId: 1, tags: 1 });
+
+// Date range query optimization
+JournalEntrySchema.index({ userId: 1, entryDate: 1, mood: 1 });
+JournalEntrySchema.set('toJSON', { virtuals: true });
+JournalEntrySchema.set('toObject', { virtuals: true });

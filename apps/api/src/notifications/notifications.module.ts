@@ -6,6 +6,7 @@ import {
 } from './schemas/notification.schema';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
+import { NotificationsController } from './notifications.controller';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { NotificationsService } from './notifications.service';
       { name: Notification.name, schema: NotificationSchema },
     ]),
   ],
+  controllers: [NotificationsController],
   providers: [NotificationsRepository, NotificationsService],
   exports: [NotificationsService, NotificationsRepository],
 })

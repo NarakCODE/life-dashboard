@@ -14,6 +14,10 @@ export class JournalEntryResponseDto {
 
   @Expose()
   @ApiProperty()
+  entryDate: Date;
+
+  @Expose()
+  @ApiProperty()
   title?: string;
 
   @Expose()

@@ -6,6 +6,7 @@ import {
 } from './schemas/journal-entry.schema';
 import { JournalEntriesRepository } from './journal-entries.repository';
 import { JournalEntriesService } from './journal-entries.service';
+import { JournalEntriesController } from './journal-entries.controller';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { JournalEntriesService } from './journal-entries.service';
       { name: JournalEntry.name, schema: JournalEntrySchema },
     ]),
   ],
+  controllers: [JournalEntriesController],
   providers: [JournalEntriesRepository, JournalEntriesService],
   exports: [JournalEntriesService, JournalEntriesRepository],
 })

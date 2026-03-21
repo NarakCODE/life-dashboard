@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Goal, GoalDocument } from './schemas/goal.schema';
+import { Goal, GoalDocument, GoalStatus } from './schemas/goal.schema';
 import { CreateGoalDto } from './dto/create-goal.dto';
 
 /**
@@ -13,10 +13,408 @@ export class GoalsRepository {
     @InjectModel(Goal.name) private readonly goalModel: Model<GoalDocument>,
   ) {}
 
-  // TODO: Implement repository methods
-  // async findById(id: string | Types.ObjectId): Promise<GoalDocument | null>
-  // async findByUserId(userId: string | Types.ObjectId): Promise<GoalDocument[]>
-  // async create(dto: CreateGoalDto, userId: string): Promise<GoalDocument>
-  // async update(id: string, dto: Partial<CreateGoalDto>): Promise<GoalDocument | null>
-  // async delete(id: string): Promise<void>
+  async create(
+    userId: string | Types.ObjectId,
+    dto: CreateGoalDto,
+  ): Promise<GoalDocument> {
+    const createdGoal = new this.goalModel({
+      ...dto,
+      userId: new Types.ObjectId(userId.toString()),
+      linkedTasks: dto.linkedTasks?.map((id) => new Types.ObjectId(id)) || [],
+      linkedHabits: dto.linkedHabits?.map((id) => new Types.ObjectId(id)) || [],
+    });
+    return createdGoal.save();
+  }
+
+  /**
+   * Pipeline extension evaluating 'currentValue' dynamically for non-manual configurations
+   */
+  private progressCalculationStages() {
+    return [
+      {
+        $lookup: {
+          from: 'tasks',
+          localField: 'linkedTasks',
+          foreignField: '_id',
+          as: 'resolvedTasks',
+        },
+      },
+      {
+        $lookup: {
+          from: 'habits',
+          localField: 'linkedHabits',
+          foreignField: '_id',
+          as: 'resolvedHabits',
+        },
+      },
+      {
+        $addFields: {
+          currentValue: {
+            $switch: {
+              branches: [
+                {
+                  case: { $eq: ['$type', 'task-based'] },
+                  // Automatically count completed tasks
+                  then: {
+                    $size: {
+                      $filter: {
+                        input: '$resolvedTasks',
+                        as: 't',
+                        cond: { $eq: ['$$t.status', 'done'] },
+                      },
+                    },
+                  },
+                },
+                {
+                  case: { $eq: ['$type', 'habit-based'] },
+                  // Sum the current streaks of active habits natively
+                  then: {
+                    $sum: '$resolvedHabits.currentStreak',
+                  },
+                },
+                {
+                  case: { $eq: ['$type', 'mixed'] },
+                  // Mix configuration adding both stats together accurately
+                  then: {
+                    $add: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: '$resolvedTasks',
+                            as: 't',
+                            cond: { $eq: ['$$t.status', 'done'] },
+                          },
+                        },
+                      },
+                      { $sum: '$resolvedHabits.currentStreak' },
+                    ],
+                  },
+                },
+              ],
+              // Fallback to manual currentValue saved in schema
+              default: '$currentValue',
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          resolvedTasks: 0,
+          resolvedHabits: 0,
+        },
+      },
+    ];
+  }
+
+  async findById(id: string | Types.ObjectId): Promise<GoalDocument | null> {
+    return this.goalModel.findById(new Types.ObjectId(id.toString())).exec();
+  }
+
+  async findByIdAndUser(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+  ): Promise<any> {
+    const results = await this.goalModel
+      .aggregate([
+        {
+          $match: {
+            _id: new Types.ObjectId(id.toString()),
+            userId: new Types.ObjectId(userId.toString()),
+          },
+        },
+        ...this.progressCalculationStages(),
+      ])
+      .exec();
+
+    return results[0] || null;
+  }
+
+  async findWithPaginationAndFilters(
+    userId: string | Types.ObjectId,
+    query: any,
+  ): Promise<{ items: any[]; total: number }> {
+    const filter: any = { userId: new Types.ObjectId(userId.toString()) };
+
+    if (query.status) filter.status = query.status;
+    if (query.type) filter.type = query.type;
+
+    if (query.search) {
+      filter.$or = [
+        { title: { $regex: query.search, $options: 'i' } },
+        { description: { $regex: query.search, $options: 'i' } },
+      ];
+    }
+
+    const sortObj: any = {};
+    if (query.sortBy) {
+      sortObj[query.sortBy] = query.sortOrder === 'asc' ? 1 : -1;
+    } else {
+      sortObj.createdAt = -1;
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.goalModel
+        .aggregate([
+          { $match: filter },
+          { $sort: sortObj },
+          { $skip: skip },
+          { $limit: limit },
+          ...this.progressCalculationStages(),
+        ])
+        .exec(),
+      this.goalModel.countDocuments(filter).exec(),
+    ]);
+
+    return { items, total };
+  }
+
+  async updateByIdAndUser(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    updateData: any,
+  ): Promise<GoalDocument | null> {
+    // Correctly mutate relationships dynamically
+    if (updateData.linkedTasks) {
+      updateData.linkedTasks = updateData.linkedTasks.map(
+        (tid: string) => new Types.ObjectId(tid),
+      );
+    }
+    if (updateData.linkedHabits) {
+      updateData.linkedHabits = updateData.linkedHabits.map(
+        (hid: string) => new Types.ObjectId(hid),
+      );
+    }
+
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        { $set: updateData },
+        { new: true },
+      )
+      .exec();
+  }
+
+  async deleteByIdAndUser(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+  ): Promise<boolean> {
+    const result = await this.goalModel
+      .deleteOne({
+        _id: new Types.ObjectId(id.toString()),
+        userId: new Types.ObjectId(userId.toString()),
+      })
+      .exec();
+
+    return result.deletedCount > 0;
+  }
+
+  /**
+   * Log progress for a manual goal
+   */
+  async logProgress(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    value: number,
+    note?: string,
+  ): Promise<GoalDocument | null> {
+    const progressLog = {
+      value,
+      note,
+      loggedAt: new Date(),
+    };
+
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        {
+          $push: { progressLogs: progressLog },
+          $inc: { currentValue: value },
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  /**
+   * Check if goal should be auto-completed and update status
+   */
+  async checkAndCompleteGoal(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+  ): Promise<GoalDocument | null> {
+    const goal = await this.goalModel
+      .findOne({
+        _id: new Types.ObjectId(id.toString()),
+        userId: new Types.ObjectId(userId.toString()),
+      })
+      .exec();
+
+    if (!goal) return null;
+
+    if (
+      goal.currentValue >= goal.targetValue &&
+      goal.status !== GoalStatus.COMPLETED
+    ) {
+      goal.status = GoalStatus.COMPLETED;
+      return goal.save();
+    }
+
+    return goal;
+  }
+
+  /**
+   * Link tasks to a goal
+   */
+  async linkTasks(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    taskIds: Types.ObjectId[],
+  ): Promise<GoalDocument | null> {
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        {
+          $addToSet: { linkedTasks: { $each: taskIds } },
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  /**
+   * Link habits to a goal
+   */
+  async linkHabits(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    habitIds: Types.ObjectId[],
+  ): Promise<GoalDocument | null> {
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        {
+          $addToSet: { linkedHabits: { $each: habitIds } },
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  /**
+   * Unlink a task from a goal
+   */
+  async unlinkTask(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    taskId: string | Types.ObjectId,
+  ): Promise<GoalDocument | null> {
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        {
+          $pull: { linkedTasks: new Types.ObjectId(taskId.toString()) },
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  /**
+   * Unlink a habit from a goal
+   */
+  async unlinkHabit(
+    id: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    habitId: string | Types.ObjectId,
+  ): Promise<GoalDocument | null> {
+    return this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(id.toString()),
+          userId: new Types.ObjectId(userId.toString()),
+        },
+        {
+          $pull: { linkedHabits: new Types.ObjectId(habitId.toString()) },
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  /**
+   * Remove a task from all goals (called when task is deleted)
+   */
+  async removeTaskFromAllGoals(taskId: string | Types.ObjectId): Promise<void> {
+    await this.goalModel
+      .updateMany(
+        { linkedTasks: new Types.ObjectId(taskId.toString()) },
+        { $pull: { linkedTasks: new Types.ObjectId(taskId.toString()) } },
+      )
+      .exec();
+  }
+
+  /**
+   * Remove a habit from all goals (called when habit is deleted)
+   */
+  async removeHabitFromAllGoals(
+    habitId: string | Types.ObjectId,
+  ): Promise<void> {
+    await this.goalModel
+      .updateMany(
+        { linkedHabits: new Types.ObjectId(habitId.toString()) },
+        { $pull: { linkedHabits: new Types.ObjectId(habitId.toString()) } },
+      )
+      .exec();
+  }
+
+  /**
+   * Check if goal has specific task linked
+   */
+  async hasTaskLinked(
+    goalId: string | Types.ObjectId,
+    taskId: string | Types.ObjectId,
+  ): Promise<boolean> {
+    const goal = await this.goalModel
+      .findOne({
+        _id: new Types.ObjectId(goalId.toString()),
+        linkedTasks: new Types.ObjectId(taskId.toString()),
+      })
+      .exec();
+    return !!goal;
+  }
+
+  /**
+   * Check if goal has specific habit linked
+   */
+  async hasHabitLinked(
+    goalId: string | Types.ObjectId,
+    habitId: string | Types.ObjectId,
+  ): Promise<boolean> {
+    const goal = await this.goalModel
+      .findOne({
+        _id: new Types.ObjectId(goalId.toString()),
+        linkedHabits: new Types.ObjectId(habitId.toString()),
+      })
+      .exec();
+    return !!goal;
+  }
 }

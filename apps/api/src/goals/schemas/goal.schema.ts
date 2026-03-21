@@ -6,8 +6,14 @@ export type GoalDocument = HydratedDocument<Goal>;
 export enum GoalStatus {
   ACTIVE = 'active',
   COMPLETED = 'completed',
-  ABANDONED = 'abandoned',
-  PAUSED = 'paused',
+  ARCHIVED = 'archived',
+}
+
+export enum GoalType {
+  MANUAL = 'manual',
+  TASK_BASED = 'task-based',
+  HABIT_BASED = 'habit-based',
+  MIXED = 'mixed',
 }
 
 @Schema({ _id: true, timestamps: false })
@@ -35,6 +41,13 @@ export class Goal {
   @Prop({ trim: true })
   description?: string;
 
+  @Prop({
+    required: true,
+    enum: Object.values(GoalType),
+    default: GoalType.MANUAL,
+  })
+  type: GoalType;
+
   @Prop({ required: true, min: 0 })
   targetValue: number;
 
@@ -45,7 +58,7 @@ export class Goal {
   unit?: string;
 
   @Prop()
-  deadline?: Date;
+  dueDate?: Date;
 
   @Prop({
     required: true,
@@ -57,6 +70,12 @@ export class Goal {
 
   @Prop({ type: [ProgressLogSchema], default: [] })
   progressLogs: ProgressLog[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Task' }], default: [] })
+  linkedTasks: Types.ObjectId[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Habit' }], default: [] })
+  linkedHabits: Types.ObjectId[];
 
   get progressPercent(): number {
     if (!this.targetValue) return 0;
@@ -73,6 +92,6 @@ export class Goal {
 export const GoalSchema = SchemaFactory.createForClass(Goal);
 
 GoalSchema.index({ userId: 1, status: 1 });
-GoalSchema.index({ userId: 1, deadline: 1 });
+GoalSchema.index({ userId: 1, dueDate: 1 });
 GoalSchema.set('toJSON', { virtuals: true });
 GoalSchema.set('toObject', { virtuals: true });

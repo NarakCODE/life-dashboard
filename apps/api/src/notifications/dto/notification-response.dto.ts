@@ -33,6 +33,10 @@ export class NotificationResponseDto {
   isRead: boolean;
 
   @Expose()
+  @ApiProperty({ nullable: true })
+  readAt: Date | null;
+
+  @Expose()
   @ApiProperty()
   createdAt: Date;
 
