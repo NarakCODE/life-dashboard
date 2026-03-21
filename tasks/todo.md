@@ -630,3 +630,42 @@ Update outdated dependencies in `apps/project-dashboard` using a gradual, conser
 
 ## File Changes
 - `apps/project-dashboard/package.json` - 40 lines changed (version bumps)
+
+---
+
+# Current Tasks: Project Dashboard Build Fix
+
+## Status: ✅ COMPLETE
+
+## Objective
+Fix the remaining `apps/project-dashboard` build failure caused by network-dependent Google font fetching.
+
+## Tasks
+- [x] Reproduce the current build failure in `apps/project-dashboard`
+- [x] Remove the network-dependent Google font build path
+- [x] Keep the visual impact minimal with a local-safe font fallback
+- [x] Re-run the project-dashboard production build
+
+## Results
+- Build: ✅ `pnpm build`
+- Root Cause: `next/font/google` required network access for Geist fonts, and Next 16's default Turbopack production build also failed in this sandbox when processing CSS.
+- Fix: Removed Google font fetching from `app/layout.tsx`, defined local-safe sans/mono font stacks in `app/globals.css`, and changed the production build script to `next build --webpack`.
+
+---
+
+# Current Tasks: Project Dashboard Dependency Cleanup
+
+## Status: ✅ COMPLETE
+
+## Objective
+Remove dependencies from `apps/project-dashboard` that are installed but not used by the current codebase.
+
+## Tasks
+- [x] Confirm actual package usage in `apps/project-dashboard`
+- [x] Remove unused packages from `apps/project-dashboard/package.json`
+- [x] Refresh the workspace lockfile
+- [x] Re-run the project-dashboard production build
+
+## Results
+- Removed Packages: `react-resizable-panels`, `@hookform/resolvers`, `recharts`, `zod`
+- Build: ✅ `pnpm build`
