@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    // ─── Module system ───────────────────────────────────────────────────────
+    // CommonJS is what NestJS/ts-node uses at runtime. "nodenext" requires
+    // explicit .js extensions on all relative imports which is painful in
+    // NestJS where files are compiled by nest-cli, not tsc directly.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // ─── Target & output ─────────────────────────────────────────────────────
+    "target": "ES2021",
+    "lib": ["ES2021"],
+    "outDir": "./dist",
+    "sourceMap": true,
+    "declaration": true,
+    "removeComments": true,
+    "incremental": true,
+
+    // ─── Decorators (required for NestJS DI & class-transformer) ─────────────
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    // ─── Path aliases (clean imports instead of ../../../) ────────────────────
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@common/*": ["src/common/*"],
+      "@config/*": ["src/config/*"]
+    },
+
+    // ─── Strictness: keep the checks that catch REAL bugs ────────────────────
+    "strict": false,            // Don't enable the full strict bundle
+    "strictNullChecks": true,   // ✅ Catch null/undefined dereferences
+    "strictPropertyInitialization": false, // ✅ NestJS injects via DI, not constructors
+    "noImplicitAny": false,     // ✅ Easier prototyping; add types incrementally
+    "noImplicitReturns": true,  // ✅ Functions must explicitly return
+    "noUnusedLocals": false,    // ✅ Too noisy during active development
+    "noUnusedParameters": false,// ✅ Same
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
+
+    // ─── Quality of life ─────────────────────────────────────────────────────
+    "skipLibCheck": true,        // Skip .d.ts checks in node_modules (faster)
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true    // Allow importing JSON files
+  }
+}
