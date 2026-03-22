@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +37,6 @@ import {
   QuestionIcon,
   SignOutIcon,
   CaretRightIcon,
-  CaretUpDownIcon,
   HouseIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
@@ -47,16 +46,15 @@ import {
   type NavItemId,
   type SidebarFooterItemId,
 } from "@/lib/data/sidebar";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { useAuth } from "@/hooks/use-auth";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import { WorkspaceCombobox } from "@/components/workspaces/workspace-combobox";
+import {
+  useWorkspacesQuery,
+  useSwitchWorkspaceMutation,
+  useWorkspaceContextQuery,
+} from "@/lib/workspaces/workspace-query";
+import { toast } from "sonner";
 
 const navItemIcons: Record<
   NavItemId,
@@ -70,8 +68,6 @@ const navItemIcons: Record<
   performance: ChartBarIcon,
 };
 
-const workspaces = ["Workspace 1", "Workspace 2"];
-
 const footerItemIcons: Record<
   SidebarFooterItemId,
   React.ComponentType<{ className?: string }>
@@ -84,8 +80,43 @@ const footerItemIcons: Record<
 export function AppSidebar() {
   const auth = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoggingOut, startLogout] = useTransition();
+
+  // Workspace data fetching
+  const { data: workspaces = [], isLoading: isLoadingWorkspaces } =
+    useWorkspacesQuery();
+  const { data: workspaceContext } = useWorkspaceContextQuery();
+  const switchWorkspace = useSwitchWorkspaceMutation();
+
+  const activeWorkspaceId = workspaceContext?.activeWorkspaceId;
+
+  const handleWorkspaceSelect = useCallback(
+    async (workspace: { id: string; name: string }) => {
+      if (workspace.id === activeWorkspaceId) return;
+
+      try {
+        await switchWorkspace.mutateAsync(workspace.id);
+        toast.success(`Switched to ${workspace.name}`);
+        // Refresh the page to reload data with new workspace context
+        router.refresh();
+      } catch {
+        toast.error("Failed to switch workspace");
+      }
+    },
+    [activeWorkspaceId, switchWorkspace, router],
+  );
+
+  const handleCreateWorkspace = useCallback(() => {
+    // TODO: Open create workspace modal
+    toast.info("Create workspace coming soon");
+  }, []);
+
+  const handleManageWorkspaces = useCallback(() => {
+    // TODO: Navigate to workspace management page
+    router.push("/workspaces");
+  }, [router]);
 
   const getHrefForNavItem = (id: NavItemId): string => {
     if (id === "dashboard") return "/";
@@ -122,24 +153,16 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none border-none">
       <SidebarHeader className="p-4">
-        <div className="flex items-center justify-between">
-          <Combobox>
-            <ComboboxInput placeholder="Select a framework" />
-            <ComboboxContent>
-              <ComboboxEmpty>No items found.</ComboboxEmpty>
-              <ComboboxList>
-                {workspaces.map((item) => (
-                  <ComboboxItem key={item} value={item}>
-                    {item}
-                  </ComboboxItem>
-                ))}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-          <button className="rounded-md p-1 hover:bg-accent">
-            <CaretUpDownIcon className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
+        <WorkspaceCombobox
+          workspaces={workspaces.data || []}
+          selectedId={activeWorkspaceId}
+          onSelect={handleWorkspaceSelect}
+          onCreateNew={handleCreateWorkspace}
+          onManageWorkspaces={handleManageWorkspaces}
+          isLoading={isLoadingWorkspaces}
+          disabled={switchWorkspace.isPending}
+          triggerClassName="h-10"
+        />
       </SidebarHeader>
 
       <SidebarContent className="px-0 gap-0">
