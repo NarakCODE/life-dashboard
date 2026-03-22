@@ -26,6 +26,7 @@ import { emailConfig } from './email/email.config';
 import { validate } from './config/env.validation';
 
 import { DashboardModule } from './dashboard/dashboard.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
 
 @Module({
   imports: [
@@ -105,6 +106,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     NotificationsModule,
     OtpCodesModule,
     DashboardModule,
+    WorkspacesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

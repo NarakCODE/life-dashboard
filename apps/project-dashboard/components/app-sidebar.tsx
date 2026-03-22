@@ -32,13 +32,13 @@ import {
   FolderIcon,
   UsersIcon,
   ChartBarIcon,
-  Gear,
-  Layout,
-  Question,
-  SignOut,
-  CaretRight,
-  CaretUpDown,
-  House,
+  GearIcon,
+  LayoutIcon,
+  QuestionIcon,
+  SignOutIcon,
+  CaretRightIcon,
+  CaretUpDownIcon,
+  HouseIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   activeProjects,
@@ -47,14 +47,23 @@ import {
   type NavItemId,
   type SidebarFooterItemId,
 } from "@/lib/data/sidebar";
-import { useAuth } from "@/hooks/use-auth"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import { useAuth } from "@/hooks/use-auth";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import Image from "next/image";
 
 const navItemIcons: Record<
   NavItemId,
   React.ComponentType<{ className?: string }>
 > = {
-  dashboard: House,
+  dashboard: HouseIcon,
   inbox: TrayIcon,
   "my-tasks": CheckSquareIcon,
   projects: FolderIcon,
@@ -62,20 +71,22 @@ const navItemIcons: Record<
   performance: ChartBarIcon,
 };
 
+const workspaces = ["Workspace 1", "Workspace 2"];
+
 const footerItemIcons: Record<
   SidebarFooterItemId,
   React.ComponentType<{ className?: string }>
 > = {
-  settings: Gear,
-  templates: Layout,
-  help: Question,
+  settings: GearIcon,
+  templates: LayoutIcon,
+  help: QuestionIcon,
 };
 
 export function AppSidebar() {
-  const auth = useAuth()
+  const auth = useAuth();
   const pathname = usePathname();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isLoggingOut, startLogout] = useTransition()
+  const [isLoggingOut, startLogout] = useTransition();
 
   const getHrefForNavItem = (id: NavItemId): string => {
     if (id === "dashboard") return "/";
@@ -113,17 +124,21 @@ export function AppSidebar() {
     <Sidebar className="border-border/40 border-r-0 shadow-none border-none">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-800 text-primary-foreground shadow-[inset_0_-5px_6.6px_0_rgba(0,0,0,0.25)]">
-              <img src="/logo-wrapper.png" alt="Logo" className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Workspace</span>
-              <span className="text-xs text-muted-foreground">Pro plan</span>
-            </div>
-          </div>
+          <Combobox>
+            <ComboboxInput placeholder="Select a framework" />
+            <ComboboxContent>
+              <ComboboxEmpty>No items found.</ComboboxEmpty>
+              <ComboboxList>
+                {workspaces.map((item) => (
+                  <ComboboxItem key={item} value={item}>
+                    {item}
+                  </ComboboxItem>
+                ))}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
           <button className="rounded-md p-1 hover:bg-accent">
-            <CaretUpDown className="h-4 w-4 text-muted-foreground" />
+            <CaretUpDownIcon className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </SidebarHeader>
@@ -159,9 +174,7 @@ export function AppSidebar() {
                       <Link href={href}>
                         {(() => {
                           const Icon = navItemIcons[item.id];
-                          return Icon ? (
-                            <Icon className="h-[18px] w-[18px]" />
-                          ) : null;
+                          return Icon ? <Icon className="h-4.5 w-4.5" /> : null;
                         })()}
                         <span>{item.label}</span>
                       </Link>
@@ -220,7 +233,7 @@ export function AppSidebar() {
               >
                 {(() => {
                   const Icon = footerItemIcons[item.id];
-                  return Icon ? <Icon className="h-[18px] w-[18px]" /> : null;
+                  return Icon ? <Icon className="h-4.5 w-4.5" /> : null;
                 })()}
                 <span>{item.label}</span>
               </SidebarMenuButton>
@@ -246,12 +259,14 @@ export function AppSidebar() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col">
-                <span className="text-sm font-medium">{auth.user?.displayName ?? "Workspace User"}</span>
+                <span className="text-sm font-medium">
+                  {auth.user?.displayName ?? "Workspace User"}
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {auth.user?.email ?? "Loading..."}
                 </span>
               </div>
-              <CaretRight className="h-4 w-4 text-muted-foreground" />
+              <CaretRightIcon className="h-4 w-4 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="end" className="w-40">
@@ -260,11 +275,11 @@ export function AppSidebar() {
               disabled={isLoggingOut}
               onSelect={() => {
                 startLogout(() => {
-                  void auth.logout()
-                })
+                  void auth.logout();
+                });
               }}
             >
-              <SignOut className="h-4 w-4" />
+              <SignOutIcon className="h-4 w-4" />
               {isLoggingOut ? "Logging out..." : "Logout"}
             </DropdownMenuItem>
           </DropdownMenuContent>

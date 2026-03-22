@@ -1,0 +1,99 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
+import { WorkspacesService } from './workspaces.service';
+import { CreateWorkspaceDto } from './dto/create-workspace.dto';
+import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
+import { WorkspaceRoleGuard } from './guards/workspace-role.guard';
+import { RequireWorkspaceRole } from './decorators/require-workspace-role.decorator';
+import { WorkspaceRole } from './schemas/workspace.schema';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+
+@ApiTags('workspaces')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('workspaces')
+export class WorkspacesController {
+  constructor(private readonly workspacesService: WorkspacesService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new workspace' })
+  async create(@CurrentUser('sub') userId: string, @Body() dto: CreateWorkspaceDto) {
+    const data = await this.workspacesService.create(userId, dto);
+    return { success: true, data };
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List workspaces for current user' })
+  async findAll(@CurrentUser('sub') userId: string) {
+    const data = await this.workspacesService.findAllForUser(userId);
+    return { success: true, data };
+  }
+
+  @Get(':workspaceId')
+  @UseGuards(WorkspaceAccessGuard)
+  @ApiOperation({ summary: 'Get workspace details' })
+  async findOne(@Param('workspaceId') workspaceId: string) {
+    const data = await this.workspacesService.findOne(workspaceId);
+    return { success: true, data };
+  }
+
+  @Patch(':workspaceId')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Update workspace details' })
+  async update(
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: UpdateWorkspaceDto,
+  ) {
+    const data = await this.workspacesService.update(workspaceId, dto);
+    return { success: true, data };
+  }
+
+  @Delete(':workspaceId')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.OWNER)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a workspace' })
+  async remove(@Param('workspaceId') workspaceId: string) {
+    await this.workspacesService.delete(workspaceId);
+  }
+
+  @Post(':workspaceId/invitations')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Invite a user to the workspace' })
+  async invite(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: InviteMemberDto,
+  ) {
+    const data = await this.workspacesService.inviteMember(workspaceId, userId, dto);
+    return { success: true, data };
+  }
+
+  @Delete(':workspaceId/members/:memberId')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove a member from the workspace' })
+  async removeMember(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+  ) {
+    await this.workspacesService.removeMember(workspaceId, memberId);
+  }
+}
