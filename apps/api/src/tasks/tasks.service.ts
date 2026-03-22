@@ -17,6 +17,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { QueryTaskDto } from './dto/query-task.dto';
 import { UsersService } from '../users/users.service';
+import { ProjectsService } from '../projects/projects.service';
 
 @Injectable()
 export class TasksService {
@@ -25,19 +26,25 @@ export class TasksService {
   constructor(
     private readonly tasksRepo: TasksRepository,
     private readonly usersService: UsersService,
+    private readonly projectsService: ProjectsService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: string, dto: CreateTaskDto): Promise<TaskResponseDto> {
     const assignee = await this.resolveAssigneeSnapshot(dto.assigneeId);
     const status = dto.status ?? TaskStatus.TODO;
+    const projectContext = await this.projectsService.resolveTaskProjectContext(
+      userId,
+      dto.projectId,
+      dto.workstreamId,
+    );
 
     const task = await this.tasksRepo.create(userId, {
       name: dto.name,
-      projectId: dto.projectId,
-      projectName: dto.projectName ?? dto.projectId,
-      workstreamId: dto.workstreamId,
-      workstreamName: dto.workstreamName,
+      projectId: projectContext.projectId,
+      projectName: projectContext.projectName,
+      workstreamId: projectContext.workstreamId,
+      workstreamName: projectContext.workstreamName,
       assignee,
       description: dto.description,
       status,
@@ -110,18 +117,6 @@ export class TasksService {
       updatePayload.projectId = dto.projectId;
     }
 
-    if (dto.projectName !== undefined) {
-      updatePayload.projectName = dto.projectName;
-    }
-
-    if (dto.workstreamId !== undefined) {
-      updatePayload.workstreamId = dto.workstreamId;
-    }
-
-    if (dto.workstreamName !== undefined) {
-      updatePayload.workstreamName = dto.workstreamName;
-    }
-
     if (dto.description !== undefined) {
       updatePayload.description = dto.description;
     }
@@ -146,6 +141,20 @@ export class TasksService {
       updatePayload.assignee = await this.resolveAssigneeSnapshot(
         dto.assigneeId,
       );
+    }
+
+    if (dto.projectId !== undefined || dto.workstreamId !== undefined) {
+      const projectContext =
+        await this.projectsService.resolveTaskProjectContext(
+          userId,
+          dto.projectId ?? existingTask.projectId,
+          dto.workstreamId ?? existingTask.workstreamId,
+        );
+
+      updatePayload.projectId = projectContext.projectId;
+      updatePayload.projectName = projectContext.projectName;
+      updatePayload.workstreamId = projectContext.workstreamId;
+      updatePayload.workstreamName = projectContext.workstreamName;
     }
 
     if (dto.status !== undefined) {

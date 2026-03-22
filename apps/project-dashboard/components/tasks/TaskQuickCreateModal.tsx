@@ -1,19 +1,22 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { CalendarBlank, ChartBar, Paperclip, Tag as TagIcon, Microphone, UserCircle, X, Folder, Rows } from '@phosphor-icons/react/dist/ssr'
 
-import { projects, type Project } from '@/lib/data/projects'
-import type { ProjectTask, ProjectDetails, User } from '@/lib/data/project-details'
-import { getProjectDetailsById } from '@/lib/data/project-details'
-import { getAvatarUrl } from '@/lib/assets/avatars'
+import type { ProjectTask } from '@/lib/data/project-details'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { GenericPicker, DatePicker } from '@/components/project-wizard/steps/StepQuickCreate'
 import { ProjectDescriptionEditor } from '@/components/project-wizard/ProjectDescriptionEditor'
 import { QuickCreateModalLayout } from '@/components/QuickCreateModalLayout'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks/use-auth'
+import { useTaskProjectsQuery } from '@/lib/projects/projects-query'
+import {
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+} from '@/lib/tasks/tasks-query'
 
 export type CreateTaskContext = {
   projectId?: string
@@ -25,9 +28,7 @@ interface TaskQuickCreateModalProps {
   open: boolean
   onClose: () => void
   context?: CreateTaskContext
-  onTaskCreated?: (task: ProjectTask) => void
   editingTask?: ProjectTask
-  onTaskUpdated?: (task: ProjectTask) => void
 }
 
 type TaskStatusId = 'todo' | 'in-progress' | 'done'
@@ -57,13 +58,7 @@ const STATUS_OPTIONS: StatusOption[] = [
   { id: 'in-progress', label: 'In progress' },
   { id: 'done', label: 'Done' },
 ]
-
-const ASSIGNEE_OPTIONS: AssigneeOption[] = [
-  { id: 'jason-duong', name: 'Jason Duong' },
-  { id: 'hp', name: 'HP' },
-  { id: 'qa', name: 'QA' },
-  { id: 'pm', name: 'PM' },
-]
+const DEFAULT_STATUS_OPTION = STATUS_OPTIONS[0]!
 
 const PRIORITY_OPTIONS: PriorityOption[] = [
   { id: 'no-priority', label: 'No priority' },
@@ -71,6 +66,7 @@ const PRIORITY_OPTIONS: PriorityOption[] = [
   { id: 'medium', label: 'Medium' },
   { id: 'high', label: 'High' },
 ]
+const DEFAULT_PRIORITY_OPTION = PRIORITY_OPTIONS[0]!
 
 export const TAG_OPTIONS: TagOption[] = [
   { id: 'feature', label: 'Feature' },
@@ -78,27 +74,11 @@ export const TAG_OPTIONS: TagOption[] = [
   { id: 'internal', label: 'Internal' },
 ]
 
-function toUser(option: AssigneeOption | undefined): User | undefined {
-  if (!option) return undefined
-  return {
-    id: option.id,
-    name: option.name,
-    avatarUrl: getAvatarUrl(option.name),
-  }
-}
-
-function getWorkstreamsForProject(projectId: string | undefined): { id: string; label: string }[] {
-  if (!projectId) return []
-  let details: ProjectDetails
-  try {
-    details = getProjectDetailsById(projectId)
-  } catch {
-    return []
-  }
-  return (details.workstreams ?? []).map((ws) => ({ id: ws.id, label: ws.name }))
-}
-
-export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, editingTask, onTaskUpdated }: TaskQuickCreateModalProps) {
+export function TaskQuickCreateModal({ open, onClose, context, editingTask }: TaskQuickCreateModalProps) {
+  const auth = useAuth()
+  const { data: projects = [] } = useTaskProjectsQuery(open)
+  const createTaskMutation = useCreateTaskMutation()
+  const updateTaskMutation = useUpdateTaskMutation()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState<string | undefined>(undefined)
   const [createMore, setCreateMore] = useState(false)
@@ -108,11 +88,17 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
   const [workstreamId, setWorkstreamId] = useState<string | undefined>(undefined)
   const [workstreamName, setWorkstreamName] = useState<string | undefined>(undefined)
 
-  const [assignee, setAssignee] = useState<AssigneeOption | undefined>(ASSIGNEE_OPTIONS[0])
-  const [status, setStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
+  const assigneeOptions = useMemo<AssigneeOption[]>(() => {
+    if (!auth.user) return []
+
+    return [{ id: auth.user.id, name: auth.user.displayName }]
+  }, [auth.user])
+
+  const [assignee, setAssignee] = useState<AssigneeOption | undefined>(undefined)
+  const [status, setStatus] = useState<StatusOption>(DEFAULT_STATUS_OPTION)
   const [startDate, setStartDate] = useState<Date | undefined>(new Date())
   const [targetDate, setTargetDate] = useState<Date | undefined>(undefined)
-  const [priority, setPriority] = useState<PriorityOption | undefined>(PRIORITY_OPTIONS[0])
+  const [priority, setPriority] = useState<PriorityOption | undefined>(DEFAULT_PRIORITY_OPTION)
   const [selectedTag, setSelectedTag] = useState<TagOption | undefined>(undefined)
 
   useEffect(() => {
@@ -129,14 +115,14 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
       setIsDescriptionExpanded(false)
 
       if (editingTask.assignee) {
-        const assigneeOption = ASSIGNEE_OPTIONS.find((a) => a.name === editingTask.assignee?.name)
-        setAssignee(assigneeOption ?? ASSIGNEE_OPTIONS[0])
+        const assigneeOption = assigneeOptions.find((a) => a.id === editingTask.assignee?.id)
+        setAssignee(assigneeOption)
       } else {
-        setAssignee(ASSIGNEE_OPTIONS[0])
+        setAssignee(undefined)
       }
 
       const statusOption = STATUS_OPTIONS.find((s) => s.id === editingTask.status)
-      setStatus(statusOption ?? STATUS_OPTIONS[0])
+      setStatus(statusOption ?? DEFAULT_STATUS_OPTION)
 
       setStartDate(editingTask.startDate ?? new Date())
       setTargetDate(undefined)
@@ -144,7 +130,7 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
       const priorityOption = editingTask.priority
         ? PRIORITY_OPTIONS.find((p) => p.id === editingTask.priority)
         : undefined
-      setPriority(priorityOption ?? PRIORITY_OPTIONS[0])
+      setPriority(priorityOption ?? DEFAULT_PRIORITY_OPTION)
 
       const tagOption = editingTask.tag
         ? TAG_OPTIONS.find((t) => t.label === editingTask.tag)
@@ -157,7 +143,15 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
     const defaultProjectId = context?.projectId
     setProjectId(defaultProjectId)
 
-    const workstreams = getWorkstreamsForProject(defaultProjectId)
+    const workstreams = defaultProjectId
+      ? (
+          projects.find((project) => project.id === defaultProjectId)?.workstreams ??
+          []
+        ).map((workstream) => ({
+          id: workstream.id,
+          label: workstream.name,
+        }))
+      : []
     const initialWorkstream = workstreams.find((ws) => ws.id === context?.workstreamId)
 
     setWorkstreamId(initialWorkstream?.id)
@@ -167,22 +161,28 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
     setDescription(undefined)
     setCreateMore(false)
     setIsDescriptionExpanded(false)
-    setAssignee(ASSIGNEE_OPTIONS[0])
-    setStatus(STATUS_OPTIONS[0])
+    setAssignee(assigneeOptions[0])
+    setStatus(DEFAULT_STATUS_OPTION)
     setStartDate(new Date())
     setTargetDate(undefined)
-    setPriority(PRIORITY_OPTIONS[0])
+    setPriority(DEFAULT_PRIORITY_OPTION)
     setSelectedTag(undefined)
-  }, [open, context?.projectId, context?.workstreamId, context?.workstreamName, editingTask])
+  }, [open, context?.projectId, context?.workstreamId, context?.workstreamName, editingTask, assigneeOptions, projects])
 
   const projectOptions = useMemo(
     () => projects.map((p) => ({ id: p.id, label: p.name })),
-    [],
+    [projects],
   )
 
   const workstreamOptions = useMemo(
-    () => getWorkstreamsForProject(projectId),
-    [projectId],
+    () => {
+      const project = projects.find((item) => item.id === projectId)
+      return (project?.workstreams ?? []).map((workstream) => ({
+        id: workstream.id,
+        label: workstream.name,
+      }))
+    },
+    [projectId, projects],
   )
 
   useEffect(() => {
@@ -203,73 +203,76 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
     }
   }, [projectId, workstreamOptions, workstreamId, workstreamName])
 
-  const handleSubmit = () => {
-    if (editingTask) {
-      const effectiveProjectId = projectId ?? editingTask.projectId
-      const project: Project | undefined = effectiveProjectId
-        ? projects.find((p) => p.id === effectiveProjectId)
-        : undefined
+  const resetCreateForm = () => {
+    setTitle('')
+    setDescription(undefined)
+    setStatus(DEFAULT_STATUS_OPTION)
+    setTargetDate(undefined)
+    setSelectedTag(undefined)
+  }
 
-      const updatedTask: ProjectTask = {
-        ...editingTask,
+  const handleSubmit = async () => {
+    if (!projectId) {
+      toast.error('Please choose a project first')
+      return
+    }
+
+    if (editingTask) {
+      try {
+        await updateTaskMutation.mutateAsync({
+          taskId: editingTask.id,
+          input: {
+            name: title.trim() || 'Untitled task',
+            projectId,
+            workstreamId,
+            assigneeId: assignee?.id,
+            description,
+            status: status.id,
+            priority: priority?.id,
+            tag: selectedTag?.label,
+            startDate: startDate?.toISOString(),
+            dueDate: targetDate?.toISOString(),
+          },
+        })
+        toast.success('Task updated successfully')
+        onClose()
+      } catch {
+        toast.error('Failed to update task')
+      }
+      return
+    }
+
+    try {
+      await createTaskMutation.mutateAsync({
         name: title.trim() || 'Untitled task',
+        projectId,
+        workstreamId,
+        assigneeId: assignee?.id,
+        description,
         status: status.id,
-        dueLabel: targetDate ? format(targetDate, 'dd/MM/yyyy') : editingTask.dueLabel,
-        assignee: toUser(assignee),
-        startDate,
         priority: priority?.id,
         tag: selectedTag?.label,
-        description,
-        projectId: effectiveProjectId ?? editingTask.projectId,
-        projectName: project?.name ?? editingTask.projectName,
-        workstreamId: workstreamId ?? editingTask.workstreamId,
-        workstreamName: workstreamName ?? editingTask.workstreamName,
+        startDate: startDate?.toISOString(),
+        dueDate: targetDate?.toISOString(),
+      })
+
+      if (createMore) {
+        toast.success('Task created! Ready for another.')
+        resetCreateForm()
+        return
       }
 
-      onTaskUpdated?.(updatedTask)
-      toast.success("Task updated successfully")
+      toast.success('Task created successfully')
       onClose()
-      return
+    } catch {
+      toast.error('Failed to create task')
     }
-
-    const effectiveProjectId = projectId ?? projects[0]?.id
-    if (!effectiveProjectId) return
-
-    const project: Project | undefined = projects.find((p) => p.id === effectiveProjectId)
-    if (!project) return
-
-    const newTask: ProjectTask = {
-      id: `${effectiveProjectId}-task-${Date.now()}`,
-      name: title.trim() || 'Untitled task',
-      status: status.id,
-      dueLabel: targetDate ? format(targetDate, 'dd/MM/yyyy') : undefined,
-      assignee: toUser(assignee),
-      startDate,
-      priority: priority?.id,
-      tag: selectedTag?.label,
-      description,
-      projectId: effectiveProjectId,
-      projectName: project.name,
-      workstreamId: workstreamId ?? `${effectiveProjectId}-ws`,
-      workstreamName: workstreamName ?? 'General',
-    }
-
-    onTaskCreated?.(newTask)
-
-    if (createMore) {
-      toast.success("Task created! Ready for another.")
-      setTitle('')
-      setDescription(undefined)
-      setStatus(STATUS_OPTIONS[0])
-      setTargetDate(undefined)
-      return
-    }
-
-    toast.success("Task created successfully")
-    onClose()
   }
 
   const projectLabel = projectOptions.find((p) => p.id === projectId)?.label
+
+  const isSubmitting =
+    createTaskMutation.isPending || updateTaskMutation.isPending
 
   return (
     <QuickCreateModalLayout
@@ -293,6 +296,7 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
             )}
             trigger={
               <button
+                disabled={!projectOptions.length}
                 className="bg-background flex gap-2 h-7 items-center px-2 py-1 rounded-lg border border-background hover:border-primary/50 transition-colors text-xs disabled:opacity-60"
               >
                 <Folder className="size-4 text-muted-foreground" />
@@ -320,6 +324,7 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
                 )}
                 trigger={
                   <button
+                    disabled={!workstreamOptions.length}
                     className="bg-background flex gap-2 h-7 items-center px-2 py-1 rounded-lg border border-background hover:border-primary/50 transition-colors text-xs disabled:opacity-60"
                   >
                     <Rows className="size-4 text-muted-foreground" />
@@ -372,7 +377,7 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
       <div className="flex flex-wrap gap-2.5 items-start w-full shrink-0">
         {/* Assignee */}
         <GenericPicker
-          items={ASSIGNEE_OPTIONS}
+          items={assigneeOptions}
           onSelect={setAssignee}
           selectedId={assignee?.id}
           placeholder="Assign owner..."
@@ -510,7 +515,7 @@ export function TaskQuickCreateModal({ open, onClose, context, onTaskCreated, ed
             </div>
           )}
 
-          <Button type="button" onClick={handleSubmit} className="h-10 px-4 rounded-xl">
+          <Button type="button" onClick={handleSubmit} className="h-10 px-4 rounded-xl" disabled={isSubmitting}>
             {editingTask ? 'Save changes' : 'Create Task'}
           </Button>
         </div>

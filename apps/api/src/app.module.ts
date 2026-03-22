@@ -20,6 +20,7 @@ import { GoalsModule } from './goals/goals.module';
 import { JournalEntriesModule } from './journal-entries/journal-entries.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OtpCodesModule } from './otp-codes/otp-codes.module';
+import { ProjectsModule } from './projects/projects.module';
 import { appConfig, databaseConfig } from './config';
 import { emailConfig } from './email/email.config';
 import { validate } from './config/env.validation';
@@ -98,6 +99,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HabitsModule,
     HabitLogsModule,
     BudgetsModule,
+    ProjectsModule,
     GoalsModule,
     JournalEntriesModule,
     NotificationsModule,

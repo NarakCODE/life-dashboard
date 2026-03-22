@@ -339,7 +339,7 @@ export class TasksRepository {
               {
                 $group: {
                   _id: {
-                    $ifNull: [{ $toString: '$assignee.id' }, 'unassigned'],
+                    $ifNull: ['$assignee.name', 'unassigned'],
                   },
                   count: { $sum: 1 },
                 },

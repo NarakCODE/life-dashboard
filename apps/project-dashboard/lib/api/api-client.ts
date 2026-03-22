@@ -1,8 +1,9 @@
 import { getAuthSnapshot, handleUnauthorizedSession, refreshAuthSession } from "@/lib/auth/auth-store"
 
-interface ApiEnvelope<T> {
+export interface ApiEnvelopeWithMeta<T, M> {
   success: true
   data: T
+  meta?: M
   timestamp: string
 }
 
@@ -94,6 +95,13 @@ async function parseError(response: Response) {
 }
 
 export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
+  const payload = await apiRequestEnvelope<T>(options)
+  return payload.data
+}
+
+export async function apiRequestEnvelope<T, M = Record<string, unknown>>(
+  options: ApiRequestOptions,
+): Promise<ApiEnvelopeWithMeta<T, M>> {
   const session = getAuthSnapshot().tokens
   const response = await fetch(`${getApiBaseUrl()}${options.path}`, {
     method: options.method ?? "GET",
@@ -111,7 +119,7 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
     const refreshedSession = await refreshAuthSession()
 
     if (refreshedSession?.accessToken) {
-      return apiRequest({
+      return apiRequestEnvelope({
         ...options,
         retryOnUnauthorized: false,
       })
@@ -128,6 +136,5 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
     throw error
   }
 
-  const payload = (await response.json()) as ApiEnvelope<T>
-  return payload.data
+  return (await response.json()) as ApiEnvelopeWithMeta<T, M>
 }

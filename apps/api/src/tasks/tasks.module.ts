@@ -5,10 +5,12 @@ import { TasksRepository } from './tasks.repository';
 import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { UsersModule } from '../users/users.module';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
     UsersModule,
+    ProjectsModule,
     MongooseModule.forFeature([{ name: Task.name, schema: TaskSchema }]),
   ],
   controllers: [TasksController],

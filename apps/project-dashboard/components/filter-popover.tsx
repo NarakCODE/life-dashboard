@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import {
   Funnel,
@@ -36,9 +35,22 @@ interface FilterPopoverProps {
   onApply: (chips: FilterChip[]) => void
   onClear: () => void
   counts?: FilterCounts
+  statusOptions?: Array<{ id: string; label: string; color?: string }>
+  priorityOptions?: Array<{ id: string; label: string }>
+  memberOptions?: Array<{ id: string; label: string; avatar?: string; hint?: string }>
+  tagOptions?: Array<{ id: string; label: string }>
 }
 
-export function FilterPopover({ initialChips, onApply, onClear, counts }: FilterPopoverProps) {
+export function FilterPopover({
+  initialChips,
+  onApply,
+  onClear,
+  counts,
+  statusOptions: customStatusOptions,
+  priorityOptions: customPriorityOptions,
+  memberOptions: customMemberOptions,
+  tagOptions: customTagOptions,
+}: FilterPopoverProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [active, setActive] = useState<
@@ -73,14 +85,18 @@ export function FilterPopover({ initialChips, onApply, onClear, counts }: Filter
     setTemp(next)
   }, [open, initialChips])
 
-  const categories = [
-    { id: "status", label: "Status", icon: Spinner },
-    { id: "priority", label: "Priority", icon: ChartBar },
-    { id: "tags", label: "Tags", icon: Tag },
-    { id: "members", label: "Members", icon: User },
-  ] as const
+  const categories = useMemo(
+    () =>
+      [
+        { id: "status", label: "Status", icon: Spinner },
+        { id: "priority", label: "Priority", icon: ChartBar },
+        { id: "tags", label: "Tags", icon: Tag },
+        { id: "members", label: "Members", icon: User },
+      ] as const,
+    [],
+  )
 
-  const statusOptions = [
+  const statusOptions = customStatusOptions ?? [
     { id: "backlog", label: "Backlog", color: "var(--chart-2)" },
     { id: "planned", label: "Planned", color: "var(--chart-2)" },
     { id: "active", label: "Active", color: "var(--chart-3)" },
@@ -88,20 +104,20 @@ export function FilterPopover({ initialChips, onApply, onClear, counts }: Filter
     { id: "completed", label: "Completed", color: "var(--chart-3)" },
   ]
 
-  const priorityOptions = [
+  const priorityOptions = customPriorityOptions ?? [
     { id: "urgent", label: "Urgent" },
     { id: "high", label: "High" },
     { id: "medium", label: "Medium" },
     { id: "low", label: "Low" },
   ]
 
-  const memberOptions = [
+  const memberOptions = customMemberOptions ?? [
     { id: "no-member", label: "No member", avatar: undefined },
     { id: "current", label: "Current member", avatar: undefined, hint: "1 projects" },
     { id: "jason", label: "jason duong", avatar: "/placeholder-user.jpg", hint: "3 projects" },
   ]
 
-  const tagOptions = [
+  const tagOptions = customTagOptions ?? [
     { id: "frontend", label: "frontend" },
     { id: "backend", label: "backend" },
     { id: "bug", label: "bug" },

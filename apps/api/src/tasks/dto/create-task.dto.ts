@@ -24,27 +24,11 @@ export class CreateTaskDto {
   @MaxLength(100)
   projectId: string;
 
-  @ApiPropertyOptional({
-    example: 'Fintech Mobile App Redesign',
-    description:
-      'Denormalized project label until a dedicated projects module exists.',
-  })
-  @IsString()
-  @IsOptional()
-  @MaxLength(200)
-  projectName?: string;
-
   @ApiPropertyOptional({ example: 'ws-discovery' })
   @IsString()
   @IsOptional()
   @MaxLength(100)
   workstreamId?: string;
-
-  @ApiPropertyOptional({ example: 'Initial discovery & alignment' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(200)
-  workstreamName?: string;
 
   @ApiPropertyOptional({
     description: 'Assignee user id. When provided the API resolves the user.',

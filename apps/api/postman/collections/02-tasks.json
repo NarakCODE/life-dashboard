@@ -38,7 +38,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"project-fintech-redesign\",\n  \"projectName\": \"Fintech Mobile App Redesign\",\n  \"workstreamId\": \"ws-discovery\",\n  \"workstreamName\": \"Initial discovery & alignment\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"design\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
+          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"{{projectId}}\",\n  \"workstreamId\": \"{{workstreamId}}\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"Feature\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks",
@@ -49,7 +49,7 @@
             "tasks"
           ]
         },
-        "description": "Create a new project-oriented task."
+        "description": "Create a new project-oriented task. `projectId` and `workstreamId` must come from real `/projects` data."
       }
     },
     {
@@ -63,7 +63,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId=project-fintech-redesign&tags=design&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
+          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId={{projectId}}&tags=Feature&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
           "host": [
             "{{baseUrl}}"
           ],
@@ -86,11 +86,11 @@
             },
             {
               "key": "projectId",
-              "value": "project-fintech-redesign"
+              "value": "{{projectId}}"
             },
             {
               "key": "tags",
-              "value": "design"
+              "value": "Feature"
             },
             {
               "key": "view",

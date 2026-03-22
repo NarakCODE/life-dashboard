@@ -1,81 +1,192 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { format } from "date-fns"
-import { ChartBar, DotsSixVertical, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr"
 import {
   DndContext,
-  type DragEndEvent,
   closestCenter,
+  type DragEndEvent,
 } from "@dnd-kit/core"
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import { arrayMove } from "@dnd-kit/sortable"
+import { Plus } from "@phosphor-icons/react/dist/ssr"
 
-import { projects, type Project, type FilterCounts } from "@/lib/data/projects"
-import { getProjectDetailsById, getProjectTasks, type ProjectTask } from "@/lib/data/project-details"
+import type { ProjectTask } from "@/lib/data/project-details"
 import { DEFAULT_VIEW_OPTIONS, type FilterChip as FilterChipType, type ViewOptions } from "@/lib/view-options"
 import { TaskWeekBoardView } from "@/components/tasks/TaskWeekBoardView"
 import {
-  ProjectTaskGroup,
+  type ProjectTaskGroup,
   ProjectTaskListView,
-  filterTasksByChips,
-  computeTaskFilterCounts,
-  ProjectTasksSection,
 } from "@/components/tasks/task-helpers"
-import { TaskRowBase } from "@/components/tasks/TaskRowBase"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ProgressCircle } from "@/components/progress-circle"
 import { FilterPopover } from "@/components/filter-popover"
 import { ChipOverflow } from "@/components/chip-overflow"
 import { ViewOptionsPopover } from "@/components/view-options-popover"
-import { cn } from "@/lib/utils"
 import { TaskQuickCreateModal, type CreateTaskContext } from "@/components/tasks/TaskQuickCreateModal"
 import { PageHeader, PageToolbar, AiButton } from "@/components/page-layout"
+import { useAuth } from "@/hooks/use-auth"
+import { useTaskProjectsQuery } from "@/lib/projects/projects-query"
+import { useMyTasksQuery, useUpdateTaskMutation } from "@/lib/tasks/tasks-query"
+import type { MyTasksQuery } from "@/lib/tasks/types"
+
+const TASK_STATUS_OPTIONS = [
+  { id: "todo", label: "To do", color: "var(--chart-2)" },
+  { id: "in-progress", label: "In progress", color: "var(--chart-3)" },
+  { id: "done", label: "Done", color: "var(--chart-4)" },
+]
+
+const TASK_PRIORITY_OPTIONS = [
+  { id: "no-priority", label: "No priority" },
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+  { id: "urgent", label: "Urgent" },
+]
+
+function normalizeChipValue(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, "-")
+}
+
+function buildTaskQuery(
+  filters: FilterChipType[],
+  viewOptions: ViewOptions,
+  currentUser: { id: string; displayName: string } | null,
+): MyTasksQuery {
+  const query: MyTasksQuery = {
+    page: 1,
+    limit: 100,
+    view: viewOptions.viewType,
+    groupBy: viewOptions.groupBy,
+    sortBy: viewOptions.viewType === "board" ? "startDate" : "createdAt",
+    sortOrder: viewOptions.viewType === "board" ? "asc" : "desc",
+  }
+
+  const statuses = filters
+    .filter((chip) => chip.key.toLowerCase() === "status")
+    .map((chip) => normalizeChipValue(chip.value))
+
+  if (statuses.length) query.status = statuses
+
+  const priorities = filters
+    .filter((chip) => chip.key.toLowerCase() === "priority")
+    .map((chip) => normalizeChipValue(chip.value))
+
+  if (priorities.length) query.priority = priorities[0]
+
+  const tags = filters
+    .filter((chip) => chip.key.toLowerCase() === "tag")
+    .map((chip) => chip.value)
+
+  if (tags.length) query.tags = tags
+
+  const memberFilters = filters
+    .filter((chip) => chip.key.toLowerCase().startsWith("member"))
+    .map((chip) => chip.value.toLowerCase())
+
+  if (
+    currentUser &&
+    memberFilters.some(
+      (value) =>
+        value === currentUser.displayName.toLowerCase() ||
+        value === "current member",
+    )
+  ) {
+    query.assigneeIds = [currentUser.id]
+  }
+
+  return query
+}
+
+function buildFallbackProject(task: ProjectTask): ProjectTaskGroup["project"] {
+  return {
+    id: task.projectId,
+    name: task.projectName,
+    status: "active",
+    priority: "medium",
+    workstreams: [],
+  }
+}
 
 export function MyTasksPage() {
-  const [groups, setGroups] = useState<ProjectTaskGroup[]>(() => {
-    return projects
-      .map((project) => {
-        const details = getProjectDetailsById(project.id)
-        const tasks = getProjectTasks(details)
-        return { project, tasks }
-      })
-      .filter((group) => group.tasks.length > 0)
-  })
-
-  const [filters, setFilters] = useState<FilterChipType[]>([{ key: "members", value: "jason" }])
+  const auth = useAuth()
+  const [filters, setFilters] = useState<FilterChipType[]>([])
   const [viewOptions, setViewOptions] = useState<ViewOptions>(DEFAULT_VIEW_OPTIONS)
-
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
   const [createContext, setCreateContext] = useState<CreateTaskContext | undefined>(undefined)
   const [editingTask, setEditingTask] = useState<ProjectTask | undefined>(undefined)
+  const [manualOrderByProject, setManualOrderByProject] = useState<Record<string, string[]>>({})
 
-  const counts = useMemo<FilterCounts>(() => {
-    const allTasks = groups.flatMap((g) => g.tasks)
-    return computeTaskFilterCounts(allTasks)
-  }, [groups])
+  const currentUser = useMemo(
+    () =>
+      auth.user
+        ? { id: auth.user.id, displayName: auth.user.displayName }
+        : null,
+    [auth.user],
+  )
 
-  const visibleGroups = useMemo<ProjectTaskGroup[]>(() => {
-    if (!filters.length) return groups
+  const taskQuery = useMemo(
+    () => buildTaskQuery(filters, viewOptions, currentUser),
+    [filters, viewOptions, currentUser],
+  )
 
-    return groups
-      .map((group) => ({
-        project: group.project,
-        tasks: filterTasksByChips(group.tasks, filters),
-      }))
-      .filter((group) => group.tasks.length > 0)
-  }, [groups, filters])
+  const isQueryEnabled = auth.hasHydrated && auth.isAuthenticated
 
-  const allVisibleTasks = useMemo<ProjectTask[]>(() => {
-    return visibleGroups.flatMap((group) => group.tasks)
-  }, [visibleGroups])
+  const { data: myTasks, isPending, error } = useMyTasksQuery(taskQuery, isQueryEnabled)
+  const { data: projects = [] } = useTaskProjectsQuery(isQueryEnabled)
+  const updateTaskMutation = useUpdateTaskMutation(taskQuery)
+
+  const tasks = useMemo(() => myTasks?.data.tasks ?? [], [myTasks?.data.tasks])
+  const filterCounts = useMemo(
+    () => myTasks?.meta.filterCounts ?? {},
+    [myTasks?.meta.filterCounts],
+  )
+
+  const projectMap = useMemo(
+    () => new Map(projects.map((project) => [project.id, project])),
+    [projects],
+  )
+
+  const groups = useMemo<ProjectTaskGroup[]>(() => {
+    const grouped = new Map<string, ProjectTaskGroup>()
+
+    for (const task of tasks) {
+      const existing = grouped.get(task.projectId)
+
+      if (existing) {
+        existing.tasks.push(task)
+        continue
+      }
+
+      grouped.set(task.projectId, {
+        project: projectMap.get(task.projectId) ?? buildFallbackProject(task),
+        tasks: [task],
+      })
+    }
+
+    return Array.from(grouped.values()).map((group) => {
+      const manualOrder = manualOrderByProject[group.project.id] ?? []
+      if (!manualOrder.length) return group
+
+      const taskMap = new Map(group.tasks.map((task) => [task.id, task]))
+      const orderedTasks = [
+        ...manualOrder.map((id) => taskMap.get(id)).filter((task): task is ProjectTask => Boolean(task)),
+        ...group.tasks.filter((task) => !manualOrder.includes(task.id)),
+      ]
+
+      return {
+        ...group,
+        tasks: orderedTasks,
+      }
+    })
+  }, [manualOrderByProject, projectMap, tasks])
+
+  const taskMap = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks],
+  )
+
+  const allVisibleTasks = useMemo(
+    () => groups.flatMap((group) => group.tasks),
+    [groups],
+  )
 
   const openCreateTask = (context?: CreateTaskContext) => {
     setEditingTask(undefined)
@@ -89,92 +200,34 @@ export function MyTasksPage() {
     setIsCreateTaskOpen(true)
   }
 
-  const handleTaskCreated = (task: ProjectTask) => {
-    setGroups((prev) => {
-      const projectExists = prev.some((g) => g.project.id === task.projectId)
-      const project = projects.find((p) => p.id === task.projectId)
+  const handleStatusToggle = async (taskId: string) => {
+    const task = taskMap.get(taskId)
+    if (!task) return
 
-      const ensureGroup = (current: ProjectTaskGroup[]): ProjectTaskGroup[] => {
-        if (projectExists || !project) return current
-        const details = getProjectDetailsById(project.id)
-        const existingTasks = getProjectTasks(details)
-        return [
-          { project, tasks: [...existingTasks, task] },
-          ...current,
-        ]
-      }
-
-      const next = prev.map((group) => {
-        if (group.project.id !== task.projectId) return group
-        return {
-          ...group,
-          tasks: [...group.tasks, task],
-        }
-      })
-
-      return ensureGroup(next)
+    await updateTaskMutation.mutateAsync({
+      taskId,
+      input: {
+        status: task.status === "done" ? "todo" : "done",
+      },
     })
   }
 
-  const toggleTask = (taskId: string) => {
-    setGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        tasks: group.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                status: task.status === "done" ? "todo" : "done",
-              }
-            : task,
-        ),
-      })),
-    )
+  const handleTagChange = async (taskId: string, tagLabel?: string) => {
+    await updateTaskMutation.mutateAsync({
+      taskId,
+      input: {
+        tag: tagLabel,
+      },
+    })
   }
 
-  const changeTaskTag = (taskId: string, tagLabel?: string) => {
-    setGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        tasks: group.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                tag: tagLabel,
-              }
-            : task,
-        ),
-      })),
-    )
-  }
-
-  const moveTaskDate = (taskId: string, newDate: Date) => {
-    setGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        tasks: group.tasks.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                startDate: newDate,
-              }
-            : task,
-        ),
-      })),
-    )
-  }
-
-  const handleTaskUpdated = (updated: ProjectTask) => {
-    setGroups((prev) =>
-      prev.map((group) =>
-        group.project.id === updated.projectId
-          ? {
-              ...group,
-              tasks: group.tasks.map((task) => (task.id === updated.id ? updated : task)),
-            }
-          : group,
-      ),
-    )
+  const handleTaskDateMove = async (taskId: string, newDate: Date) => {
+    await updateTaskMutation.mutateAsync({
+      taskId,
+      input: {
+        startDate: newDate.toISOString(),
+      },
+    })
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -182,51 +235,53 @@ export function MyTasksPage() {
 
     if (!over || active.id === over.id) return
 
-    // Find the group containing the active task
-    const activeGroupIndex = groups.findIndex((group) =>
-      group.tasks.some((task) => task.id === active.id)
+    const activeGroup = groups.find((group) =>
+      group.tasks.some((task) => task.id === active.id),
+    )
+    const overGroup = groups.find((group) =>
+      group.tasks.some((task) => task.id === over.id),
     )
 
-    if (activeGroupIndex === -1) return
+    if (!activeGroup || !overGroup || activeGroup.project.id !== overGroup.project.id) {
+      return
+    }
 
-    const activeGroup = groups[activeGroupIndex]
+    const current = activeGroup.tasks.map((task) => task.id)
+    const oldIndex = current.indexOf(String(active.id))
+    const newIndex = current.indexOf(String(over.id))
 
-    // Find the group containing the over task
-    const overGroupIndex = groups.findIndex((group) =>
-      group.tasks.some((task) => task.id === over.id)
-    )
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+      return
+    }
 
-    if (overGroupIndex === -1) return
-
-    // For now, only allow reordering within the same group
-    if (activeGroupIndex !== overGroupIndex) return
-
-    const activeIndex = activeGroup.tasks.findIndex((task) => task.id === active.id)
-    const overIndex = activeGroup.tasks.findIndex((task) => task.id === over.id)
-
-    if (activeIndex === -1 || overIndex === -1) return
-
-    const reorderedTasks = arrayMove(activeGroup.tasks, activeIndex, overIndex)
-
-    setGroups((prev) =>
-      prev.map((group, index) =>
-        index === activeGroupIndex ? { ...group, tasks: reorderedTasks } : group
-      )
-    )
+    setManualOrderByProject((prev) => ({
+      ...prev,
+      [activeGroup.project.id]: arrayMove(current, oldIndex, newIndex),
+    }))
   }
 
-  if (!visibleGroups.length) {
-    return (
-      <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-        <div className="flex items-center justify-between px-4 py-4 border-b border-border/70">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold tracking-tight">Tasks</h1>
-            <p className="text-xs text-muted-foreground">No tasks available yet.</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const taskTagOptions = useMemo(
+    () =>
+      Object.keys(filterCounts.tags ?? {}).map((tag) => ({
+        id: tag,
+        label: tag,
+      })),
+    [filterCounts.tags],
+  )
+
+  const memberOptions = useMemo(() => {
+    if (!currentUser) return []
+
+    return [
+      {
+        id: currentUser.displayName,
+        label: currentUser.displayName,
+      },
+    ]
+  }, [currentUser])
+
+  const isMutating = updateTaskMutation.isPending
+  const isEmpty = !isPending && groups.length === 0
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
@@ -246,12 +301,18 @@ export function MyTasksPage() {
                   initialChips={filters}
                   onApply={setFilters}
                   onClear={() => setFilters([])}
-                  counts={counts}
+                  counts={filterCounts}
+                  statusOptions={TASK_STATUS_OPTIONS}
+                  priorityOptions={TASK_PRIORITY_OPTIONS}
+                  memberOptions={memberOptions}
+                  tagOptions={taskTagOptions}
                 />
                 <ChipOverflow
                   chips={filters}
                   onRemove={(key, value) =>
-                    setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
+                    setFilters((prev) =>
+                      prev.filter((chip) => !(chip.key === key && chip.value === value)),
+                    )
                   }
                   maxVisible={6}
                 />
@@ -268,22 +329,30 @@ export function MyTasksPage() {
       />
 
       <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-4 py-4">
-        {viewOptions.viewType === "list" && (
+        {isPending && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
+        {error && <p className="text-sm text-destructive">Failed to load tasks.</p>}
+        {isMutating && <p className="text-xs text-muted-foreground">Saving task changes...</p>}
+        {isEmpty && (
+          <p className="text-sm text-muted-foreground">No tasks available yet.</p>
+        )}
+
+        {!isPending && !isEmpty && viewOptions.viewType === "list" && (
           <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <ProjectTaskListView
-              groups={visibleGroups}
-              onToggleTask={toggleTask}
+              groups={groups}
+              onToggleTask={handleStatusToggle}
               onAddTask={(context) => openCreateTask(context)}
             />
           </DndContext>
         )}
-        {viewOptions.viewType === "board" && (
+
+        {!isPending && !isEmpty && viewOptions.viewType === "board" && (
           <TaskWeekBoardView
             tasks={allVisibleTasks}
             onAddTask={(context) => openCreateTask(context)}
-            onToggleTask={toggleTask}
-            onChangeTag={changeTaskTag}
-            onMoveTaskDate={moveTaskDate}
+            onToggleTask={handleStatusToggle}
+            onChangeTag={handleTagChange}
+            onMoveTaskDate={handleTaskDateMove}
             onOpenTask={openEditTask}
           />
         )}
@@ -297,9 +366,7 @@ export function MyTasksPage() {
           setCreateContext(undefined)
         }}
         context={editingTask ? undefined : createContext}
-        onTaskCreated={handleTaskCreated}
         editingTask={editingTask}
-        onTaskUpdated={handleTaskUpdated}
       />
     </div>
   )

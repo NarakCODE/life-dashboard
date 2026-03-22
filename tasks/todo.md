@@ -1,3 +1,47 @@
+# Tasks Scaling Integration Plan
+
+## Status: COMPLETE
+
+### 1. Contract and architecture alignment
+- [x] Confirm the frontend task UI integration points and remove dependence on mock task collections
+- [x] Add a minimal backend projects/workstreams source of truth that tasks can validate against
+- [x] Keep the dashboard tasks overview endpoint compatible while moving tasks onto project-backed ownership
+
+### 2. Backend projects/workstreams foundation
+- [x] Create a `projects` module with owner-scoped schema, repository, service, controller, and DTOs
+- [x] Store workstreams under projects and expose a lightweight authenticated read endpoint for task creation/editing
+- [x] Update the tasks service to resolve `projectName` and `workstreamName` from backend project data instead of trusting client-supplied labels
+- [x] Tighten task write validation so invalid project/workstream combinations are rejected
+
+### 3. Frontend tasks API integration
+- [x] Add a typed project-dashboard task API client and query/mutation hooks for `my-tasks`, create, update, and delete
+- [x] Add a typed project/workstream options query for the task modal
+- [x] Refactor `MyTasksPage` to use server data, server filter counts, and mutation-driven updates instead of local mock task state
+- [x] Refactor `TaskQuickCreateModal` to submit real API mutations and source project/workstream options from the backend
+
+### 4. Verification
+- [x] Run targeted `apps/api` validation
+- [x] Run targeted `apps/project-dashboard` validation
+- [x] Record review/results and residual risks
+
+## Review / Results
+- Added a new backend `projects` feature module with owner-scoped projects and embedded workstreams, then wired `TasksService` to resolve and validate task `projectId` / `workstreamId` through that source of truth instead of trusting client-supplied labels.
+- Kept task reads denormalized for performance, but moved task writes onto backend-resolved `projectName` / `workstreamName`. The task Postman collection was updated again so create/list examples use real `{{projectId}}` / `{{workstreamId}}` ids.
+- Added a frontend task domain layer in `apps/project-dashboard` with authenticated queries/mutations for `my-tasks`, create, update, delete, plus envelope-meta support so the tasks page can consume `meta.filterCounts`.
+- Refactored `MyTasksPage` off static `projects` / `project-details` task state. It now loads tasks from the backend, loads project/workstream metadata from `/projects`, uses server filter counts, and persists toggle/tag/date changes through mutations.
+- Refactored `TaskQuickCreateModal` to fetch project/workstream options from the backend and submit real create/update mutations instead of building in-memory tasks.
+- Verification:
+  - `pnpm --filter api check-types` ✅
+  - `pnpm --filter api lint` ✅ with pre-existing unrelated warnings in goals, journal-entries, notifications, and transactions
+  - `pnpm --filter api test -- --runInBand` ✅
+  - `pnpm --filter my-v0-project lint` ✅ with pre-existing unrelated warnings elsewhere in `apps/project-dashboard`
+  - `pnpm --filter my-v0-project check-types` ❌ still blocked by pre-existing unrelated TypeScript errors in existing files such as `components/clients/ClientDetailsPage.tsx`, `components/inbox/InboxPage.tsx`, `components/performance-content.tsx`, `components/project-timeline.tsx`, `components/projects/TimelineGantt.tsx`, `components/projects/WorkstreamTab.tsx`, `components/settings/SettingsDialog.tsx`, and `lib/data/project-details.ts`
+  - targeted grep over `pnpm --filter my-v0-project check-types` output found no errors in the newly changed task/api integration files
+- Remaining risks:
+  - The new backend project model is minimal and not yet wired into the rest of the frontend project-management surfaces, so `/tasks` now has a real source of truth before the broader projects UI does.
+  - Member filtering in the tasks UI currently only supports the authenticated user cleanly; a full users/member directory would be needed for multi-user assignee selection and richer member filtering.
+  - Existing task documents created before the projects module may still contain stale denormalized labels until they are updated or backfilled.
+
 # Tasks API Design Implementation Plan
 
 ## Status: COMPLETE
