@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
 import { Budget, BudgetDocument } from './schemas/budget.schema';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 
@@ -15,33 +20,40 @@ export class BudgetsRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateBudgetDto,
   ): Promise<BudgetDocument> {
     const createdBudget = new this.budgetModel({
       ...dto,
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
     });
     return createdBudget.save();
   }
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<BudgetDocument | null> {
     return this.budgetModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
 
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: any,
   ): Promise<{ items: BudgetDocument[]; total: number }> {
-    const filter: any = { userId: new Types.ObjectId(userId.toString()) };
+    const filter: any = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (query.category) filter.category = query.category;
     if (query.period) filter.period = query.period;
@@ -55,7 +67,7 @@ export class BudgetsRepository {
     if (query.sortBy) {
       sortObj[query.sortBy] = query.sortOrder === 'asc' ? 1 : -1;
     } else {
-      sortObj.createdAt = -1; // Default sort
+      sortObj.createdAt = -1;
     }
 
     const page = query.page || 1;
@@ -77,16 +89,23 @@ export class BudgetsRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: any,
   ): Promise<BudgetDocument | null> {
     return this.budgetModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: updateData },
+        {
+          $set: {
+            ...updateData,
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -94,24 +113,25 @@ export class BudgetsRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.budgetModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
     return result.deletedCount > 0;
   }
 
-  async getBudgetSummary(
-    userId: string | Types.ObjectId,
-    query: any,
-  ): Promise<any[]> {
-    const userObjectId = new Types.ObjectId(userId.toString());
-    const matchStage: any = { userId: userObjectId };
+  async getBudgetSummary(scope: WorkspaceScope, query: any): Promise<any[]> {
+    const userObjectId = toObjectId(scope.userId);
+    const matchStage: any = buildWorkspaceScopedFilter(scope, {
+      userId: userObjectId,
+    });
 
     if (query.category) {
       matchStage.category = query.category;
@@ -125,9 +145,10 @@ export class BudgetsRepository {
         { $match: matchStage },
         {
           $lookup: {
-            from: 'transactions', // Implicit dependency on transactions collection
+            from: 'transactions',
             let: {
               bUserId: '$userId',
+              bWorkspaceId: '$workspaceId',
               bCategory: '$category',
               bStartDate: '$startDate',
               bEndDate: '$endDate',
@@ -137,7 +158,17 @@ export class BudgetsRepository {
                 $match: {
                   $expr: {
                     $and: [
-                      { $eq: ['$userId', '$$bUserId'] },
+                      {
+                        $or: [
+                          { $eq: ['$workspaceId', '$$bWorkspaceId'] },
+                          {
+                            $and: [
+                              { $eq: ['$workspaceId', null] },
+                              { $eq: ['$userId', '$$bUserId'] },
+                            ],
+                          },
+                        ],
+                      },
                       { $eq: ['$type', 'expense'] },
                       {
                         $cond: {
@@ -193,7 +224,6 @@ export class BudgetsRepository {
       ])
       .exec();
 
-    // Map result to include derived metrics natively
     return result.map((budget: any) => {
       const budgetAmount = budget.amount;
       const actualSpending = budget.actualSpending;
@@ -204,7 +234,7 @@ export class BudgetsRepository {
       return {
         ...budget,
         remainingAmount,
-        percentUsed: Math.round(percentUsed * 100) / 100, // Round to 2 decimal places
+        percentUsed: Math.round(percentUsed * 100) / 100,
         isOverBudget: actualSpending > budgetAmount,
       };
     });

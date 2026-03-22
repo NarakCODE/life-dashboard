@@ -1,5 +1,5 @@
 import { IsOptional, IsEnum, IsBoolean } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { NotificationType } from '../schemas/notification.schema';

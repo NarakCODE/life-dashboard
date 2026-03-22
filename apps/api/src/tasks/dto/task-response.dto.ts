@@ -33,6 +33,10 @@ export class TaskResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId: string;
+
+  @Expose()
+  @ApiProperty()
   name: string;
 
   @Expose()

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "03 - Habits",
-    "description": "Habit tracking endpoints - Full CRUD with streak tracking",
+    "description": "Workspace-scoped habit management endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('habitId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Morning Exercise\",\n  \"description\": \"30 minutes of cardio or strength training\",\n  \"frequency\": \"daily\",\n  \"targetDays\": [0, 1, 2, 3, 4, 5, 6],\n  \"reminderTime\": \"07:00\",\n  \"color\": \"#FF5733\"\n}"
+          "raw": "{\n  \"name\": \"Morning Exercise\",\n  \"description\": \"30 minutes of cardio\",\n  \"frequency\": \"custom\",\n  \"customDays\": [\n    1,\n    2,\n    3,\n    4,\n    5\n  ],\n  \"targetCount\": 1,\n  \"color\": \"#22c55e\",\n  \"startDate\": \"2026-03-22T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/habits",
-          "host": ["{{baseUrl}}"],
-          "path": ["habits"]
-        },
-        "description": "Create a new habit"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/habits?page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["habits"],
+          "raw": "{{baseUrl}}/habits?page=1&limit=20&status=active&frequency=custom",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits"
+          ],
           "query": [
             {
               "key": "page",
@@ -70,10 +82,17 @@
             {
               "key": "limit",
               "value": "20"
+            },
+            {
+              "key": "status",
+              "value": "active"
+            },
+            {
+              "key": "frequency",
+              "value": "custom"
             }
           ]
-        },
-        "description": "List all habits for the user"
+        }
       }
     },
     {
@@ -84,14 +103,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habits/{{habitId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habits", "{{habitId}}"]
-        },
-        "description": "Get a specific habit with streak info"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits",
+            "{{habitId}}"
+          ]
+        }
       }
     },
     {
@@ -106,18 +133,53 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Updated Habit Name\",\n  \"reminderTime\": \"08:00\"\n}"
+          "raw": "{\n  \"description\": \"40 minutes of cardio\",\n  \"targetCount\": 2,\n  \"endDate\": \"2026-04-22T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/habits/{{habitId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habits", "{{habitId}}"]
-        },
-        "description": "Update a habit"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits",
+            "{{habitId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Archive Habit",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}/archive",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits",
+            "{{habitId}}",
+            "archive"
+          ]
+        }
       }
     },
     {
@@ -128,14 +190,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habits/{{habitId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habits", "{{habitId}}"]
-        },
-        "description": "Delete a habit"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habits",
+            "{{habitId}}"
+          ]
+        }
       }
     }
   ]

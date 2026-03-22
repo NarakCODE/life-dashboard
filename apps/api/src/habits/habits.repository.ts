@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
 import { Habit, HabitDocument } from './schemas/habit.schema';
 import { CreateHabitDto } from './dto/create-habit.dto';
 
@@ -14,33 +19,40 @@ export class HabitsRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateHabitDto,
   ): Promise<HabitDocument> {
     const createdHabit = new this.habitModel({
       ...dto,
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
     });
     return createdHabit.save();
   }
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<HabitDocument | null> {
     return this.habitModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
 
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: any,
   ): Promise<{ items: HabitDocument[]; total: number }> {
-    const filter: any = { userId: new Types.ObjectId(userId.toString()) };
+    const filter: any = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (query.status) filter.status = query.status;
     if (query.frequency) filter.frequency = query.frequency;
@@ -73,16 +85,23 @@ export class HabitsRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: any,
   ): Promise<HabitDocument | null> {
     return this.habitModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: updateData },
+        {
+          $set: {
+            ...updateData,
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -90,15 +109,24 @@ export class HabitsRepository {
 
   async archiveByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<HabitDocument | null> {
     return this.habitModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: { status: 'archived', archivedAt: new Date() } },
+        {
+          $set: {
+            status: 'archived',
+            archivedAt: new Date(),
+            archivedBy: toObjectId(scope.userId),
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -106,12 +134,14 @@ export class HabitsRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.habitModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 

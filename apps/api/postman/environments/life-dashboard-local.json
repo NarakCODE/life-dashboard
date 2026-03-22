@@ -26,6 +26,36 @@
       "enabled": true
     },
     {
+      "key": "workspaceId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "invitationId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "memberId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "workstreamId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
       "key": "taskId",
       "value": "",
       "type": "default",

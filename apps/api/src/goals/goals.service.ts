@@ -15,6 +15,7 @@ import { LinkTasksDto } from './dto/link-tasks.dto';
 import { LinkHabitsDto } from './dto/link-habits.dto';
 import { TasksService } from '../tasks/tasks.service';
 import { HabitsService } from '../habits/habits.service';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 
 @Injectable()
 export class GoalsService {
@@ -24,15 +25,18 @@ export class GoalsService {
     private readonly habitsService: HabitsService,
   ) {}
 
-  async create(userId: string, dto: CreateGoalDto): Promise<GoalDocument> {
+  async create(
+    workspace: WorkspaceRequestContext,
+    dto: CreateGoalDto,
+  ): Promise<GoalDocument> {
     // Validate that linked tasks belong to the user
     if (dto.linkedTasks && dto.linkedTasks.length > 0) {
-      await this.validateTasksOwnership(userId, dto.linkedTasks);
+      await this.validateTasksOwnership(workspace, dto.linkedTasks);
     }
 
     // Validate that linked habits belong to the user
     if (dto.linkedHabits && dto.linkedHabits.length > 0) {
-      await this.validateHabitsOwnership(userId, dto.linkedHabits);
+      await this.validateHabitsOwnership(workspace, dto.linkedHabits);
     }
 
     // Validate goal type consistency with linked items
@@ -42,43 +46,55 @@ export class GoalsService {
       dto.linkedHabits,
     );
 
-    return this.goalsRepo.create(userId, dto);
+    return this.goalsRepo.create(
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
+      dto,
+    );
   }
 
-  async findByIdAndUser(id: string, userId: string): Promise<any> {
-    const goal = await this.goalsRepo.findByIdAndUser(id, userId);
+  async findByIdAndUser(
+    id: string,
+    workspace: WorkspaceRequestContext,
+  ): Promise<any> {
+    const goal = await this.goalsRepo.findByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
     return goal;
   }
 
-  async findMany(userId: string, query: QueryGoalDto) {
-    return this.goalsRepo.findWithPaginationAndFilters(userId, query);
+  async findMany(workspace: WorkspaceRequestContext, query: QueryGoalDto) {
+    return this.goalsRepo.findWithPaginationAndFilters(
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
+      query,
+    );
   }
 
   async update(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: UpdateGoalDto,
   ): Promise<GoalDocument> {
-    // First, verify the goal exists and belongs to the user
-    const existingGoal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const existingGoal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!existingGoal) {
       throw new NotFoundException('Goal not found');
-    }
-    if (existingGoal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only update your own goals');
     }
 
     // Validate that linked tasks belong to the user
     if (dto.linkedTasks && dto.linkedTasks.length > 0) {
-      await this.validateTasksOwnership(userId, dto.linkedTasks);
+      await this.validateTasksOwnership(workspace, dto.linkedTasks);
     }
 
     // Validate that linked habits belong to the user
     if (dto.linkedHabits && dto.linkedHabits.length > 0) {
-      await this.validateHabitsOwnership(userId, dto.linkedHabits);
+      await this.validateHabitsOwnership(workspace, dto.linkedHabits);
     }
 
     // Validate goal type consistency
@@ -89,19 +105,22 @@ export class GoalsService {
       dto.linkedHabits ?? existingGoal.linkedHabits.map((h) => h.toString());
     this.validateGoalTypeConsistency(type, linkedTasks, linkedHabits);
 
-    const goal = await this.goalsRepo.updateByIdAndUser(id, userId, dto);
+    const goal = await this.goalsRepo.updateByIdAndUser(id, scope, dto);
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
 
     // Check if goal should be auto-completed
-    await this.goalsRepo.checkAndCompleteGoal(id, userId);
+    await this.goalsRepo.checkAndCompleteGoal(id, scope);
 
     return goal;
   }
 
-  async delete(id: string, userId: string): Promise<void> {
-    const deleted = await this.goalsRepo.deleteByIdAndUser(id, userId);
+  async delete(id: string, workspace: WorkspaceRequestContext): Promise<void> {
+    const deleted = await this.goalsRepo.deleteByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!deleted) {
       throw new NotFoundException('Goal not found');
     }
@@ -112,16 +131,16 @@ export class GoalsService {
    */
   async logProgress(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: LogProgressDto,
   ): Promise<GoalDocument> {
-    // Verify goal exists and belongs to user
-    const goal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const goal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!goal) {
       throw new NotFoundException('Goal not found');
-    }
-    if (goal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only update your own goals');
     }
 
     // Only manual goals should allow progress logging
@@ -134,7 +153,7 @@ export class GoalsService {
 
     const updatedGoal = await this.goalsRepo.logProgress(
       id,
-      userId,
+      scope,
       dto.value,
       dto.note,
     );
@@ -144,7 +163,7 @@ export class GoalsService {
     }
 
     // Check if goal should be auto-completed
-    await this.goalsRepo.checkAndCompleteGoal(id, userId);
+    await this.goalsRepo.checkAndCompleteGoal(id, scope);
 
     return updatedGoal;
   }
@@ -154,20 +173,20 @@ export class GoalsService {
    */
   async linkTasks(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: LinkTasksDto,
   ): Promise<GoalDocument> {
-    // Verify goal exists and belongs to user
-    const goal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const goal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
-    if (goal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only modify your own goals');
-    }
 
     // Validate task ownership
-    await this.validateTasksOwnership(userId, dto.taskIds);
+    await this.validateTasksOwnership(workspace, dto.taskIds);
 
     // Check if goal type supports task linking
     if (goal.type === GoalType.HABIT_BASED) {
@@ -179,7 +198,7 @@ export class GoalsService {
     const taskObjectIds = dto.taskIds.map((tid) => new Types.ObjectId(tid));
     const updatedGoal = await this.goalsRepo.linkTasks(
       id,
-      userId,
+      scope,
       taskObjectIds,
     );
 
@@ -195,20 +214,20 @@ export class GoalsService {
    */
   async linkHabits(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: LinkHabitsDto,
   ): Promise<GoalDocument> {
-    // Verify goal exists and belongs to user
-    const goal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const goal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
-    if (goal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only modify your own goals');
-    }
 
     // Validate habit ownership
-    await this.validateHabitsOwnership(userId, dto.habitIds);
+    await this.validateHabitsOwnership(workspace, dto.habitIds);
 
     // Check if goal type supports habit linking
     if (goal.type === GoalType.TASK_BASED) {
@@ -220,7 +239,7 @@ export class GoalsService {
     const habitObjectIds = dto.habitIds.map((hid) => new Types.ObjectId(hid));
     const updatedGoal = await this.goalsRepo.linkHabits(
       id,
-      userId,
+      scope,
       habitObjectIds,
     );
 
@@ -236,16 +255,16 @@ export class GoalsService {
    */
   async unlinkTask(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     taskId: string,
   ): Promise<GoalDocument> {
-    // Verify goal exists and belongs to user
-    const goal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const goal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!goal) {
       throw new NotFoundException('Goal not found');
-    }
-    if (goal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only modify your own goals');
     }
 
     // Verify the task is actually linked
@@ -254,7 +273,7 @@ export class GoalsService {
       throw new BadRequestException('Task is not linked to this goal');
     }
 
-    const updatedGoal = await this.goalsRepo.unlinkTask(id, userId, taskId);
+    const updatedGoal = await this.goalsRepo.unlinkTask(id, scope, taskId);
 
     if (!updatedGoal) {
       throw new NotFoundException('Goal not found');
@@ -268,16 +287,16 @@ export class GoalsService {
    */
   async unlinkHabit(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     habitId: string,
   ): Promise<GoalDocument> {
-    // Verify goal exists and belongs to user
-    const goal = await this.goalsRepo.findById(id);
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const goal = await this.goalsRepo.findByIdAndUser(id, scope);
     if (!goal) {
       throw new NotFoundException('Goal not found');
-    }
-    if (goal.userId.toString() !== userId) {
-      throw new ForbiddenException('You can only modify your own goals');
     }
 
     // Verify the habit is actually linked
@@ -286,7 +305,7 @@ export class GoalsService {
       throw new BadRequestException('Habit is not linked to this goal');
     }
 
-    const updatedGoal = await this.goalsRepo.unlinkHabit(id, userId, habitId);
+    const updatedGoal = await this.goalsRepo.unlinkHabit(id, scope, habitId);
 
     if (!updatedGoal) {
       throw new NotFoundException('Goal not found');
@@ -299,14 +318,14 @@ export class GoalsService {
    * Validate that all tasks belong to the user
    */
   private async validateTasksOwnership(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     taskIds: string[],
   ): Promise<void> {
     const uniqueTaskIds = [...new Set(taskIds)];
 
     for (const taskId of uniqueTaskIds) {
       try {
-        await this.tasksService.findByIdAndUser(taskId, userId);
+        await this.tasksService.findByIdAndUser(taskId, workspace);
       } catch (error) {
         if (error instanceof NotFoundException) {
           throw new ForbiddenException(
@@ -322,14 +341,14 @@ export class GoalsService {
    * Validate that all habits belong to the user
    */
   private async validateHabitsOwnership(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     habitIds: string[],
   ): Promise<void> {
     const uniqueHabitIds = [...new Set(habitIds)];
 
     for (const habitId of uniqueHabitIds) {
       try {
-        await this.habitsService.findByIdAndUser(habitId, userId);
+        await this.habitsService.findByIdAndUser(habitId, workspace);
       } catch (error) {
         if (error instanceof NotFoundException) {
           throw new ForbiddenException(

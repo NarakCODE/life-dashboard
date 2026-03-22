@@ -12,6 +12,7 @@ import {
 } from './dto/project-response.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsRepository } from './projects.repository';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 import {
   ProjectDocument,
   ProjectPriority,
@@ -23,23 +24,37 @@ export class ProjectsService {
   constructor(private readonly projectsRepo: ProjectsRepository) {}
 
   async create(
-    ownerUserId: string,
+    workspace: WorkspaceRequestContext,
     dto: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
-    const project = await this.projectsRepo.create(ownerUserId, dto);
+    const project = await this.projectsRepo.create(
+      {
+        workspaceId: workspace.workspaceId,
+        userId: workspace.actorUserId,
+      },
+      dto,
+    );
     return this.toProjectResponse(project);
   }
 
-  async findAllAccessible(userId: string): Promise<ProjectResponseDto[]> {
-    const projects = await this.projectsRepo.findAllAccessible(userId);
+  async findAllAccessible(
+    workspace: WorkspaceRequestContext,
+  ): Promise<ProjectResponseDto[]> {
+    const projects = await this.projectsRepo.findAllAccessible({
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     return projects.map((project) => this.toProjectResponse(project));
   }
 
   async findByIdAccessible(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
   ): Promise<ProjectResponseDto> {
-    const project = await this.projectsRepo.findAccessibleById(id, userId);
+    const project = await this.projectsRepo.findAccessibleById(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
@@ -49,7 +64,7 @@ export class ProjectsService {
 
   async update(
     id: string,
-    ownerUserId: string,
+    workspace: WorkspaceRequestContext,
     dto: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     const update: Record<string, unknown> = {};
@@ -87,9 +102,12 @@ export class ProjectsService {
       }));
     }
 
-    const project = await this.projectsRepo.updateByIdAndOwner(
+    const project = await this.projectsRepo.updateByIdAndWorkspace(
       id,
-      ownerUserId,
+      {
+        workspaceId: workspace.workspaceId,
+        userId: workspace.actorUserId,
+      },
       update as Partial<ProjectDocument>,
     );
 
@@ -100,8 +118,14 @@ export class ProjectsService {
     return this.toProjectResponse(project);
   }
 
-  async delete(id: string, ownerUserId: string): Promise<{ message: string }> {
-    const deleted = await this.projectsRepo.deleteByIdAndOwner(id, ownerUserId);
+  async delete(
+    id: string,
+    workspace: WorkspaceRequestContext,
+  ): Promise<{ message: string }> {
+    const deleted = await this.projectsRepo.deleteByIdAndWorkspace(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!deleted) {
       throw new NotFoundException('Project not found');
     }
@@ -110,14 +134,14 @@ export class ProjectsService {
   }
 
   async resolveTaskProjectContext(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     projectId: string,
     workstreamId?: string,
   ): Promise<ResolvedTaskProjectContext> {
-    const project = await this.projectsRepo.findAccessibleById(
-      projectId,
-      userId,
-    );
+    const project = await this.projectsRepo.findAccessibleById(projectId, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
@@ -152,6 +176,7 @@ export class ProjectsService {
 
     return new ProjectResponseDto({
       id: raw._id.toString(),
+      workspaceId: raw.workspaceId.toString(),
       name: raw.name,
       status: (raw.status as ProjectStatus) ?? ProjectStatus.ACTIVE,
       priority: (raw.priority as ProjectPriority) ?? ProjectPriority.MEDIUM,

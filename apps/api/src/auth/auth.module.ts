@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from '../users/users.module';
 import { OtpCodesModule } from '../otp-codes/otp-codes.module';
 import { EmailModule } from '../email/email.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -16,6 +17,7 @@ import { jwtConfig } from './config/jwt.config';
 @Module({
   imports: [
     UsersModule,
+    WorkspacesModule,
     OtpCodesModule,
     EmailModule,
     PassportModule,

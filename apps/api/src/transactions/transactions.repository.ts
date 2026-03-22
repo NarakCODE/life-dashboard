@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
+import {
   Transaction,
   TransactionCategory,
   TransactionDocument,
@@ -21,14 +26,17 @@ export class TransactionsRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateTransactionDto,
   ): Promise<TransactionDocument> {
     const createdTransaction = new this.transactionModel({
       ...dto,
       budgetId: dto.budgetId ? new Types.ObjectId(dto.budgetId) : null,
       currency: dto.currency?.toUpperCase() ?? 'USD',
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
     });
 
     return createdTransaction.save();
@@ -36,21 +44,23 @@ export class TransactionsRepository {
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<TransactionDocument | null> {
     return this.transactionModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
 
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryTransactionDto,
   ): Promise<{ items: TransactionDocument[]; total: number }> {
-    const filter = this.buildFilter(userId, query);
+    const filter = this.buildFilter(scope, query);
     const { page, limit } = query;
     const skip = (page - 1) * limit;
 
@@ -68,7 +78,7 @@ export class TransactionsRepository {
   }
 
   async findByBudgetCategory(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     category: string,
     query: QueryTransactionDto,
   ): Promise<{ items: TransactionDocument[]; total: number }> {
@@ -77,11 +87,11 @@ export class TransactionsRepository {
       category: query.category ?? (category as TransactionCategory),
     });
 
-    return this.findWithPaginationAndFilters(userId, scopedQuery);
+    return this.findWithPaginationAndFilters(scope, scopedQuery);
   }
 
   async getSummaryByDateRange(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryTransactionDto,
   ): Promise<{
     totalIncome: number;
@@ -91,7 +101,7 @@ export class TransactionsRepository {
     byCategory: Array<{ category: string; totalAmount: number; count: number }>;
     byType: Array<{ type: string; totalAmount: number; count: number }>;
   }> {
-    const matchStage = this.buildFilter(userId, query);
+    const matchStage = this.buildFilter(scope, query);
 
     const [result] = await this.transactionModel
       .aggregate([
@@ -167,7 +177,7 @@ export class TransactionsRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: UpdateTransactionDto,
   ): Promise<TransactionDocument | null> {
     const normalizedUpdateData = {
@@ -184,9 +194,16 @@ export class TransactionsRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: normalizedUpdateData },
+        {
+          $set: {
+            ...normalizedUpdateData,
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -194,25 +211,24 @@ export class TransactionsRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.transactionModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
     return result.deletedCount > 0;
   }
 
-  private buildFilter(
-    userId: string | Types.ObjectId,
-    query: QueryTransactionDto,
-  ) {
-    const filter: Record<string, unknown> = {
-      userId: new Types.ObjectId(userId.toString()),
-    };
+  private buildFilter(scope: WorkspaceScope, query: QueryTransactionDto) {
+    const filter: Record<string, unknown> = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (query.type) {
       filter.type = query.type;

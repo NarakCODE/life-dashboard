@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "07 - Transactions",
-    "description": "Transaction tracking - Income and expense records with category filtering",
+    "description": "Workspace-scoped transaction endpoints and summary queries.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('transactionId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"type\": \"expense\",\n  \"amount\": 45.50,\n  \"category\": \"groceries\",\n  \"description\": \"Weekly grocery shopping\",\n  \"date\": \"2024-01-15\",\n  \"paymentMethod\": \"credit_card\",\n  \"tags\": [\"food\", \"essentials\"]\n}"
+          "raw": "{\n  \"budgetId\": \"{{budgetId}}\",\n  \"amount\": 45.5,\n  \"type\": \"expense\",\n  \"category\": \"food\",\n  \"description\": \"Weekly grocery shopping\",\n  \"date\": \"2026-03-20T00:00:00.000Z\",\n  \"currency\": \"USD\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/transactions",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions"]
-        },
-        "description": "Create a new transaction (income or expense)"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/transactions?page=1&limit=20&type=expense",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions"],
+          "raw": "{{baseUrl}}/transactions?page=1&limit=20&type=expense&currency=USD",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions"
+          ],
           "query": [
             {
               "key": "page",
@@ -74,10 +86,13 @@
             {
               "key": "type",
               "value": "expense"
+            },
+            {
+              "key": "currency",
+              "value": "USD"
             }
           ]
-        },
-        "description": "List transactions with filters"
+        }
       }
     },
     {
@@ -88,14 +103,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/transactions/{{transactionId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions", "{{transactionId}}"]
-        },
-        "description": "Get a specific transaction"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions",
+            "{{transactionId}}"
+          ]
+        }
       }
     },
     {
@@ -110,18 +133,26 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"amount\": 50.00,\n  \"description\": \"Updated description\"\n}"
+          "raw": "{\n  \"amount\": 49.99,\n  \"description\": \"Updated grocery shopping total\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/transactions/{{transactionId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions", "{{transactionId}}"]
-        },
-        "description": "Update a transaction"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions",
+            "{{transactionId}}"
+          ]
+        }
       }
     },
     {
@@ -132,14 +163,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/transactions/{{transactionId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions", "{{transactionId}}"]
-        },
-        "description": "Delete a transaction"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions",
+            "{{transactionId}}"
+          ]
+        }
       }
     },
     {
@@ -150,24 +189,36 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/transactions/summary?dateFrom=2024-01-01&dateTo=2024-01-31",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions", "summary"],
+          "raw": "{{baseUrl}}/transactions/summary?dateFrom=2026-03-01T00:00:00.000Z&dateTo=2026-03-31T23:59:59.999Z&currency=USD",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions",
+            "summary"
+          ],
           "query": [
             {
               "key": "dateFrom",
-              "value": "2024-01-01"
+              "value": "2026-03-01T00:00:00.000Z"
             },
             {
               "key": "dateTo",
-              "value": "2024-01-31"
+              "value": "2026-03-31T23:59:59.999Z"
+            },
+            {
+              "key": "currency",
+              "value": "USD"
             }
           ]
-        },
-        "description": "Get income/expense summary for date range"
+        }
       }
     },
     {
@@ -178,16 +229,24 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/transactions?category=groceries&page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions"],
+          "raw": "{{baseUrl}}/transactions?category=food&page=1&limit=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions"
+          ],
           "query": [
             {
               "key": "category",
-              "value": "groceries"
+              "value": "food"
             },
             {
               "key": "page",
@@ -198,8 +257,7 @@
               "value": "20"
             }
           ]
-        },
-        "description": "Filter transactions by category"
+        }
       }
     },
     {
@@ -210,20 +268,28 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/transactions?dateFrom=2024-01-01&dateTo=2024-01-31&page=1&limit=50",
-          "host": ["{{baseUrl}}"],
-          "path": ["transactions"],
+          "raw": "{{baseUrl}}/transactions?dateFrom=2026-03-01T00:00:00.000Z&dateTo=2026-03-31T23:59:59.999Z&page=1&limit=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transactions"
+          ],
           "query": [
             {
               "key": "dateFrom",
-              "value": "2024-01-01"
+              "value": "2026-03-01T00:00:00.000Z"
             },
             {
               "key": "dateTo",
-              "value": "2024-01-31"
+              "value": "2026-03-31T23:59:59.999Z"
             },
             {
               "key": "page",
@@ -234,8 +300,7 @@
               "value": "50"
             }
           ]
-        },
-        "description": "Filter transactions by date range"
+        }
       }
     }
   ]

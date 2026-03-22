@@ -54,4 +54,32 @@ export class UsersRepository {
       .findByIdAndUpdate(id, { isEmailVerified: true })
       .exec();
   }
+
+  async updateWorkspacePreferences(
+    id: string | Types.ObjectId,
+    update: {
+      defaultWorkspaceId?: string | Types.ObjectId | null;
+      activeWorkspaceId?: string | Types.ObjectId | null;
+    },
+  ): Promise<void> {
+    const normalizedUpdate: Record<string, Types.ObjectId | null> = {};
+
+    if (update.defaultWorkspaceId !== undefined) {
+      normalizedUpdate.defaultWorkspaceId = update.defaultWorkspaceId
+        ? this.toObjectId(update.defaultWorkspaceId)
+        : null;
+    }
+
+    if (update.activeWorkspaceId !== undefined) {
+      normalizedUpdate.activeWorkspaceId = update.activeWorkspaceId
+        ? this.toObjectId(update.activeWorkspaceId)
+        : null;
+    }
+
+    await this.userModel.findByIdAndUpdate(id, normalizedUpdate).exec();
+  }
+
+  private toObjectId(value: string | Types.ObjectId): Types.ObjectId {
+    return value instanceof Types.ObjectId ? value : new Types.ObjectId(value);
+  }
 }

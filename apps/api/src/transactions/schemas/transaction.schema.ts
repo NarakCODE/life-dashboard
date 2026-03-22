@@ -23,8 +23,17 @@ export enum TransactionCategory {
 
 @Schema({ timestamps: true, collection: 'transactions' })
 export class Transaction {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'Budget', default: null })
   budgetId?: Types.ObjectId;
@@ -61,3 +70,7 @@ TransactionSchema.index({ userId: 1, date: -1 });
 TransactionSchema.index({ userId: 1, category: 1, date: -1 });
 TransactionSchema.index({ userId: 1, budgetId: 1 });
 TransactionSchema.index({ userId: 1, type: 1 });
+TransactionSchema.index({ workspaceId: 1, date: -1 });
+TransactionSchema.index({ workspaceId: 1, category: 1, date: -1 });
+TransactionSchema.index({ workspaceId: 1, budgetId: 1 });
+TransactionSchema.index({ workspaceId: 1, type: 1 });

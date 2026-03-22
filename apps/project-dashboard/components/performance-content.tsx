@@ -147,7 +147,7 @@ function MetricCard({ title, value, description, icon, tooltip, tone = "neutral"
                 <Info className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] text-xs">
+            <TooltipContent side="top" className="max-w-55 text-xs">
               {tooltip}
             </TooltipContent>
           </Tooltip>
@@ -233,7 +233,7 @@ function PerformanceFilterPopover({
           Filter
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[560px] p-0 rounded-xl">
+      <PopoverContent align="start" className="w-140 p-0 rounded-xl">
         <div className="grid grid-cols-[220px_minmax(0,1fr)]">
           <div className="border-r border-border/40 p-3">
             <div className="space-y-1">
@@ -391,7 +391,7 @@ export function PerformanceContent() {
     return chips
   }, [selectedMember, selectedProject, selectedProjectId])
 
-  const handleRemoveChip = (key: string, _value: string) => {
+  const handleRemoveChip = (key: string) => {
     if (key.toLowerCase() === "project") {
       setSelectedProjectId("all")
     }
@@ -531,10 +531,15 @@ export function PerformanceContent() {
       if (offset < 0 || offset >= totalDays) return
       const bucketMatch = bucketEnds.findIndex((end) => offset <= end)
       const bucketIndex = bucketMatch === -1 ? bucketCount - 1 : bucketMatch
-      throughputBuckets[bucketIndex].count += 1
-      const mixBucket = mixBuckets[bucketIndex]
-      mixBucket.total += 1
-      mixBucket[task.type] += 1
+      const bucket = throughputBuckets[bucketIndex]
+      if (bucket) {
+        bucket.count += 1
+        const mixBucket = mixBuckets[bucketIndex]
+        if (mixBucket) {
+          mixBucket.total += 1
+          mixBucket[task.type] += 1
+        }
+      }
     })
 
     completedBugsInRange.forEach((task) => {
@@ -542,7 +547,10 @@ export function PerformanceContent() {
       if (offset < 0 || offset >= totalDays) return
       const bucketMatch = bucketEnds.findIndex((end) => offset <= end)
       const bucketIndex = bucketMatch === -1 ? bucketCount - 1 : bucketMatch
-      bugBuckets[bucketIndex].count += 1
+      const bugBucket = bugBuckets[bucketIndex]
+      if (bugBucket) {
+        bugBucket.count += 1
+      }
     })
 
     const maxThroughput = Math.max(...throughputBuckets.map((bucket) => bucket.count), 1)
@@ -649,13 +657,6 @@ export function PerformanceContent() {
   const totalThroughput = throughputSeries.reduce((acc, item) => acc + item.count, 0)
   const totalBugThroughput = bugSeries.reduce((acc, item) => acc + item.count, 0)
 
-  const handleResetFilters = () => {
-    setSelectedProjectId("all")
-    setSelectedMember("all")
-    setRangeId("30d")
-    setDateRange({ start: "", end: "" })
-    setIsCustomRangeOpen(false)
-  }
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
@@ -682,13 +683,13 @@ export function PerformanceContent() {
                     setSelectedMember("all")
                   }}
                 />
-                <ChipOverflow chips={filterChips} onRemove={handleRemoveChip} maxVisible={6} />
+                <ChipOverflow chips={filterChips} onRemove={(key) => handleRemoveChip(key)} maxVisible={6} />
               </>
             }
             right={
               <>
                 <Select value={rangeId} onValueChange={(value) => setRangeId(value as RangeId)}>
-                  <SelectTrigger className="h-8 w-[170px] rounded-lg border-border/60 bg-transparent px-3">
+                  <SelectTrigger className="h-8 w-42.5 rounded-lg border-border/60 bg-transparent px-3">
                     <SelectValue placeholder="Select range" />
                   </SelectTrigger>
                   <SelectContent>
@@ -782,7 +783,7 @@ export function PerformanceContent() {
               ) : (
                 <div className="flex flex-col flex-1">
                   <div
-                    className="grid gap-3 items-end flex-1 min-h-[140px]"
+                    className="grid gap-3 items-end flex-1 min-h-35"
                     style={{ gridTemplateColumns: `repeat(${throughputSeries.length}, minmax(0, 1fr))` }}
                   >
                     {throughputSeries.map((item) => (
@@ -897,7 +898,7 @@ export function PerformanceContent() {
                     </div>
                     <div className="flex flex-col flex-1">
                       <div
-                        className="grid gap-3 items-end flex-1 min-h-[100px]"
+                        className="grid gap-3 items-end flex-1 min-h-25"
                         style={{ gridTemplateColumns: `repeat(${bugSeries.length}, minmax(0, 1fr))` }}
                       >
                         {bugSeries.map((item) => (
@@ -1004,7 +1005,7 @@ export function PerformanceContent() {
                 <>
                   <div className="flex flex-col flex-1">
                     <div
-                      className="grid items-end gap-3 flex-1 min-h-[140px]"
+                      className="grid items-end gap-3 flex-1 min-h-35"
                       style={{ gridTemplateColumns: `repeat(${mixTrendSeries.length}, minmax(0, 1fr))` }}
                     >
                       {mixTrendSeries.map((item) => (
@@ -1124,14 +1125,14 @@ export function PerformanceContent() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="min-w-[180px] space-y-2">
+                        <div className="min-w-45 space-y-2">
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Actual</span>
                             <span className="text-foreground font-medium">{project.progress}%</span>
                           </div>
                           <Progress
                             value={project.progress}
-                            className="h-2 [&_[data-slot=progress-indicator]]:bg-emerald-500"
+                            className="h-2 **:data-[slot=progress-indicator]:bg-emerald-500"
                           />
                           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                             <span>Schedule</span>

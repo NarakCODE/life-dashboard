@@ -9,8 +9,20 @@ export class JournalEntryResponseDto {
   id: string;
 
   @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  workspaceId?: string | null;
+
+  @Expose()
   @ApiProperty()
   userId: string;
+
+  @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  authorUserId?: string | null;
+
+  @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  updatedBy?: string | null;
 
   @Expose()
   @ApiProperty()

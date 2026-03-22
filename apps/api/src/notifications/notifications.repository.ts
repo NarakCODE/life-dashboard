@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
+import {
   Notification,
   NotificationDocument,
 } from './schemas/notification.schema';
@@ -22,12 +27,15 @@ export class NotificationsRepository {
    * Create a new notification for a user.
    */
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateNotificationDto,
   ): Promise<NotificationDocument> {
     const notification = new this.notificationModel({
       ...dto,
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      recipientUserId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
       isRead: false,
       readAt: null,
     });
@@ -39,12 +47,14 @@ export class NotificationsRepository {
    */
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<NotificationDocument | null> {
     return this.notificationModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
@@ -53,11 +63,13 @@ export class NotificationsRepository {
    * Find notifications with pagination and filters.
    */
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryNotificationDto,
   ): Promise<{ items: NotificationDocument[]; total: number }> {
     const filter: Record<string, unknown> = {
-      userId: new Types.ObjectId(userId.toString()),
+      ...buildWorkspaceScopedFilter(scope, {
+        userId: toObjectId(scope.userId),
+      }),
     };
 
     // Filter by notification type
@@ -98,10 +110,12 @@ export class NotificationsRepository {
   /**
    * Count unread notifications for a user.
    */
-  async countUnread(userId: string | Types.ObjectId): Promise<number> {
+  async countUnread(scope: WorkspaceScope): Promise<number> {
     return this.notificationModel
       .countDocuments({
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
         isRead: false,
       })
       .exec();
@@ -112,7 +126,7 @@ export class NotificationsRepository {
    */
   async markAsRead(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     isRead: boolean,
   ): Promise<NotificationDocument | null> {
     const updateData: Partial<Notification> = {
@@ -124,7 +138,9 @@ export class NotificationsRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         { $set: updateData },
         { new: true },
@@ -135,11 +151,13 @@ export class NotificationsRepository {
   /**
    * Mark all notifications as read for a user.
    */
-  async markAllAsRead(userId: string | Types.ObjectId): Promise<number> {
+  async markAllAsRead(scope: WorkspaceScope): Promise<number> {
     const result = await this.notificationModel
       .updateMany(
         {
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
           isRead: false,
         },
         {
@@ -159,12 +177,14 @@ export class NotificationsRepository {
    */
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.notificationModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 

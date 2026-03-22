@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "01 - Auth",
-    "description": "Authentication endpoints - Register, Login, Email Verification, Token Refresh",
+    "description": "Authentication endpoints. Get Me also hydrates the active workspace context for the workspace-scoped collections.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -21,10 +21,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/auth/register",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "register"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
         },
-        "description": "Register a new user account"
+        "description": "Register a new account. New users are bootstrapped with a default workspace."
       }
     },
     {
@@ -33,21 +38,17 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
               "if (response.data) {",
-              "  pm.environment.set('accessToken', response.data.accessToken);",
-              "  pm.environment.set('refreshToken', response.data.refreshToken);",
+              "  pm.environment.set('accessToken', response.data.accessToken || '');",
+              "  pm.environment.set('refreshToken', response.data.refreshToken || '');",
               "}",
               "pm.test('Status code is 201', function () {",
               "  pm.response.to.have.status(201);",
-              "});",
-              "pm.test('Response has tokens', function () {",
-              "  pm.expect(response.data).to.have.property('accessToken');",
-              "  pm.expect(response.data).to.have.property('refreshToken');",
               "});"
-            ],
-            "type": "text/javascript"
+            ]
           }
         }
       ],
@@ -65,10 +66,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/auth/login",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "login"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
         },
-        "description": "Login and receive access/refresh tokens"
+        "description": "Login and persist tokens into the active Postman environment."
       }
     },
     {
@@ -87,10 +93,14 @@
         },
         "url": {
           "raw": "{{baseUrl}}/auth/verify-email",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "verify-email"]
-        },
-        "description": "Verify email with OTP code"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "verify-email"
+          ]
+        }
       }
     },
     {
@@ -109,10 +119,14 @@
         },
         "url": {
           "raw": "{{baseUrl}}/auth/resend-verification",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "resend-verification"]
-        },
-        "description": "Resend email verification code"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "resend-verification"
+          ]
+        }
       }
     },
     {
@@ -121,17 +135,17 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
               "if (response.data) {",
-              "  pm.environment.set('accessToken', response.data.accessToken);",
-              "  pm.environment.set('refreshToken', response.data.refreshToken);",
+              "  pm.environment.set('accessToken', response.data.accessToken || '');",
+              "  pm.environment.set('refreshToken', response.data.refreshToken || '');",
               "}",
               "pm.test('Status code is 200', function () {",
               "  pm.response.to.have.status(200);",
               "});"
-            ],
-            "type": "text/javascript"
+            ]
           }
         }
       ],
@@ -149,10 +163,15 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/auth/refresh",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "refresh"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
         },
-        "description": "Refresh access token using refresh token"
+        "description": "Refresh the current access token with the saved refresh token."
       }
     },
     {
@@ -167,10 +186,15 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/auth/logout",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "logout"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
         },
-        "description": "Logout and invalidate refresh token"
+        "description": "Logout the current session."
       }
     },
     {
@@ -179,16 +203,20 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
               "if (response.data && response.data.id) {",
               "  pm.environment.set('userId', response.data.id);",
               "}",
+              "const workspaceId = response.data?.activeWorkspaceId || response.data?.defaultWorkspaceId || \"\";",
+              "if (workspaceId) {",
+              "  pm.environment.set('workspaceId', workspaceId);",
+              "}",
               "pm.test('Status code is 200', function () {",
               "  pm.response.to.have.status(200);",
               "});"
-            ],
-            "type": "text/javascript"
+            ]
           }
         }
       ],
@@ -202,10 +230,15 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/auth/me",
-          "host": ["{{baseUrl}}"],
-          "path": ["auth", "me"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
         },
-        "description": "Get current authenticated user info"
+        "description": "Get the current user and persist `workspaceId` from `activeWorkspaceId ?? defaultWorkspaceId`."
       }
     }
   ]

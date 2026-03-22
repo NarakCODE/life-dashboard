@@ -15,9 +15,9 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
+  ApiHeader,
   ApiOkResponse,
   ApiCreatedResponse,
-  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -26,11 +26,21 @@ import { MarkAsReadDto } from './dto/mark-as-read.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
+import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
+import { RequireWorkspacePermission } from '../workspaces/decorators/require-workspace-permission.decorator';
+import { WorkspacePermission } from '../workspaces/workspace-permissions';
 
 @ApiTags('notifications')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@ApiHeader({
+  name: 'x-workspace-id',
+  required: false,
+  description: 'Workspace context for workspace-scoped notification routes',
+})
+@UseGuards(JwtAuthGuard, WorkspaceAccessGuard, WorkspacePermissionGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
@@ -40,6 +50,7 @@ export class NotificationsController {
    * Note: In production, this might be restricted to internal services.
    */
   @Post()
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_WRITE)
   @ApiOperation({
     summary: 'Create a new notification for the authenticated user',
   })
@@ -48,16 +59,17 @@ export class NotificationsController {
     type: NotificationResponseDto,
   })
   create(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() createNotificationDto: CreateNotificationDto,
   ): Promise<NotificationResponseDto> {
-    return this.notificationsService.create(userId, createNotificationDto);
+    return this.notificationsService.create(workspace, createNotificationDto);
   }
 
   /**
    * List notifications for the authenticated user with pagination and filters.
    */
   @Get()
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_READ)
   @ApiOperation({
     summary: 'Get all notifications with pagination and filtering',
   })
@@ -66,16 +78,17 @@ export class NotificationsController {
     type: PaginatedResultDto<NotificationResponseDto>,
   })
   findAll(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() queryNotificationDto: QueryNotificationDto,
   ): Promise<PaginatedResultDto<NotificationResponseDto>> {
-    return this.notificationsService.findMany(userId, queryNotificationDto);
+    return this.notificationsService.findMany(workspace, queryNotificationDto);
   }
 
   /**
    * Get the count of unread notifications for the authenticated user.
    */
   @Get('unread-count')
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_READ)
   @ApiOperation({ summary: 'Get unread notification count' })
   @ApiOkResponse({
     description: 'The number of unread notifications',
@@ -87,15 +100,16 @@ export class NotificationsController {
     },
   })
   getUnreadCount(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<{ count: number }> {
-    return this.notificationsService.getUnreadCount(userId);
+    return this.notificationsService.getUnreadCount(workspace);
   }
 
   /**
    * Get a specific notification by ID.
    */
   @Get(':id')
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_READ)
   @ApiOperation({ summary: 'Get a specific notification by ID' })
   @ApiOkResponse({
     description: 'The notification object',
@@ -103,15 +117,16 @@ export class NotificationsController {
   })
   findOne(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<NotificationResponseDto> {
-    return this.notificationsService.findByIdAndUser(id, userId);
+    return this.notificationsService.findByIdAndUser(id, workspace);
   }
 
   /**
    * Mark a notification as read or unread.
    */
   @Patch(':id/read')
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_WRITE)
   @ApiOperation({ summary: 'Mark a notification as read or unread' })
   @ApiOkResponse({
     description: 'The updated notification',
@@ -119,12 +134,12 @@ export class NotificationsController {
   })
   markAsRead(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() markAsReadDto: MarkAsReadDto,
   ): Promise<NotificationResponseDto> {
     return this.notificationsService.markAsRead(
       id,
-      userId,
+      workspace,
       markAsReadDto.isRead,
     );
   }
@@ -134,6 +149,7 @@ export class NotificationsController {
    */
   @Post('mark-all-read')
   @HttpCode(HttpStatus.OK)
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_WRITE)
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiOkResponse({
     description: 'Number of notifications marked as read',
@@ -145,9 +161,9 @@ export class NotificationsController {
     },
   })
   markAllAsRead(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<{ markedCount: number }> {
-    return this.notificationsService.markAllAsRead(userId);
+    return this.notificationsService.markAllAsRead(workspace);
   }
 
   /**
@@ -155,12 +171,13 @@ export class NotificationsController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @RequireWorkspacePermission(WorkspacePermission.NOTIFICATION_WRITE)
   @ApiOperation({ summary: 'Delete a notification' })
   @ApiOkResponse({ description: 'Notification successfully deleted' })
   remove(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<void> {
-    return this.notificationsService.delete(id, userId);
+    return this.notificationsService.delete(id, workspace);
   }
 }

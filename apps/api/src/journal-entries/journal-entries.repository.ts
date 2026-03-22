@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
+import {
   JournalEntry,
   JournalEntryDocument,
   MoodLevel,
@@ -22,12 +27,15 @@ export class JournalEntriesRepository {
    * Create a new journal entry
    */
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateJournalEntryDto,
   ): Promise<JournalEntryDocument> {
     const createdEntry = new this.journalEntryModel({
       ...dto,
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      authorUserId: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
       entryDate: dto.entryDate ? new Date(dto.entryDate) : new Date(),
     });
     return createdEntry.save();
@@ -38,12 +46,14 @@ export class JournalEntriesRepository {
    */
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<JournalEntryDocument | null> {
     return this.journalEntryModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
@@ -52,11 +62,13 @@ export class JournalEntriesRepository {
    * Find entries with pagination and filters
    */
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: any,
   ): Promise<{ items: JournalEntryDocument[]; total: number }> {
     const filter: any = {
-      userId: new Types.ObjectId(userId.toString()),
+      ...buildWorkspaceScopedFilter(scope, {
+        userId: toObjectId(scope.userId),
+      }),
     };
 
     // Filter by mood
@@ -116,7 +128,7 @@ export class JournalEntriesRepository {
    */
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: any,
   ): Promise<JournalEntryDocument | null> {
     // Convert entryDate if provided
@@ -128,9 +140,16 @@ export class JournalEntriesRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: updateData },
+        {
+          $set: {
+            ...updateData,
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -141,12 +160,14 @@ export class JournalEntriesRepository {
    */
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.journalEntryModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
@@ -157,7 +178,7 @@ export class JournalEntriesRepository {
    * Get mood summary for a user
    */
   async getMoodSummary(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dateFrom?: Date,
     dateTo?: Date,
   ): Promise<{
@@ -167,7 +188,9 @@ export class JournalEntriesRepository {
     moodDistribution: Array<{ mood: MoodLevel; count: number }>;
   }> {
     const matchStage: any = {
-      userId: new Types.ObjectId(userId.toString()),
+      ...buildWorkspaceScopedFilter(scope, {
+        userId: toObjectId(scope.userId),
+      }),
     };
 
     // Date range filter
@@ -229,7 +252,7 @@ export class JournalEntriesRepository {
    * Get mood trend over time (daily aggregation)
    */
   async getMoodTrend(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dateFrom?: Date,
     dateTo?: Date,
   ): Promise<
@@ -240,7 +263,9 @@ export class JournalEntriesRepository {
     }>
   > {
     const matchStage: any = {
-      userId: new Types.ObjectId(userId.toString()),
+      ...buildWorkspaceScopedFilter(scope, {
+        userId: toObjectId(scope.userId),
+      }),
       mood: { $exists: true, $ne: null },
     };
 

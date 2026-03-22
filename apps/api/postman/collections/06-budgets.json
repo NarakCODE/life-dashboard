@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "06 - Budgets",
-    "description": "Budget planning - Monthly budgets by category",
+    "description": "Workspace-scoped budget endpoints, including summary filters aligned with `QueryBudgetDto`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('budgetId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"category\": \"groceries\",\n  \"amount\": 500,\n  \"period\": \"monthly\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"alertThreshold\": 80,\n  \"notes\": \"Monthly grocery budget\"\n}"
+          "raw": "{\n  \"name\": \"Monthly Groceries\",\n  \"amount\": 500,\n  \"category\": \"food\",\n  \"period\": \"monthly\",\n  \"startDate\": \"2026-03-01T00:00:00.000Z\",\n  \"endDate\": \"2026-03-31T23:59:59.999Z\",\n  \"currency\": \"USD\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/budgets",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets"]
-        },
-        "description": "Create a new budget category"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/budgets?page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets"],
+          "raw": "{{baseUrl}}/budgets?page=1&limit=20&period=monthly&isActive=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets"
+          ],
           "query": [
             {
               "key": "page",
@@ -70,10 +82,17 @@
             {
               "key": "limit",
               "value": "20"
+            },
+            {
+              "key": "period",
+              "value": "monthly"
+            },
+            {
+              "key": "isActive",
+              "value": "true"
             }
           ]
-        },
-        "description": "List all budgets"
+        }
       }
     },
     {
@@ -84,14 +103,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/budgets/{{budgetId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets", "{{budgetId}}"]
-        },
-        "description": "Get budget with spending info"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets",
+            "{{budgetId}}"
+          ]
+        }
       }
     },
     {
@@ -106,18 +133,26 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"amount\": 600,\n  \"alertThreshold\": 75\n}"
+          "raw": "{\n  \"amount\": 550,\n  \"category\": \"food\",\n  \"isActive\": true\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/budgets/{{budgetId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets", "{{budgetId}}"]
-        },
-        "description": "Update budget amount or settings"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets",
+            "{{budgetId}}"
+          ]
+        }
       }
     },
     {
@@ -128,14 +163,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/budgets/{{budgetId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets", "{{budgetId}}"]
-        },
-        "description": "Delete a budget"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets",
+            "{{budgetId}}"
+          ]
+        }
       }
     },
     {
@@ -146,24 +189,37 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/budgets/summary?dateFrom=2024-01-01&dateTo=2024-01-31",
-          "host": ["{{baseUrl}}"],
-          "path": ["budgets", "summary"],
+          "raw": "{{baseUrl}}/budgets/summary?period=monthly&category=food&isActive=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "budgets",
+            "summary"
+          ],
           "query": [
             {
-              "key": "dateFrom",
-              "value": "2024-01-01"
+              "key": "period",
+              "value": "monthly"
             },
             {
-              "key": "dateTo",
-              "value": "2024-01-31"
+              "key": "category",
+              "value": "food"
+            },
+            {
+              "key": "isActive",
+              "value": "true"
             }
           ]
         },
-        "description": "Get budget vs actual spending summary"
+        "description": "Budget summary now uses the same filters as budget listing, not `dateFrom` / `dateTo`."
       }
     }
   ]

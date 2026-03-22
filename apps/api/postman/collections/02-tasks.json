@@ -1,26 +1,70 @@
 {
   "info": {
     "name": "02 - Tasks",
-    "description": "Task management endpoints for the project/workstream task contract, including my-tasks filtering and CRUD.",
+    "description": "Workspace-scoped task endpoints. Includes a helper request to resolve project/workstream ids before task creation.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "List Projects For Task Context",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "const projects = Array.isArray(response.data) ? response.data : [];",
+              "if (projects[0]?.id) {",
+              "  pm.environment.set('projectId', projects[0].id);",
+              "}",
+              "if (projects[0]?.workstreams?.[0]?.id) {",
+              "  pm.environment.set('workstreamId', projects[0].workstreams[0].id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects"
+          ]
+        },
+        "description": "Fetch workspace projects and save the first `projectId` / `workstreamId` for task examples."
+      }
+    },
     {
       "name": "Create Task",
       "event": [
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('taskId', response.data.id);",
               "}",
               "pm.test('Status code is 201', function () {",
               "  pm.response.to.have.status(201);",
               "});"
-            ],
-            "type": "text/javascript"
+            ]
           }
         }
       ],
@@ -34,11 +78,15 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"{{projectId}}\",\n  \"workstreamId\": \"{{workstreamId}}\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"Feature\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
+          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"{{projectId}}\",\n  \"workstreamId\": \"{{workstreamId}}\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"Design\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks",
@@ -49,7 +97,7 @@
             "tasks"
           ]
         },
-        "description": "Create a new project-oriented task. `projectId` and `workstreamId` must come from real `/projects` data."
+        "description": "Create a task in the active workspace using real project/workstream ids."
       }
     },
     {
@@ -60,10 +108,14 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId={{projectId}}&tags=Feature&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
+          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId={{projectId}}&tags=Design&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
           "host": [
             "{{baseUrl}}"
           ],
@@ -90,7 +142,7 @@
             },
             {
               "key": "tags",
-              "value": "Feature"
+              "value": "Design"
             },
             {
               "key": "view",
@@ -110,7 +162,7 @@
             }
           ]
         },
-        "description": "Fetch the authenticated user's tasks with pagination and top-level meta.filterCounts."
+        "description": "Fetch the authenticated user task board with filter counts."
       }
     },
     {
@@ -121,6 +173,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
@@ -153,8 +209,7 @@
               "value": "desc"
             }
           ]
-        },
-        "description": "List tasks through the general authenticated listing endpoint."
+        }
       }
     },
     {
@@ -165,6 +220,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
@@ -176,8 +235,7 @@
             "tasks",
             "{{taskId}}"
           ]
-        },
-        "description": "Fetch a single task by id."
+        }
       }
     },
     {
@@ -192,11 +250,15 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"status\": \"in-progress\",\n  \"name\": \"Updated design system setup\",\n  \"tag\": \"frontend\",\n  \"startDate\": \"2026-03-26T00:00:00.000Z\"\n}"
+          "raw": "{\n  \"status\": \"in-progress\",\n  \"name\": \"Updated design system setup\",\n  \"tag\": \"Frontend\",\n  \"startDate\": \"2026-03-26T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks/{{taskId}}",
@@ -207,8 +269,7 @@
             "tasks",
             "{{taskId}}"
           ]
-        },
-        "description": "Update task fields such as status, name, tag, or dates."
+        }
       }
     },
     {
@@ -219,6 +280,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
@@ -230,8 +295,7 @@
             "tasks",
             "{{taskId}}"
           ]
-        },
-        "description": "Delete a task."
+        }
       }
     },
     {
@@ -242,6 +306,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
@@ -266,8 +334,7 @@
               "value": "10"
             }
           ]
-        },
-        "description": "Search tasks by name, description, project name, or workstream name."
+        }
       }
     },
     {
@@ -278,10 +345,14 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks/my-tasks?startDateFrom=2026-03-01&startDateTo=2026-03-31&page=1&limit=20",
+          "raw": "{{baseUrl}}/tasks/my-tasks?startDateFrom=2026-03-01T00:00:00.000Z&startDateTo=2026-03-31T23:59:59.999Z&page=1&limit=20",
           "host": [
             "{{baseUrl}}"
           ],
@@ -292,11 +363,11 @@
           "query": [
             {
               "key": "startDateFrom",
-              "value": "2026-03-01"
+              "value": "2026-03-01T00:00:00.000Z"
             },
             {
               "key": "startDateTo",
-              "value": "2026-03-31"
+              "value": "2026-03-31T23:59:59.999Z"
             },
             {
               "key": "page",
@@ -307,8 +378,7 @@
               "value": "20"
             }
           ]
-        },
-        "description": "Filter tasks by scheduled start date range."
+        }
       }
     }
   ]

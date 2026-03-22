@@ -15,6 +15,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
+  ApiHeader,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiParam,
@@ -29,29 +30,41 @@ import {
   MoodSummaryResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
+import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
+import { RequireWorkspacePermission } from '../workspaces/decorators/require-workspace-permission.decorator';
+import { WorkspacePermission } from '../workspaces/workspace-permissions';
 
 @ApiTags('journal-entries')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@ApiHeader({
+  name: 'x-workspace-id',
+  required: false,
+  description: 'Workspace context for workspace-scoped journal routes',
+})
+@UseGuards(JwtAuthGuard, WorkspaceAccessGuard, WorkspacePermissionGuard)
 @Controller('journal-entries')
 export class JournalEntriesController {
   constructor(private readonly journalEntriesService: JournalEntriesService) {}
 
   @Post()
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_WRITE)
   @ApiOperation({ summary: 'Create a new journal entry' })
   @ApiCreatedResponse({
     description: 'The created journal entry',
     type: JournalEntryResponseDto,
   })
   create(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() createJournalEntryDto: CreateJournalEntryDto,
   ) {
-    return this.journalEntriesService.create(userId, createJournalEntryDto);
+    return this.journalEntriesService.create(workspace, createJournalEntryDto);
   }
 
   @Get()
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_READ)
   @ApiOperation({
     summary: 'Get all journal entries for the authenticated user',
     description:
@@ -63,13 +76,14 @@ export class JournalEntriesController {
     isArray: true,
   })
   findAll(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() queryDto: QueryJournalEntryDto,
   ) {
-    return this.journalEntriesService.findMany(userId, queryDto);
+    return this.journalEntriesService.findMany(workspace, queryDto);
   }
 
   @Get('mood-summary')
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_READ)
   @ApiOperation({
     summary: 'Get mood tracking summary',
     description:
@@ -80,24 +94,29 @@ export class JournalEntriesController {
     type: MoodSummaryResponseDto,
   })
   getMoodSummary(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() queryDto: MoodSummaryQueryDto,
   ) {
-    return this.journalEntriesService.getMoodSummary(userId, queryDto);
+    return this.journalEntriesService.getMoodSummary(workspace, queryDto);
   }
 
   @Get(':id')
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_READ)
   @ApiOperation({ summary: 'Get a specific journal entry by ID' })
   @ApiParam({ name: 'id', description: 'Journal entry ID' })
   @ApiOkResponse({
     description: 'The requested journal entry',
     type: JournalEntryResponseDto,
   })
-  findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.journalEntriesService.findByIdAndUser(id, userId);
+  findOne(
+    @Param('id') id: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ) {
+    return this.journalEntriesService.findByIdAndUser(id, workspace);
   }
 
   @Patch(':id')
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_WRITE)
   @ApiOperation({ summary: 'Update a journal entry' })
   @ApiParam({ name: 'id', description: 'Journal entry ID' })
   @ApiOkResponse({
@@ -106,18 +125,26 @@ export class JournalEntriesController {
   })
   update(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() updateJournalEntryDto: UpdateJournalEntryDto,
   ) {
-    return this.journalEntriesService.update(id, userId, updateJournalEntryDto);
+    return this.journalEntriesService.update(
+      id,
+      workspace,
+      updateJournalEntryDto,
+    );
   }
 
   @Delete(':id')
+  @RequireWorkspacePermission(WorkspacePermission.JOURNAL_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a journal entry' })
   @ApiParam({ name: 'id', description: 'Journal entry ID' })
   @ApiOkResponse({ description: 'Journal entry successfully deleted' })
-  remove(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.journalEntriesService.delete(id, userId);
+  remove(
+    @Param('id') id: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ) {
+    return this.journalEntriesService.delete(id, workspace);
   }
 }

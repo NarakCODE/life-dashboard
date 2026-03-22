@@ -4,9 +4,11 @@ import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { TransactionsRepository } from './transactions.repository';
 import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
+    WorkspacesModule,
     MongooseModule.forFeature([
       { name: Transaction.name, schema: TransactionSchema },
     ]),

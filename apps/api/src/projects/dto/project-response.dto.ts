@@ -29,6 +29,10 @@ export class ProjectResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId: string;
+
+  @Expose()
+  @ApiProperty()
   name: string;
 
   @Expose()

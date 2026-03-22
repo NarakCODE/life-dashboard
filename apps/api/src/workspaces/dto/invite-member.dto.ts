@@ -3,7 +3,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { WorkspaceRole } from '../schemas/workspace.schema';
 
 export class InviteMemberDto {
-  @ApiProperty({ example: 'partner@example.com', description: 'Email of the user to invite' })
+  @ApiProperty({
+    example: 'partner@example.com',
+    description: 'Email of the user to invite',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;

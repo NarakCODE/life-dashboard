@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { Exclude } from 'class-transformer';
 
 export type UserDocument = HydratedDocument<User> & {
@@ -29,6 +29,12 @@ export class User {
    */
   @Prop({ default: false })
   isEmailVerified: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  defaultWorkspaceId?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  activeWorkspaceId?: Types.ObjectId | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

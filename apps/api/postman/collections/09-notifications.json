@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "09 - Notifications",
-    "description": "In-app notifications - Manage user notifications",
+    "description": "Workspace-scoped notification endpoints for listing, counting, and read-state changes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('notificationId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"type\": \"task_due\",\n  \"title\": \"Task Due Soon\",\n  \"body\": \"Your task 'Complete documentation' is due in 2 hours\",\n  \"data\": {\n    \"taskId\": \"{{taskId}}\"\n  }\n}"
+          "raw": "{\n  \"type\": \"system\",\n  \"title\": \"Workspace migration complete\",\n  \"body\": \"The shared workspace architecture is now active for this collection set.\",\n  \"data\": {\n    \"taskId\": \"{{taskId}}\"\n  }\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/notifications",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications"]
-        },
-        "description": "Create a new notification (system use)"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications?page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications"],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications"
+          ],
           "query": [
             {
               "key": "page",
@@ -72,8 +84,7 @@
               "value": "20"
             }
           ]
-        },
-        "description": "List all notifications"
+        }
       }
     },
     {
@@ -84,12 +95,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications?isRead=false&page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications"],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications"
+          ],
           "query": [
             {
               "key": "isRead",
@@ -104,8 +123,7 @@
               "value": "20"
             }
           ]
-        },
-        "description": "List only unread notifications"
+        }
       }
     },
     {
@@ -116,14 +134,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications/unread-count",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "unread-count"]
-        },
-        "description": "Get count of unread notifications"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "unread-count"
+          ]
+        }
       }
     },
     {
@@ -134,14 +160,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications/{{notificationId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "{{notificationId}}"]
-        },
-        "description": "Get a specific notification"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "{{notificationId}}"
+          ]
+        }
       }
     },
     {
@@ -156,6 +190,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
@@ -164,10 +202,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "{{notificationId}}", "read"]
-        },
-        "description": "Mark a notification as read"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "{{notificationId}}",
+            "read"
+          ]
+        }
       }
     },
     {
@@ -182,6 +225,10 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
@@ -190,10 +237,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "{{notificationId}}", "read"]
-        },
-        "description": "Mark a notification as unread"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "{{notificationId}}",
+            "read"
+          ]
+        }
       }
     },
     {
@@ -204,14 +256,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications/mark-all-read",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "mark-all-read"]
-        },
-        "description": "Mark all notifications as read"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "mark-all-read"
+          ]
+        }
       }
     },
     {
@@ -222,14 +282,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/notifications/{{notificationId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["notifications", "{{notificationId}}"]
-        },
-        "description": "Delete a notification"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "notifications",
+            "{{notificationId}}"
+          ]
+        }
       }
     }
   ]

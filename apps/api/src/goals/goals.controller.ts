@@ -15,6 +15,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
+  ApiHeader,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiParam,
@@ -27,64 +28,85 @@ import { LogProgressDto } from './dto/log-progress.dto';
 import { LinkTasksDto } from './dto/link-tasks.dto';
 import { LinkHabitsDto } from './dto/link-habits.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
+import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
+import { RequireWorkspacePermission } from '../workspaces/decorators/require-workspace-permission.decorator';
+import { WorkspacePermission } from '../workspaces/workspace-permissions';
 
 @ApiTags('goals')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@ApiHeader({
+  name: 'x-workspace-id',
+  required: false,
+  description: 'Workspace context for workspace-scoped goal routes',
+})
+@UseGuards(JwtAuthGuard, WorkspaceAccessGuard, WorkspacePermissionGuard)
 @Controller('goals')
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
 
   @Post()
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @ApiOperation({ summary: 'Create a new goal' })
   @ApiCreatedResponse({ description: 'The created goal object' })
   create(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() createGoalDto: CreateGoalDto,
   ) {
-    return this.goalsService.create(userId, createGoalDto);
+    return this.goalsService.create(workspace, createGoalDto);
   }
 
   @Get()
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_READ)
   @ApiOperation({ summary: 'Get all goals for the authenticated user' })
   @ApiOkResponse({
     description:
       'The list of goals with computed progress and pagination details',
   })
   findAll(
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() queryGoalDto: QueryGoalDto,
   ) {
-    return this.goalsService.findMany(userId, queryGoalDto);
+    return this.goalsService.findMany(workspace, queryGoalDto);
   }
 
   @Get(':id')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_READ)
   @ApiOperation({
     summary: 'Get a specific goal by ID with live computed progress',
   })
   @ApiOkResponse({ description: 'The requested goal' })
-  findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.goalsService.findByIdAndUser(id, userId);
+  findOne(
+    @Param('id') id: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ) {
+    return this.goalsService.findByIdAndUser(id, workspace);
   }
 
   @Patch(':id')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @ApiOperation({ summary: 'Update a goal' })
   @ApiOkResponse({ description: 'The updated goal' })
   update(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() updateGoalDto: UpdateGoalDto,
   ) {
-    return this.goalsService.update(id, userId, updateGoalDto);
+    return this.goalsService.update(id, workspace, updateGoalDto);
   }
 
   @Delete(':id')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a goal permanently' })
   @ApiOkResponse({ description: 'Goal successfully deleted' })
-  remove(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.goalsService.delete(id, userId);
+  remove(
+    @Param('id') id: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ) {
+    return this.goalsService.delete(id, workspace);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -92,6 +114,7 @@ export class GoalsController {
   // ─────────────────────────────────────────────────────────────────────────
 
   @Post(':id/log-progress')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @ApiOperation({
     summary: 'Log progress for a manual goal',
     description:
@@ -101,10 +124,10 @@ export class GoalsController {
   @ApiCreatedResponse({ description: 'Progress logged successfully' })
   logProgress(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LogProgressDto,
   ) {
-    return this.goalsService.logProgress(id, userId, dto);
+    return this.goalsService.logProgress(id, workspace, dto);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -112,6 +135,7 @@ export class GoalsController {
   // ─────────────────────────────────────────────────────────────────────────
 
   @Post(':id/link-tasks')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @ApiOperation({
     summary: 'Link tasks to a goal',
     description:
@@ -121,13 +145,14 @@ export class GoalsController {
   @ApiCreatedResponse({ description: 'Tasks linked successfully' })
   linkTasks(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LinkTasksDto,
   ) {
-    return this.goalsService.linkTasks(id, userId, dto);
+    return this.goalsService.linkTasks(id, workspace, dto);
   }
 
   @Delete(':id/unlink-task/:taskId')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Unlink a task from a goal',
@@ -139,9 +164,9 @@ export class GoalsController {
   unlinkTask(
     @Param('id') id: string,
     @Param('taskId') taskId: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
-    return this.goalsService.unlinkTask(id, userId, taskId);
+    return this.goalsService.unlinkTask(id, workspace, taskId);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -149,6 +174,7 @@ export class GoalsController {
   // ─────────────────────────────────────────────────────────────────────────
 
   @Post(':id/link-habits')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @ApiOperation({
     summary: 'Link habits to a goal',
     description:
@@ -158,13 +184,14 @@ export class GoalsController {
   @ApiCreatedResponse({ description: 'Habits linked successfully' })
   linkHabits(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LinkHabitsDto,
   ) {
-    return this.goalsService.linkHabits(id, userId, dto);
+    return this.goalsService.linkHabits(id, workspace, dto);
   }
 
   @Delete(':id/unlink-habit/:habitId')
+  @RequireWorkspacePermission(WorkspacePermission.GOAL_WRITE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Unlink a habit from a goal',
@@ -176,8 +203,8 @@ export class GoalsController {
   unlinkHabit(
     @Param('id') id: string,
     @Param('habitId') habitId: string,
-    @CurrentUser('sub') userId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
-    return this.goalsService.unlinkHabit(id, userId, habitId);
+    return this.goalsService.unlinkHabit(id, workspace, habitId);
   }
 }

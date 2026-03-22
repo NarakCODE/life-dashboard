@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthTokensDto, JwtPayload } from './dto/auth-tokens.dto';
 import { UserDocument } from '../users/schemas/user.schema';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly emailService: BrevoEmailService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly workspacesService: WorkspacesService,
   ) {
     const expiresIn = this.config.get<string>('jwt.expiresIn', '15m');
     this.jwtExpiresIn = this.parseExpiryToSeconds(expiresIn);
@@ -52,6 +54,9 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.usersService.create({ ...dto, passwordHash });
+    await this.workspacesService.ensureDefaultWorkspaceForUser(
+      user._id.toString(),
+    );
 
     // Send verification email (fire-and-forget)
     await this.sendVerificationEmail(user);
@@ -163,6 +168,7 @@ export class AuthService {
    * Get the authenticated user's profile.
    */
   async getMe(userId: string): Promise<UserResponseDto> {
+    await this.workspacesService.ensureDefaultWorkspaceForUser(userId);
     const user = await this.usersService.findById(userId);
     return this.toResponseDto(user);
   }
@@ -182,6 +188,10 @@ export class AuthService {
   }
 
   private async issueTokens(user: UserDocument): Promise<AuthTokensDto> {
+    await this.workspacesService.ensureDefaultWorkspaceForUser(
+      user._id.toString(),
+    );
+
     const payload: JwtPayload = {
       sub: user._id.toString(),
       email: user.email,
@@ -226,6 +236,8 @@ export class AuthService {
       email: user.email,
       displayName: user.displayName,
       isEmailVerified: user.isEmailVerified,
+      defaultWorkspaceId: user.defaultWorkspaceId?.toString() ?? null,
+      activeWorkspaceId: user.activeWorkspaceId?.toString() ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

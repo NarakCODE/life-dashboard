@@ -69,12 +69,14 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
     }
   }, [])
 
+  const projectName = state.status === "ready" ? state.project.name : ""
+
   const breadcrumbs = useMemo(
     () => [
       { label: "Projects", href: "/" },
-      { label: state.status === "ready" ? state.project.name : "Project Details" },
+      { label: projectName || "Project Details" },
     ],
-    [state.status, state.status === "ready" ? state.project.name : null]
+    [projectName]
   )
 
   const openWizard = useCallback(() => {
@@ -210,8 +212,8 @@ function ProjectDetailsSkeleton() {
 
         <div className="mt-4">
           <Skeleton className="h-4 w-32" />
-          <Skeleton className="mt-3 h-8 w-[360px]" />
-          <Skeleton className="mt-3 h-5 w-[520px]" />
+          <Skeleton className="mt-3 h-8 w-90" />
+          <Skeleton className="mt-3 h-5 w-130" />
           <Skeleton className="mt-5 h-px w-full" />
           <Skeleton className="mt-5 h-16 w-full" />
         </div>

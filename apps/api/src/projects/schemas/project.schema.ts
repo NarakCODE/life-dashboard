@@ -43,6 +43,12 @@ export class Project {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   ownerUserId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
+
   @Prop({ required: true, trim: true })
   name: string;
 
@@ -79,5 +85,6 @@ export class Project {
 export const ProjectSchema = SchemaFactory.createForClass(Project);
 
 ProjectSchema.index({ workspaceId: 1, status: 1 });
+ProjectSchema.index({ workspaceId: 1, updatedAt: -1 });
 ProjectSchema.index({ ownerUserId: 1, status: 1 });
 ProjectSchema.index({ memberUserIds: 1 });

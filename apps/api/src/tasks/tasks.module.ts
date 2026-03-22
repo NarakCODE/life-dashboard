@@ -6,11 +6,13 @@ import { TasksService } from './tasks.service';
 import { TasksController } from './tasks.controller';
 import { UsersModule } from '../users/users.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
     UsersModule,
     ProjectsModule,
+    WorkspacesModule,
     MongooseModule.forFeature([{ name: Task.name, schema: TaskSchema }]),
   ],
   controllers: [TasksController],

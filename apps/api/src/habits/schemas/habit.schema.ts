@@ -12,8 +12,20 @@ export enum HabitFrequency {
 
 @Schema({ timestamps: true, collection: 'habits' })
 export class Habit {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  archivedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
   name: string;
@@ -67,3 +79,5 @@ export const HabitSchema = SchemaFactory.createForClass(Habit);
 
 HabitSchema.index({ userId: 1, status: 1 });
 HabitSchema.index({ userId: 1, startDate: 1 });
+HabitSchema.index({ workspaceId: 1, status: 1 });
+HabitSchema.index({ workspaceId: 1, startDate: 1 });

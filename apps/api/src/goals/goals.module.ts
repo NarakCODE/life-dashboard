@@ -7,9 +7,11 @@ import { GoalsRepository } from './goals.repository';
 import { GoalsService } from './goals.service';
 import { GoalsController } from './goals.controller';
 import { GoalEventsListener } from './listeners/goal-events.listener';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
+    WorkspacesModule,
     MongooseModule.forFeature([{ name: Goal.name, schema: GoalSchema }]),
     TasksModule,
     HabitsModule,

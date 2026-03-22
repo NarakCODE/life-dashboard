@@ -9,8 +9,20 @@ export class NotificationResponseDto {
   id: string;
 
   @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  workspaceId?: string | null;
+
+  @Expose()
   @ApiProperty()
   userId: string;
+
+  @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  recipientUserId?: string | null;
+
+  @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  createdBy?: string | null;
 
   @Expose()
   @ApiProperty({ enum: NotificationType })

@@ -1,3 +1,116 @@
+# Workspace Listing 500 Fix Plan
+
+## Status: COMPLETE
+
+### 1. Investigation
+- [x] Trace the `GET /workspaces` code path through controller, service, and module wiring
+- [x] Identify the highest-probability failure point in the migrated workspace bootstrap flow
+
+### 2. Fix
+- [x] Make the default-workspace bootstrap path resilient to concurrent requests during first workspace resolution
+- [x] Keep the membership upsert path safe under concurrent bootstrap/access resolution
+- [x] Minimize the fix to the workspace service/module path without changing unrelated business modules
+
+### 3. Verification
+- [x] Add targeted automated coverage for the workspace listing/bootstrap regression
+- [x] Run relevant `apps/api` tests for the workspace fix
+- [x] Record review/results and any remaining risks
+
+## Review / Results
+- Root cause: `GET /workspaces` now bootstraps a default workspace through `ensureDefaultWorkspaceForUser()`. Under concurrent first-load requests after the workspace migration, that path could race on the unique `defaultForUserId` workspace index or the unique `(workspaceId, userId)` membership index and surface as an unhandled Mongo duplicate-key error, which became the observed 500.
+- Fixed `apps/api/src/workspaces/workspaces.service.ts` so the bootstrap path is idempotent under concurrency:
+  - default workspace creation now catches duplicate-key races and re-reads the already-created workspace
+  - membership upsert now catches duplicate-key races and falls back to the existing membership document
+  - the service now throws a clear `NotFoundException` if the default workspace still cannot be resolved after the retry path
+- Added targeted regression coverage in `apps/api/src/workspaces/workspaces.service.spec.ts` for both duplicate-key scenarios.
+- Verification:
+  - `pnpm --filter api test -- workspaces.service.spec.ts workspace-permissions.spec.ts --runInBand` ✅
+  - `pnpm --filter api check-types` ✅
+- Remaining risk:
+  - I validated the race-safe service path and type safety locally, but I did not hit the live `/api/v1/workspaces` endpoint against your running environment from this session.
+
+# Postman Workspace Migration Regeneration Plan
+
+## Status: COMPLETE
+
+### 1. Contract audit
+- [x] Inspect current `apps/api/postman/collections` assets and identify whether they are generated or hand-authored
+- [x] Map backend controllers to the workspace-scoped request contract after the migration
+
+### 2. Collection regeneration
+- [x] Regenerate each collection under `apps/api/postman/collections` so workspace-scoped endpoints send `x-workspace-id`
+- [x] Refresh request examples, saved ids, and supporting variables for the migrated workspace-first flows
+- [x] Update supporting Postman docs/environment assets if they are now stale
+
+### 3. Verification
+- [x] Validate the regenerated collection files are parseable JSON
+- [x] Review the updated collections for coverage of the migrated workspace flows
+- [x] Record review/results and any remaining gaps
+
+## Review / Results
+- Re-generated every existing collection under `apps/api/postman/collections` to align with the workspace-first backend contract and added `x-workspace-id` to the workspace-scoped business routes (`tasks`, `habits`, `habit-logs`, `goals`, `budgets`, `transactions`, `journal-entries`, `notifications`, `dashboard`).
+- Updated `01-auth.json` so `Get Me` now persists `workspaceId` from `activeWorkspaceId ?? defaultWorkspaceId`, which makes the rest of the collections immediately usable after login.
+- Expanded `11-workspaces.json` to cover the migrated invitation and workspace lifecycle routes that were previously missing: list-my-invitations, accept, reject, revoke, switch, and leave.
+- Added a new `apps/api/postman/collections/12-projects.json` collection because the current tasks API depends on real `/projects` data for `projectId` / `workstreamId`, and the Postman set was incomplete without it.
+- Refreshed the local Postman environment and README so the new workspace/project variables and the expected execution flow are documented.
+- Verification:
+  - `jq empty apps/api/postman/collections/*.json apps/api/postman/environments/life-dashboard-local.json` ✅
+  - Manual spot-check of regenerated request URLs, headers, and saved-id scripts against the current controllers/DTOs ✅
+- Remaining gap:
+  - I validated collection structure and route/header alignment locally, but I did not run the requests against a live API instance in this pass.
+
+# Workspace-Centric Backend Redesign Implementation Plan
+
+## Status: COMPLETE
+
+### 1. Workspace foundations
+- [x] Add a dedicated `WorkspaceMembership` source of truth while keeping embedded workspace members compatible during rollout
+- [x] Extend workspace/user models for solo-workspace bootstrapping and active workspace tracking
+- [x] Add invitation acceptance/rejection/revocation flows and tighten invitation uniqueness/expiration
+- [x] Introduce shared workspace context and permission resolution for non-workspace business modules
+
+### 2. Project and task migration
+- [x] Refactor projects to authorize by workspace membership instead of `ownerUserId` / `memberUserIds`
+- [x] Migrate tasks to store `workspaceId` and attribution fields while preserving compatibility for legacy records
+- [x] Update task-project validation so linked records must belong to the same workspace
+- [x] Update controllers and DTOs to require consistent workspace scoping
+
+### 3. Remaining business collection migration
+- [x] Add `workspaceId` plus attribution fields to goals, habits, habit logs, budgets, transactions, journal entries, and business notifications
+- [x] Update repositories/services/controllers for workspace-scoped reads and writes with compatibility fallback for legacy user-owned records
+- [x] Align cross-entity validation and dashboard aggregations to workspace boundaries
+
+### 4. Verification
+- [x] Add or update targeted automated coverage for workspace context and workspace-scoped filtering/permissions
+- [x] Run relevant `apps/api` validation
+- [x] Record review/results and residual risks
+
+## Review / Results
+- Added a workspace foundation that the rest of `apps/api` can share instead of re-implementing ownership checks per module:
+  - `WorkspaceMembership` collection as the long-term membership source of truth while keeping `workspace.members` synchronized for rollout compatibility
+  - `defaultWorkspaceId` / `activeWorkspaceId` on users plus lazy solo-workspace bootstrapping
+  - invitation acceptance, rejection, revocation, expiration, and pending-invitation listing
+  - shared workspace context resolution and permission mapping through `WorkspaceAccessGuard`, `WorkspacePermissionGuard`, `@WorkspaceContext()`, and `@RequireWorkspacePermission(...)`
+- Migrated the backend modules onto workspace-first scoping with legacy compatibility fallbacks:
+  - `projects`, `tasks`, and `dashboard`
+  - `goals`, `habits`, and `habit-logs`
+  - `budgets`, `transactions`
+  - `journal-entries`, `notifications`
+- Added `workspaceId` plus attribution fields across the migrated business schemas while intentionally retaining legacy `userId` fields for transitional reads/writes and backfill safety.
+- Updated task-project validation to resolve projects within the active workspace instead of the previous user-centric access rule.
+- Added targeted automated coverage for the shared workspace primitives in:
+  - `apps/api/src/workspaces/workspace-permissions.spec.ts`
+  - `apps/api/src/common/utils/workspace-scope.util.spec.ts`
+- Verification:
+  - `pnpm --filter api check-types` ✅
+  - `pnpm --filter api lint` ✅
+  - `pnpm --filter api test -- --runInBand` ✅
+- Remaining risks / follow-up:
+  - The migration is still compatibility-first: legacy `userId` ownership fields remain in place and are still written on new records until a dedicated data backfill and cleanup pass removes them safely.
+  - Workspace membership is now authoritative for request-time access, but there is still no ownership-transfer flow for workspace owners; owners are blocked from leaving for now.
+  - Invitation delivery still relies on existing email plumbing and authenticated acceptance by matching email; tokenized anonymous acceptance links are not wired into email templates yet.
+  - Postman collections were not fully reworked in this pass to document the new `x-workspace-id` requirement across every workspace-scoped module.
+
 # Tasks Scaling Integration Plan
 
 ## Status: COMPLETE

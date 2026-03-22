@@ -24,6 +24,14 @@ export class UserResponseDto {
   isEmailVerified: boolean;
 
   @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  defaultWorkspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty({ required: false, nullable: true })
+  activeWorkspaceId?: string | null;
+
+  @Expose()
   @ApiProperty()
   createdAt: Date;
 

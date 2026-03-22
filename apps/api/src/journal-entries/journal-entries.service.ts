@@ -11,6 +11,7 @@ import {
   MoodSummaryQueryDto,
   MoodSummaryResponseDto,
 } from './dto/mood-summary.dto';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 
 @Injectable()
 export class JournalEntriesService {
@@ -20,10 +21,13 @@ export class JournalEntriesService {
    * Create a new journal entry
    */
   async create(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: CreateJournalEntryDto,
   ): Promise<JournalEntryDocument> {
-    return this.journalEntriesRepo.create(userId, dto);
+    return this.journalEntriesRepo.create(
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
+      dto,
+    );
   }
 
   /**
@@ -31,9 +35,12 @@ export class JournalEntriesService {
    */
   async findByIdAndUser(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
   ): Promise<JournalEntryDocument> {
-    const entry = await this.journalEntriesRepo.findByIdAndUser(id, userId);
+    const entry = await this.journalEntriesRepo.findByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!entry) {
       throw new NotFoundException('Journal entry not found');
     }
@@ -44,10 +51,13 @@ export class JournalEntriesService {
    * Find entries with pagination and filters
    */
   async findMany(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     query: QueryJournalEntryDto,
   ): Promise<{ items: JournalEntryDocument[]; total: number }> {
-    return this.journalEntriesRepo.findWithPaginationAndFilters(userId, query);
+    return this.journalEntriesRepo.findWithPaginationAndFilters(
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
+      query,
+    );
   }
 
   /**
@@ -55,12 +65,12 @@ export class JournalEntriesService {
    */
   async update(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: UpdateJournalEntryDto,
   ): Promise<JournalEntryDocument> {
     const entry = await this.journalEntriesRepo.updateByIdAndUser(
       id,
-      userId,
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dto,
     );
     if (!entry) {
@@ -72,8 +82,11 @@ export class JournalEntriesService {
   /**
    * Delete entry (user-scoped)
    */
-  async delete(id: string, userId: string): Promise<void> {
-    const deleted = await this.journalEntriesRepo.deleteByIdAndUser(id, userId);
+  async delete(id: string, workspace: WorkspaceRequestContext): Promise<void> {
+    const deleted = await this.journalEntriesRepo.deleteByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!deleted) {
       throw new NotFoundException('Journal entry not found');
     }
@@ -83,7 +96,7 @@ export class JournalEntriesService {
    * Get mood summary for a user
    */
   async getMoodSummary(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     query: MoodSummaryQueryDto,
   ): Promise<MoodSummaryResponseDto> {
     const dateFrom = query.dateFrom;
@@ -91,14 +104,14 @@ export class JournalEntriesService {
 
     // Get summary data
     const summary = await this.journalEntriesRepo.getMoodSummary(
-      userId,
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dateFrom,
       dateTo,
     );
 
     // Get trend data
     const trend = await this.journalEntriesRepo.getMoodTrend(
-      userId,
+      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dateFrom,
       dateTo,
     );

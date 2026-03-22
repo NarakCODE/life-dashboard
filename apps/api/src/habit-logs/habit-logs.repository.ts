@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
 import { HabitLog, HabitLogDocument } from './schemas/habit-log.schema';
 import { CreateHabitLogDto } from './dto/create-habit-log.dto';
 import { QueryHabitLogDto } from './dto/query-habit-log.dto';
@@ -17,13 +22,15 @@ export class HabitLogsRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateHabitLogDto,
   ): Promise<HabitLogDocument> {
     const createdHabitLog = new this.habitLogModel({
       ...dto,
       habitId: new Types.ObjectId(dto.habitId),
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      actorUserId: toObjectId(scope.userId),
     });
 
     return createdHabitLog.save();
@@ -31,22 +38,24 @@ export class HabitLogsRepository {
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<HabitLogDocument | null> {
     return this.habitLogModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
 
   async findByHabitId(
     habitId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryHabitLogDto,
   ): Promise<{ items: HabitLogDocument[]; total: number }> {
-    const filter = this.buildFilter(userId, query, habitId);
+    const filter = this.buildFilter(scope, query, habitId);
     const { page, limit } = query;
     const skip = (page - 1) * limit;
 
@@ -64,10 +73,10 @@ export class HabitLogsRepository {
   }
 
   async findByUserId(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryHabitLogDto,
   ): Promise<{ items: HabitLogDocument[]; total: number }> {
-    const filter = this.buildFilter(userId, query);
+    const filter = this.buildFilter(scope, query);
     const { page, limit } = query;
     const skip = (page - 1) * limit;
 
@@ -85,13 +94,15 @@ export class HabitLogsRepository {
   }
 
   async findByDateRange(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     startDate: Date,
     endDate: Date,
   ): Promise<HabitLogDocument[]> {
     return this.habitLogModel
       .find({
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
         loggedDate: {
           $gte: startDate,
           $lte: endDate,
@@ -103,14 +114,16 @@ export class HabitLogsRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: UpdateHabitLogDto,
   ): Promise<HabitLogDocument | null> {
     return this.habitLogModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         { $set: updateData },
         { new: true },
@@ -120,12 +133,14 @@ export class HabitLogsRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.habitLogModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
@@ -149,13 +164,13 @@ export class HabitLogsRepository {
   }
 
   private buildFilter(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryHabitLogDto,
     habitId?: string | Types.ObjectId,
   ) {
-    const filter: Record<string, unknown> = {
-      userId: new Types.ObjectId(userId.toString()),
-    };
+    const filter: Record<string, unknown> = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (habitId) {
       filter.habitId = new Types.ObjectId(habitId.toString());

@@ -38,8 +38,23 @@ export const TaskAssigneeSnapshotSchema =
 
 @Schema({ timestamps: true, collection: 'tasks' })
 export class Task {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  completedBy?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  assigneeId?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
   name: string;
@@ -97,9 +112,16 @@ export class Task {
 export const TaskSchema = SchemaFactory.createForClass(Task);
 
 TaskSchema.index({ userId: 1, status: 1 });
+TaskSchema.index({ workspaceId: 1, status: 1 });
 TaskSchema.index({ userId: 1, projectId: 1 });
+TaskSchema.index({ workspaceId: 1, projectId: 1 });
 TaskSchema.index({ userId: 1, startDate: 1 });
+TaskSchema.index({ workspaceId: 1, startDate: 1 });
 TaskSchema.index({ userId: 1, dueDate: 1 });
+TaskSchema.index({ workspaceId: 1, dueDate: 1 });
 TaskSchema.index({ userId: 1, priority: 1 });
+TaskSchema.index({ workspaceId: 1, priority: 1 });
 TaskSchema.index({ userId: 1, tag: 1 });
+TaskSchema.index({ workspaceId: 1, tag: 1 });
 TaskSchema.index({ userId: 1, 'assignee.id': 1 });
+TaskSchema.index({ workspaceId: 1, assigneeId: 1 });

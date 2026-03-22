@@ -7,9 +7,11 @@ import {
 import { JournalEntriesRepository } from './journal-entries.repository';
 import { JournalEntriesService } from './journal-entries.service';
 import { JournalEntriesController } from './journal-entries.controller';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
+    WorkspacesModule,
     MongooseModule.forFeature([
       { name: JournalEntry.name, schema: JournalEntrySchema },
     ]),

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
 import { Goal, GoalDocument, GoalStatus } from './schemas/goal.schema';
 import { CreateGoalDto } from './dto/create-goal.dto';
 
@@ -14,12 +19,15 @@ export class GoalsRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     dto: CreateGoalDto,
   ): Promise<GoalDocument> {
     const createdGoal = new this.goalModel({
       ...dto,
-      userId: new Types.ObjectId(userId.toString()),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
       linkedTasks: dto.linkedTasks?.map((id) => new Types.ObjectId(id)) || [],
       linkedHabits: dto.linkedHabits?.map((id) => new Types.ObjectId(id)) || [],
     });
@@ -112,14 +120,16 @@ export class GoalsRepository {
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<any> {
     const results = await this.goalModel
       .aggregate([
         {
           $match: {
             _id: new Types.ObjectId(id.toString()),
-            userId: new Types.ObjectId(userId.toString()),
+            ...buildWorkspaceScopedFilter(scope, {
+              userId: toObjectId(scope.userId),
+            }),
           },
         },
         ...this.progressCalculationStages(),
@@ -130,10 +140,12 @@ export class GoalsRepository {
   }
 
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: any,
   ): Promise<{ items: any[]; total: number }> {
-    const filter: any = { userId: new Types.ObjectId(userId.toString()) };
+    const filter: any = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (query.status) filter.status = query.status;
     if (query.type) filter.type = query.type;
@@ -174,7 +186,7 @@ export class GoalsRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: any,
   ): Promise<GoalDocument | null> {
     // Correctly mutate relationships dynamically
@@ -193,9 +205,16 @@ export class GoalsRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        { $set: updateData },
+        {
+          $set: {
+            ...updateData,
+            updatedBy: toObjectId(scope.userId),
+          },
+        },
         { new: true },
       )
       .exec();
@@ -203,12 +222,14 @@ export class GoalsRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
     const result = await this.goalModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
@@ -220,7 +241,7 @@ export class GoalsRepository {
    */
   async logProgress(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     value: number,
     note?: string,
   ): Promise<GoalDocument | null> {
@@ -234,7 +255,9 @@ export class GoalsRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         {
           $push: { progressLogs: progressLog },
@@ -250,12 +273,14 @@ export class GoalsRepository {
    */
   async checkAndCompleteGoal(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<GoalDocument | null> {
     const goal = await this.goalModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        userId: new Types.ObjectId(userId.toString()),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
@@ -277,14 +302,16 @@ export class GoalsRepository {
    */
   async linkTasks(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     taskIds: Types.ObjectId[],
   ): Promise<GoalDocument | null> {
     return this.goalModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         {
           $addToSet: { linkedTasks: { $each: taskIds } },
@@ -299,14 +326,16 @@ export class GoalsRepository {
    */
   async linkHabits(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     habitIds: Types.ObjectId[],
   ): Promise<GoalDocument | null> {
     return this.goalModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         {
           $addToSet: { linkedHabits: { $each: habitIds } },
@@ -321,14 +350,16 @@ export class GoalsRepository {
    */
   async unlinkTask(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     taskId: string | Types.ObjectId,
   ): Promise<GoalDocument | null> {
     return this.goalModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         {
           $pull: { linkedTasks: new Types.ObjectId(taskId.toString()) },
@@ -343,14 +374,16 @@ export class GoalsRepository {
    */
   async unlinkHabit(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     habitId: string | Types.ObjectId,
   ): Promise<GoalDocument | null> {
     return this.goalModel
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          userId: new Types.ObjectId(userId.toString()),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
         {
           $pull: { linkedHabits: new Types.ObjectId(habitId.toString()) },

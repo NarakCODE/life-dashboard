@@ -29,4 +29,14 @@ export class UsersService {
   async markEmailVerified(id: string | Types.ObjectId): Promise<void> {
     return this.usersRepo.markEmailVerified(id);
   }
+
+  async updateWorkspacePreferences(
+    id: string | Types.ObjectId,
+    update: {
+      defaultWorkspaceId?: string | Types.ObjectId | null;
+      activeWorkspaceId?: string | Types.ObjectId | null;
+    },
+  ): Promise<void> {
+    return this.usersRepo.updateWorkspacePreferences(id, update);
+  }
 }

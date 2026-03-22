@@ -1,7 +1,7 @@
 import { IsOptional, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { MoodLevel, MoodLabels } from '../schemas/journal-entry.schema';
+import { MoodLevel } from '../schemas/journal-entry.schema';
 
 /**
  * DTO for querying mood summary

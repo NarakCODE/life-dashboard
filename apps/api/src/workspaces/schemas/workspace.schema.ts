@@ -3,6 +3,16 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type WorkspaceDocument = HydratedDocument<Workspace>;
 
+export enum WorkspaceType {
+  SOLO = 'solo',
+  COLLABORATIVE = 'collaborative',
+}
+
+export enum WorkspaceStatus {
+  ACTIVE = 'active',
+  ARCHIVED = 'archived',
+}
+
 export enum WorkspaceRole {
   OWNER = 'OWNER',
   ADMIN = 'ADMIN',
@@ -22,7 +32,8 @@ export class WorkspaceMember {
   role: WorkspaceRole;
 }
 
-export const WorkspaceMemberSchema = SchemaFactory.createForClass(WorkspaceMember);
+export const WorkspaceMemberSchema =
+  SchemaFactory.createForClass(WorkspaceMember);
 
 @Schema({ timestamps: true, collection: 'workspaces' })
 export class Workspace {
@@ -31,6 +42,34 @@ export class Workspace {
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   ownerId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({
+    required: true,
+    enum: Object.values(WorkspaceType),
+    default: WorkspaceType.COLLABORATIVE,
+    index: true,
+  })
+  type: WorkspaceType;
+
+  @Prop({
+    required: true,
+    enum: Object.values(WorkspaceStatus),
+    default: WorkspaceStatus.ACTIVE,
+    index: true,
+  })
+  status: WorkspaceStatus;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'User',
+    default: null,
+    sparse: true,
+    unique: true,
+  })
+  defaultForUserId?: Types.ObjectId | null;
 
   @Prop({ type: [WorkspaceMemberSchema], default: [] })
   members: WorkspaceMember[];
@@ -41,3 +80,4 @@ export class Workspace {
 
 export const WorkspaceSchema = SchemaFactory.createForClass(Workspace);
 WorkspaceSchema.index({ 'members.userId': 1 });
+WorkspaceSchema.index({ ownerId: 1, status: 1 });

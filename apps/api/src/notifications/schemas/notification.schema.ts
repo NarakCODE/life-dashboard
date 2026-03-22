@@ -13,8 +13,17 @@ export enum NotificationType {
 
 @Schema({ timestamps: true, collection: 'notifications' })
 export class Notification {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  recipientUserId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  createdBy?: Types.ObjectId | null;
 
   @Prop({ required: true, enum: Object.values(NotificationType) })
   type: NotificationType;
@@ -41,6 +50,12 @@ export class Notification {
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
 
 NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({
+  workspaceId: 1,
+  recipientUserId: 1,
+  isRead: 1,
+  createdAt: -1,
+});
 NotificationSchema.index(
   { createdAt: 1 },
   { expireAfterSeconds: 60 * 60 * 24 * 90 },

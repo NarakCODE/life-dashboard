@@ -18,6 +18,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { QueryTaskDto } from './dto/query-task.dto';
 import { UsersService } from '../users/users.service';
 import { ProjectsService } from '../projects/projects.service';
+import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 
 @Injectable()
 export class TasksService {
@@ -30,36 +31,51 @@ export class TasksService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(userId: string, dto: CreateTaskDto): Promise<TaskResponseDto> {
+  async create(
+    workspace: WorkspaceRequestContext,
+    dto: CreateTaskDto,
+  ): Promise<TaskResponseDto> {
     const assignee = await this.resolveAssigneeSnapshot(dto.assigneeId);
     const status = dto.status ?? TaskStatus.TODO;
     const projectContext = await this.projectsService.resolveTaskProjectContext(
-      userId,
+      workspace,
       dto.projectId,
       dto.workstreamId,
     );
 
-    const task = await this.tasksRepo.create(userId, {
-      name: dto.name,
-      projectId: projectContext.projectId,
-      projectName: projectContext.projectName,
-      workstreamId: projectContext.workstreamId,
-      workstreamName: projectContext.workstreamName,
-      assignee,
-      description: dto.description,
-      status,
-      priority: dto.priority ?? TaskPriority.NONE,
-      tag: dto.tag,
-      startDate: dto.startDate,
-      dueDate: dto.dueDate,
-      completedAt: status === TaskStatus.DONE ? new Date() : null,
-    });
+    const task = await this.tasksRepo.create(
+      {
+        workspaceId: workspace.workspaceId,
+        userId: workspace.actorUserId,
+      },
+      {
+        name: dto.name,
+        projectId: projectContext.projectId,
+        projectName: projectContext.projectName,
+        workstreamId: projectContext.workstreamId,
+        workstreamName: projectContext.workstreamName,
+        assignee,
+        description: dto.description,
+        status,
+        priority: dto.priority ?? TaskPriority.NONE,
+        tag: dto.tag,
+        startDate: dto.startDate,
+        dueDate: dto.dueDate,
+        completedAt: status === TaskStatus.DONE ? new Date() : null,
+      },
+    );
 
     return this.toTaskResponse(task);
   }
 
-  async findByIdAndUser(id: string, userId: string): Promise<TaskResponseDto> {
-    const task = await this.tasksRepo.findByIdAndUser(id, userId);
+  async findByIdAndUser(
+    id: string,
+    workspace: WorkspaceRequestContext,
+  ): Promise<TaskResponseDto> {
+    const task = await this.tasksRepo.findByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!task) {
       throw new NotFoundException('Task not found');
     }
@@ -68,11 +84,17 @@ export class TasksService {
   }
 
   async findMany(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     query: QueryTaskDto,
   ): Promise<MyTasksResultDto> {
     const { items, total, filterCounts } =
-      await this.tasksRepo.findWithPaginationAndFilters(userId, query);
+      await this.tasksRepo.findWithPaginationAndFilters(
+        {
+          workspaceId: workspace.workspaceId,
+          userId: workspace.actorUserId,
+        },
+        query,
+      );
 
     return {
       data: {
@@ -91,18 +113,21 @@ export class TasksService {
   }
 
   async getMyTasks(
-    userId: string,
+    workspace: WorkspaceRequestContext,
     query: QueryTaskDto,
   ): Promise<MyTasksResultDto> {
-    return this.findMany(userId, query);
+    return this.findMany(workspace, query);
   }
 
   async update(
     id: string,
-    userId: string,
+    workspace: WorkspaceRequestContext,
     dto: UpdateTaskDto,
   ): Promise<TaskResponseDto> {
-    const existingTask = await this.tasksRepo.findByIdAndUser(id, userId);
+    const existingTask = await this.tasksRepo.findByIdAndUser(id, {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
     if (!existingTask) {
       throw new NotFoundException('Task not found');
     }
@@ -146,7 +171,7 @@ export class TasksService {
     if (dto.projectId !== undefined || dto.workstreamId !== undefined) {
       const projectContext =
         await this.projectsService.resolveTaskProjectContext(
-          userId,
+          workspace,
           dto.projectId ?? existingTask.projectId,
           dto.workstreamId ?? existingTask.workstreamId,
         );
@@ -167,9 +192,16 @@ export class TasksService {
       updatePayload.completedAt = dto.completedAt;
     }
 
-    const updatedTask = await this.tasksRepo.updateByIdAndUser(id, userId, {
-      $set: updatePayload,
-    });
+    const updatedTask = await this.tasksRepo.updateByIdAndUser(
+      id,
+      {
+        workspaceId: workspace.workspaceId,
+        userId: workspace.actorUserId,
+      },
+      {
+        $set: updatePayload,
+      },
+    );
 
     if (!updatedTask) {
       throw new NotFoundException('Task not found');
@@ -178,7 +210,7 @@ export class TasksService {
     if (dto.status && dto.status !== existingTask.status) {
       this.eventEmitter.emit('task.status_changed', {
         taskId: id,
-        userId,
+        userId: workspace.actorUserId,
         oldStatus: this.normalizeStatus(existingTask.status),
         newStatus: dto.status,
       });
@@ -187,29 +219,41 @@ export class TasksService {
     return this.toTaskResponse(updatedTask);
   }
 
-  async delete(id: string, userId: string): Promise<{ message: string }> {
-    const task = await this.tasksRepo.findByIdAndUser(id, userId);
+  async delete(
+    id: string,
+    workspace: WorkspaceRequestContext,
+  ): Promise<{ message: string }> {
+    const scope = {
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    };
+    const task = await this.tasksRepo.findByIdAndUser(id, scope);
     if (!task) {
       throw new NotFoundException('Task not found');
     }
 
-    const deleted = await this.tasksRepo.deleteByIdAndUser(id, userId);
+    const deleted = await this.tasksRepo.deleteByIdAndUser(id, scope);
     if (!deleted) {
       throw new NotFoundException('Task not found');
     }
 
     this.eventEmitter.emit('task.deleted', {
       taskId: id,
-      userId,
+      userId: workspace.actorUserId,
     });
 
-    this.logger.log(`Task ${id} deleted by user ${userId}`);
+    this.logger.log(
+      `Task ${id} deleted by user ${workspace.actorUserId} in workspace ${workspace.workspaceId}`,
+    );
 
     return { message: 'Task deleted successfully' };
   }
 
-  async getTaskOverview(userId: string) {
-    return this.tasksRepo.getTaskOverview(userId);
+  async getTaskOverview(workspace: WorkspaceRequestContext) {
+    return this.tasksRepo.getTaskOverview({
+      workspaceId: workspace.workspaceId,
+      userId: workspace.actorUserId,
+    });
   }
 
   private async resolveAssigneeSnapshot(
@@ -247,6 +291,9 @@ export class TasksService {
 
     return new TaskResponseDto({
       id: this.stringifyObjectId(raw._id),
+      workspaceId: raw.workspaceId
+        ? this.stringifyObjectId(raw.workspaceId)
+        : '',
       name: raw.name ?? raw.title ?? '',
       status: this.normalizeStatus(raw.status),
       projectId: raw.projectId ?? 'personal',

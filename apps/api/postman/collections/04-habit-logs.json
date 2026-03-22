@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "04 - Habit Logs",
-    "description": "Habit completion logging - Track daily habit completion",
+    "description": "Workspace-scoped habit log endpoints for tracking completion history.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('habitLogId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"habitId\": \"{{habitId}}\",\n  \"loggedDate\": \"2024-01-15\",\n  \"completed\": true,\n  \"notes\": \"Felt great today!\"\n}"
+          "raw": "{\n  \"habitId\": \"{{habitId}}\",\n  \"loggedDate\": \"2026-03-20T00:00:00.000Z\",\n  \"count\": 1,\n  \"notes\": \"Felt great today!\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/habit-logs",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs"]
-        },
-        "description": "Log a habit completion for a specific date"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habit-logs?page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs"],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs"
+          ],
           "query": [
             {
               "key": "page",
@@ -72,8 +84,7 @@
               "value": "20"
             }
           ]
-        },
-        "description": "List all habit logs for the user"
+        }
       }
     },
     {
@@ -84,12 +95,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habit-logs/habit/{{habitId}}?page=1&limit=30",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs", "habit", "{{habitId}}"],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs",
+            "habit",
+            "{{habitId}}"
+          ],
           "query": [
             {
               "key": "page",
@@ -100,8 +121,7 @@
               "value": "30"
             }
           ]
-        },
-        "description": "List all logs for a specific habit"
+        }
       }
     },
     {
@@ -112,14 +132,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habit-logs/{{habitLogId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs", "{{habitLogId}}"]
-        },
-        "description": "Get a specific habit log"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs",
+            "{{habitLogId}}"
+          ]
+        }
       }
     },
     {
@@ -134,18 +162,26 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"completed\": true,\n  \"notes\": \"Updated notes for the log\"\n}"
+          "raw": "{\n  \"count\": 2,\n  \"notes\": \"Completed an extra set.\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/habit-logs/{{habitLogId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs", "{{habitLogId}}"]
-        },
-        "description": "Update a habit log"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs",
+            "{{habitLogId}}"
+          ]
+        }
       }
     },
     {
@@ -156,14 +192,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/habit-logs/{{habitLogId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs", "{{habitLogId}}"]
-        },
-        "description": "Delete a habit log"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs",
+            "{{habitLogId}}"
+          ]
+        }
       }
     },
     {
@@ -174,20 +218,28 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/habit-logs?dateFrom=2024-01-01&dateTo=2024-01-31&page=1&limit=50",
-          "host": ["{{baseUrl}}"],
-          "path": ["habit-logs"],
+          "raw": "{{baseUrl}}/habit-logs?startDate=2026-03-01T00:00:00.000Z&endDate=2026-03-31T23:59:59.999Z&page=1&limit=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "habit-logs"
+          ],
           "query": [
             {
-              "key": "dateFrom",
-              "value": "2024-01-01"
+              "key": "startDate",
+              "value": "2026-03-01T00:00:00.000Z"
             },
             {
-              "key": "dateTo",
-              "value": "2024-01-31"
+              "key": "endDate",
+              "value": "2026-03-31T23:59:59.999Z"
             },
             {
               "key": "page",
@@ -198,8 +250,7 @@
               "value": "50"
             }
           ]
-        },
-        "description": "Filter habit logs by date range"
+        }
       }
     }
   ]

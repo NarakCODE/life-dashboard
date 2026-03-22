@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { SectionCards } from "@/components/dashboard/SectionCards"
-import { Suspense } from "react"
-import { ErrorBoundary } from "@/components/error-boundary"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { PlusIcon } from "@phosphor-icons/react"
+import { SectionCards } from "@/components/dashboard/SectionCards";
+import { Suspense } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { PlusIcon } from "@phosphor-icons/react";
 
 export default function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col min-w-0">
-   <header className="flex flex-col border-b border-border/40">
+      <header className="flex flex-col border-b border-border/40">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3">
             <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
@@ -33,26 +33,25 @@ export default function DashboardPage() {
 
       {/* Additional dashboard sections can be added here */}
       <div className="px-4 lg:px-6">
-        <h2 className="text-lg font-semibold tracking-tight">Recent Activity</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          Recent Activity
+        </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Your latest task updates and completions will appear here.
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function SectionCardsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4 lg:px-6">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-32 animate-pulse rounded-lg bg-muted"
-        />
+        <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
       ))}
     </div>
-  )
+  );
 }
 
 function DashboardError() {
@@ -64,5 +63,5 @@ function DashboardError() {
         </p>
       </div>
     </div>
-  )
+  );
 }

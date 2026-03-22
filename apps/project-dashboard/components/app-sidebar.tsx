@@ -57,7 +57,6 @@ import {
 } from "@/components/ui/combobox";
 import { useAuth } from "@/hooks/use-auth";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
-import Image from "next/image";
 
 const navItemIcons: Record<
   NavItemId,

@@ -32,8 +32,17 @@ export const ProgressLogSchema = SchemaFactory.createForClass(ProgressLog);
 
 @Schema({ timestamps: true, collection: 'goals' })
 export class Goal {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
   title: string;
@@ -93,5 +102,7 @@ export const GoalSchema = SchemaFactory.createForClass(Goal);
 
 GoalSchema.index({ userId: 1, status: 1 });
 GoalSchema.index({ userId: 1, dueDate: 1 });
+GoalSchema.index({ workspaceId: 1, status: 1 });
+GoalSchema.index({ workspaceId: 1, dueDate: 1 });
 GoalSchema.set('toJSON', { virtuals: true });
 GoalSchema.set('toObject', { virtuals: true });

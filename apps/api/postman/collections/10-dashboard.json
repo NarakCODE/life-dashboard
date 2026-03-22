@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "10 - Dashboard",
-    "description": "Dashboard - Aggregated data and statistics",
+    "description": "Workspace-scoped dashboard aggregation endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -13,14 +13,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/dashboard/tasks-overview",
-          "host": ["{{baseUrl}}"],
-          "path": ["dashboard", "tasks-overview"]
-        },
-        "description": "Get aggregated task statistics: total, by status, overdue, upcoming"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "dashboard",
+            "tasks-overview"
+          ]
+        }
       }
     }
   ]

@@ -7,9 +7,11 @@ import {
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
+    WorkspacesModule,
     MongooseModule.forFeature([
       { name: Notification.name, schema: NotificationSchema },
     ]),

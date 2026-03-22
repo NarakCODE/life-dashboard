@@ -8,6 +8,7 @@ export enum InvitationStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
+  REVOKED = 'revoked',
 }
 
 @Schema({ timestamps: true, collection: 'workspace_invitations' })
@@ -34,8 +35,28 @@ export class WorkspaceInvitation {
   })
   status: InvitationStatus;
 
+  @Prop({ required: true, trim: true, index: true })
+  token: string;
+
+  @Prop({ required: true, index: true })
+  expiresAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  acceptedBy?: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  respondedAt?: Date | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const WorkspaceInvitationSchema = SchemaFactory.createForClass(WorkspaceInvitation);
+export const WorkspaceInvitationSchema =
+  SchemaFactory.createForClass(WorkspaceInvitation);
+WorkspaceInvitationSchema.index(
+  { workspaceId: 1, email: 1, status: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: InvitationStatus.PENDING },
+  },
+);

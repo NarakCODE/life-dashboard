@@ -31,7 +31,10 @@ export class WorkspacesController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new workspace' })
-  async create(@CurrentUser('sub') userId: string, @Body() dto: CreateWorkspaceDto) {
+  async create(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateWorkspaceDto,
+  ) {
     const data = await this.workspacesService.create(userId, dto);
     return { success: true, data };
   }
@@ -40,6 +43,14 @@ export class WorkspacesController {
   @ApiOperation({ summary: 'List workspaces for current user' })
   async findAll(@CurrentUser('sub') userId: string) {
     const data = await this.workspacesService.findAllForUser(userId);
+    return { success: true, data };
+  }
+
+  @Get('invitations/mine')
+  @ApiOperation({ summary: 'List pending invitations for the current user' })
+  async listMyInvitations(@CurrentUser('sub') userId: string) {
+    const data =
+      await this.workspacesService.listPendingInvitationsForUser(userId);
     return { success: true, data };
   }
 
@@ -81,7 +92,11 @@ export class WorkspacesController {
     @CurrentUser('sub') userId: string,
     @Body() dto: InviteMemberDto,
   ) {
-    const data = await this.workspacesService.inviteMember(workspaceId, userId, dto);
+    const data = await this.workspacesService.inviteMember(
+      workspaceId,
+      userId,
+      dto,
+    );
     return { success: true, data };
   }
 
@@ -95,5 +110,68 @@ export class WorkspacesController {
     @Param('memberId') memberId: string,
   ) {
     await this.workspacesService.removeMember(workspaceId, memberId);
+  }
+
+  @Post('invitations/:invitationId/accept')
+  @ApiOperation({ summary: 'Accept a pending workspace invitation' })
+  async acceptInvitation(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const data = await this.workspacesService.acceptInvitation(
+      invitationId,
+      userId,
+    );
+    return { success: true, data };
+  }
+
+  @Post('invitations/:invitationId/reject')
+  @ApiOperation({ summary: 'Reject a pending workspace invitation' })
+  async rejectInvitation(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const data = await this.workspacesService.rejectInvitation(
+      invitationId,
+      userId,
+    );
+    return { success: true, data };
+  }
+
+  @Delete(':workspaceId/invitations/:invitationId')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Revoke a pending workspace invitation' })
+  async revokeInvitation(
+    @Param('workspaceId') workspaceId: string,
+    @Param('invitationId') invitationId: string,
+  ) {
+    const data = await this.workspacesService.revokeInvitation(
+      workspaceId,
+      invitationId,
+    );
+    return { success: true, data };
+  }
+
+  @Post(':workspaceId/switch')
+  @UseGuards(WorkspaceAccessGuard)
+  @ApiOperation({ summary: 'Switch the authenticated user active workspace' })
+  async switchWorkspace(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    await this.workspacesService.switchActiveWorkspace(userId, workspaceId);
+    return { success: true, data: { workspaceId } };
+  }
+
+  @Post(':workspaceId/leave')
+  @UseGuards(WorkspaceAccessGuard)
+  @ApiOperation({ summary: 'Leave a workspace as the current member' })
+  async leaveWorkspace(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    await this.workspacesService.leaveWorkspace(workspaceId, userId);
+    return { success: true, data: { workspaceId } };
   }
 }

@@ -32,6 +32,12 @@ export function ClientDetailsPage({ clientId }: ClientDetailsPageProps) {
     setState({ status: "loading" });
     const t = setTimeout(() => {
       const client = getClientById(clientId) ?? clients[0];
+      if (!client) {
+        // Handle case where client is not found, e.g., redirect or show error
+        // For now, we'll just return and keep the loading state or show nothing
+        console.warn(`Client with ID ${clientId} not found.`);
+        return;
+      }
       setState({ status: "ready", client });
     }, 400);
     return () => clearTimeout(t);
@@ -274,8 +280,8 @@ function ClientDetailsSkeleton() {
 
         <div className="mt-4">
           <Skeleton className="h-4 w-32" />
-          <Skeleton className="mt-3 h-8 w-[360px]" />
-          <Skeleton className="mt-3 h-5 w-[520px]" />
+          <Skeleton className="mt-3 h-8 w-90" />
+          <Skeleton className="mt-3 h-5 w-130" />
           <Skeleton className="mt-5 h-px w-full" />
           <Skeleton className="mt-5 h-16 w-full" />
         </div>

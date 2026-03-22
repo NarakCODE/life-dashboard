@@ -83,7 +83,7 @@ function MetricCard({
                 <Info className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] text-xs">
+            <TooltipContent side="top" className="max-w-55 text-xs">
               {tooltip}
             </TooltipContent>
           </Tooltip>

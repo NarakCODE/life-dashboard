@@ -5,9 +5,11 @@ import { HabitLogsRepository } from './habit-logs.repository';
 import { HabitLogsService } from './habit-logs.service';
 import { HabitLogsController } from './habit-logs.controller';
 import { HabitsModule } from '../habits/habits.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
+    WorkspacesModule,
     HabitsModule,
     MongooseModule.forFeature([
       { name: HabitLog.name, schema: HabitLogSchema },

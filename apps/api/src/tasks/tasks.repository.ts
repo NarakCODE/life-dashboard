@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, SortOrder, Types, UpdateQuery } from 'mongoose';
+import {
+  buildWorkspaceScopedFilter,
+  toObjectId,
+  toObjectIdOrNull,
+  WorkspaceScope,
+} from '../common/utils/workspace-scope.util';
 import { QueryTaskDto } from './dto/query-task.dto';
 import {
   Task,
@@ -51,12 +57,17 @@ export class TasksRepository {
   ) {}
 
   async create(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     input: TaskPersistenceInput,
   ): Promise<TaskDocument> {
     const createdTask = new this.taskModel({
       ...input,
-      userId: this.toObjectId(userId),
+      workspaceId: toObjectId(scope.workspaceId),
+      userId: toObjectId(scope.userId),
+      createdBy: toObjectId(scope.userId),
+      updatedBy: toObjectId(scope.userId),
+      completedBy: input.completedAt ? toObjectId(scope.userId) : null,
+      assigneeId: input.assignee?.id ? toObjectId(input.assignee.id) : null,
     });
 
     return createdTask.save();
@@ -64,9 +75,9 @@ export class TasksRepository {
 
   async findByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<TaskDocument | null> {
-    const taskId = this.toObjectIdOrNull(id);
+    const taskId = toObjectIdOrNull(id);
     if (!taskId) {
       return null;
     }
@@ -74,16 +85,18 @@ export class TasksRepository {
     return this.taskModel
       .findOne({
         _id: taskId,
-        userId: this.toObjectId(userId),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
   }
 
   async findWithPaginationAndFilters(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryTaskDto,
   ): Promise<TaskListResult> {
-    const scopedFilter = this.buildScopedFilter(userId, query);
+    const scopedFilter = this.buildScopedFilter(scope, query);
     const taskFilter = this.applyTaskFilters(scopedFilter, query);
     const sort = this.buildSort(query);
     const limit = query.limit ?? 20;
@@ -104,21 +117,34 @@ export class TasksRepository {
 
   async updateByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     updateData: UpdateQuery<TaskDocument>,
   ): Promise<TaskDocument | null> {
-    const taskId = this.toObjectIdOrNull(id);
+    const taskId = toObjectIdOrNull(id);
     if (!taskId) {
       return null;
+    }
+
+    const nextSet = { ...(updateData.$set ?? {}) } as Record<string, unknown>;
+    nextSet.updatedBy = toObjectId(scope.userId);
+
+    if ('assignee' in nextSet) {
+      const assignee = nextSet.assignee as TaskAssigneeSnapshot | null;
+      nextSet.assigneeId = assignee?.id ? toObjectId(assignee.id) : null;
     }
 
     return this.taskModel
       .findOneAndUpdate(
         {
           _id: taskId,
-          userId: this.toObjectId(userId),
+          ...buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
         },
-        updateData,
+        {
+          ...updateData,
+          $set: nextSet,
+        },
         { new: true },
       )
       .exec();
@@ -126,9 +152,9 @@ export class TasksRepository {
 
   async deleteByIdAndUser(
     id: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
   ): Promise<boolean> {
-    const taskId = this.toObjectIdOrNull(id);
+    const taskId = toObjectIdOrNull(id);
     if (!taskId) {
       return false;
     }
@@ -136,14 +162,16 @@ export class TasksRepository {
     const result = await this.taskModel
       .deleteOne({
         _id: taskId,
-        userId: this.toObjectId(userId),
+        ...buildWorkspaceScopedFilter(scope, {
+          userId: toObjectId(scope.userId),
+        }),
       })
       .exec();
 
     return result.deletedCount > 0;
   }
 
-  async getTaskOverview(userId: string | Types.ObjectId): Promise<{
+  async getTaskOverview(scope: WorkspaceScope): Promise<{
     totalTasks: number;
     countsByStatus: {
       todo: number;
@@ -158,12 +186,15 @@ export class TasksRepository {
       latest: Date | null;
     };
   }> {
-    const userObjectId = this.toObjectId(userId);
     const now = new Date();
 
     const result = await this.taskModel
       .aggregate([
-        { $match: { userId: userObjectId } },
+        {
+          $match: buildWorkspaceScopedFilter(scope, {
+            userId: toObjectId(scope.userId),
+          }),
+        },
         {
           $addFields: {
             schedulingDate: {
@@ -255,12 +286,12 @@ export class TasksRepository {
   }
 
   private buildScopedFilter(
-    userId: string | Types.ObjectId,
+    scope: WorkspaceScope,
     query: QueryTaskDto,
   ): TaskQueryFilter {
-    const filter: TaskQueryFilter = {
-      userId: this.toObjectId(userId),
-    };
+    const filter: TaskQueryFilter = buildWorkspaceScopedFilter(scope, {
+      userId: toObjectId(scope.userId),
+    });
 
     if (query.projectId) {
       filter.projectId = query.projectId;
@@ -310,7 +341,7 @@ export class TasksRepository {
 
     if (query.assigneeIds?.length) {
       filter['assignee.id'] = {
-        $in: query.assigneeIds.map((assigneeId) => this.toObjectId(assigneeId)),
+        $in: query.assigneeIds.map((assigneeId) => toObjectId(assigneeId)),
       };
     }
 
@@ -424,23 +455,5 @@ export class TasksRepository {
     }
 
     return value;
-  }
-
-  private toObjectId(value: string | Types.ObjectId): Types.ObjectId {
-    return value instanceof Types.ObjectId ? value : new Types.ObjectId(value);
-  }
-
-  private toObjectIdOrNull(
-    value: string | Types.ObjectId,
-  ): Types.ObjectId | null {
-    if (value instanceof Types.ObjectId) {
-      return value;
-    }
-
-    if (!Types.ObjectId.isValid(value)) {
-      return null;
-    }
-
-    return new Types.ObjectId(value);
   }
 }

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "05 - Goals",
-    "description": "Goal management - Set goals, link tasks/habits, track progress",
+    "description": "Workspace-scoped goal management, progress logging, and cross-entity linking.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,16 +11,13 @@
         {
           "listen": "test",
           "script": {
+            "type": "text/javascript",
             "exec": [
               "const response = pm.response.json();",
-              "if (response.data && response.data.id) {",
+              "if (response.data?.id) {",
               "  pm.environment.set('goalId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ],
-            "type": "text/javascript"
+              "}"
+            ]
           }
         }
       ],
@@ -34,18 +31,25 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Learn TypeScript\",\n  \"description\": \"Complete TypeScript mastery by end of Q2\",\n  \"targetValue\": 100,\n  \"currentValue\": 25,\n  \"unit\": \"hours\",\n  \"dueDate\": \"2024-06-30T23:59:59.000Z\",\n  \"status\": \"active\"\n}"
+          "raw": "{\n  \"title\": \"Run 100km this month\",\n  \"description\": \"Training for the marathon\",\n  \"targetValue\": 100,\n  \"unit\": \"km\",\n  \"type\": \"manual\",\n  \"dueDate\": \"2026-03-31T00:00:00.000Z\",\n  \"status\": \"active\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/goals",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals"]
-        },
-        "description": "Create a new goal"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals"
+          ]
+        }
       }
     },
     {
@@ -56,12 +60,20 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/goals?page=1&limit=20&status=active",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals"],
+          "raw": "{{baseUrl}}/goals?page=1&limit=20&status=active&type=manual",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals"
+          ],
           "query": [
             {
               "key": "page",
@@ -74,10 +86,13 @@
             {
               "key": "status",
               "value": "active"
+            },
+            {
+              "key": "type",
+              "value": "manual"
             }
           ]
-        },
-        "description": "List goals with optional status filter"
+        }
       }
     },
     {
@@ -88,14 +103,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/goals/{{goalId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}"]
-        },
-        "description": "Get goal with linked tasks and habits"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}"
+          ]
+        }
       }
     },
     {
@@ -110,18 +133,26 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"currentValue\": 50,\n  \"status\": \"in_progress\"\n}"
+          "raw": "{\n  \"description\": \"Updated training plan\",\n  \"currentValue\": 25\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/goals/{{goalId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}"]
-        },
-        "description": "Update goal progress"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}"
+          ]
+        }
       }
     },
     {
@@ -132,14 +163,22 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/goals/{{goalId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}"]
-        },
-        "description": "Delete a goal"
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}"
+          ]
+        }
       }
     },
     {
@@ -154,18 +193,55 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"taskIds\": [\"{{taskId}}\"]\n}"
+          "raw": "{\n  \"taskIds\": [\n    \"{{taskId}}\"\n  ]\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/goals/{{goalId}}/tasks",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}", "tasks"]
-        },
-        "description": "Link tasks to a goal"
+          "raw": "{{baseUrl}}/goals/{{goalId}}/link-tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}",
+            "link-tasks"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Unlink Task from Goal",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/goals/{{goalId}}/unlink-task/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}",
+            "unlink-task",
+            "{{taskId}}"
+          ]
+        }
       }
     },
     {
@@ -180,18 +256,55 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"habitIds\": [\"{{habitId}}\"]\n}"
+          "raw": "{\n  \"habitIds\": [\n    \"{{habitId}}\"\n  ]\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/goals/{{goalId}}/habits",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}", "habits"]
-        },
-        "description": "Link habits to a goal"
+          "raw": "{{baseUrl}}/goals/{{goalId}}/link-habits",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}",
+            "link-habits"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Unlink Habit from Goal",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/goals/{{goalId}}/unlink-habit/{{habitId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}",
+            "unlink-habit",
+            "{{habitId}}"
+          ]
+        }
       }
     },
     {
@@ -206,18 +319,27 @@
           {
             "key": "Authorization",
             "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "x-workspace-id",
+            "value": "{{workspaceId}}"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"value\": 5,\n  \"note\": \"Completed 5 hours of study today\"\n}"
+          "raw": "{\n  \"value\": 5,\n  \"note\": \"Completed another training run.\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/goals/{{goalId}}/progress",
-          "host": ["{{baseUrl}}"],
-          "path": ["goals", "{{goalId}}", "progress"]
-        },
-        "description": "Log progress toward a goal"
+          "raw": "{{baseUrl}}/goals/{{goalId}}/log-progress",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "goals",
+            "{{goalId}}",
+            "log-progress"
+          ]
+        }
       }
     }
   ]

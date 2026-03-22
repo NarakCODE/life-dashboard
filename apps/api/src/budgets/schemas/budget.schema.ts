@@ -13,8 +13,17 @@ export enum BudgetPeriod {
 
 @Schema({ timestamps: true, collection: 'budgets' })
 export class Budget {
+  @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
+  workspaceId?: Types.ObjectId | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
   name: string;
@@ -52,3 +61,5 @@ export const BudgetSchema = SchemaFactory.createForClass(Budget);
 
 BudgetSchema.index({ userId: 1, isActive: 1 });
 BudgetSchema.index({ userId: 1, period: 1 });
+BudgetSchema.index({ workspaceId: 1, isActive: 1 });
+BudgetSchema.index({ workspaceId: 1, period: 1 });
