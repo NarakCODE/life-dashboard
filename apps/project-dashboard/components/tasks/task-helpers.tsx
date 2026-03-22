@@ -98,12 +98,14 @@ export type ProjectTasksSectionProps = {
   group: ProjectTaskGroup;
   onToggleTask: (taskId: string) => void;
   onAddTask: (context: CreateTaskContext) => void;
+  onOpenTask?: (task: ProjectTask) => void;
 };
 
 export function ProjectTasksSection({
   group,
   onToggleTask,
   onAddTask,
+  onOpenTask,
 }: ProjectTasksSectionProps) {
   const { project, tasks } = group;
   const total = tasks.length;
@@ -154,10 +156,8 @@ export function ProjectTasksSection({
             className="size-7 rounded-full text-muted-foreground hover:bg-transparent"
             aria-label="Add task"
             onClick={() =>
-            onAddTask({
+              onAddTask({
                 projectId: project.id,
-                workstreamId: tasks[0]?.workstreamId,
-                workstreamName: tasks[0]?.workstreamName,
               })
             }
           >
@@ -176,6 +176,7 @@ export function ProjectTasksSection({
               key={task.id}
               task={task}
               onToggle={() => onToggleTask(task.id)}
+              onOpen={onOpenTask}
             />
           ))}
         </SortableContext>
@@ -297,9 +298,10 @@ function getPriorityLabel(
 export type TaskRowDnDProps = {
   task: ProjectTask;
   onToggle: () => void;
+  onOpen?: (task: ProjectTask) => void;
 };
 
-export function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
+export function TaskRowDnD({ task, onToggle, onOpen }: TaskRowDnDProps) {
   const isDone = task.status === "done";
 
   const {
@@ -324,6 +326,7 @@ export function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
         checked={isDone}
         title={task.name}
         onCheckedChange={onToggle}
+        onOpen={() => onOpen?.(task)}
         titleAriaLabel={task.name}
         titleSuffix={
           <TaskBadges
@@ -382,6 +385,8 @@ export function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
               variant="ghost"
               className="size-7 rounded-md text-muted-foreground cursor-grab active:cursor-grabbing"
               aria-label="Reorder task"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
               {...attributes}
               {...listeners}
             >
@@ -399,12 +404,14 @@ export type ProjectTaskListViewProps = {
   groups: ProjectTaskGroup[];
   onToggleTask: (taskId: string) => void;
   onAddTask: (context: CreateTaskContext) => void;
+  onOpenTask?: (task: ProjectTask) => void;
 };
 
 export function ProjectTaskListView({
   groups,
   onToggleTask,
   onAddTask,
+  onOpenTask,
 }: ProjectTaskListViewProps) {
   return (
     <>
@@ -414,6 +421,7 @@ export function ProjectTaskListView({
           group={group}
           onToggleTask={onToggleTask}
           onAddTask={onAddTask}
+          onOpenTask={onOpenTask}
         />
       ))}
     </>

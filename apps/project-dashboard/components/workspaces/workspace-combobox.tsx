@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Building2, ChevronDown, Plus, Settings2, Sparkles } from "lucide-react";
+import { Building2, ChevronDown, Plus, Settings2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import { useWorkspacesQuery } from "@/lib/workspaces/workspace-query";
 export interface WorkspaceComboboxProps {
   workspaces: Workspace[];
   selectedId?: string | null;
+  /** User's active workspace ID from /me response - used as fallback when selectedId is not provided */
+  userActiveWorkspaceId?: string | null;
   onSelect: (workspace: Workspace) => void;
   onCreateNew?: () => void;
   onManageWorkspaces?: () => void;
@@ -56,6 +58,7 @@ function getWorkspaceTypeLabel(type: Workspace["type"]) {
 export function WorkspaceCombobox({
   workspaces,
   selectedId,
+  userActiveWorkspaceId,
   onSelect,
   onCreateNew,
   onManageWorkspaces,
@@ -65,14 +68,17 @@ export function WorkspaceCombobox({
   contentClassName,
   placeholder = "Select workspace",
 }: WorkspaceComboboxProps) {
+  // Use selectedId if provided, otherwise fall back to user's activeWorkspaceId from /me
+  const effectiveSelectedId = selectedId ?? userActiveWorkspaceId;
+
   const selectedWorkspace = React.useMemo(
-    () => workspaces.find((workspace) => workspace.id === selectedId),
-    [selectedId, workspaces],
+    () => workspaces.find((workspace) => workspace.id === effectiveSelectedId),
+    [effectiveSelectedId, workspaces],
   );
 
   const handleSelect = React.useCallback(
     (workspaceId: string) => {
-      if (workspaceId === selectedId) {
+      if (workspaceId === effectiveSelectedId) {
         return;
       }
 
@@ -81,7 +87,7 @@ export function WorkspaceCombobox({
         onSelect(workspace);
       }
     },
-    [onSelect, selectedId, workspaces],
+    [onSelect, effectiveSelectedId, workspaces],
   );
 
   if (isLoading) {
@@ -100,15 +106,13 @@ export function WorkspaceCombobox({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           disabled={disabled}
-          className={cn(
-            "h-auto w-full justify-start rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-3 text-left text-sidebar-foreground hover:bg-sidebar-accent/70",
-            triggerClassName,
-          )}
+          size={"lg"}
+          className={cn(triggerClassName)}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Avatar className="size-10 rounded-xl border border-sidebar-border/60">
+          <div className="flex w-full flex-1 items-center justify-between gap-3">
+            <Avatar>
               <AvatarFallback className="rounded-xl bg-sidebar-primary/12 text-sidebar-primary">
                 {selectedWorkspace ? (
                   getWorkspaceInitials(selectedWorkspace.name)
@@ -120,11 +124,6 @@ export function WorkspaceCombobox({
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="truncate text-sm font-semibold">
                 {selectedWorkspace?.name ?? placeholder}
-              </span>
-              <span className="truncate text-xs text-sidebar-foreground/70">
-                {selectedWorkspace
-                  ? `${getWorkspaceTypeLabel(selectedWorkspace.type)} workspace`
-                  : "Choose an active workspace"}
               </span>
             </div>
             <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/60" />
@@ -138,13 +137,11 @@ export function WorkspaceCombobox({
       >
         <DropdownMenuLabel className="px-2 py-2">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Sparkles className="size-4" />
-            </div>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-sm font-semibold">Switch workspace</span>
               <span className="truncate text-xs font-normal text-muted-foreground">
-                {workspaces.length} available workspace{workspaces.length === 1 ? "" : "s"}
+                {workspaces.length} available workspace
+                {workspaces.length === 1 ? "" : "s"}
               </span>
             </div>
           </div>
@@ -176,19 +173,14 @@ export function WorkspaceCombobox({
                         {workspace.name}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {workspace.owner.displayName}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                         {getWorkspaceTypeLabel(workspace.type)}
                       </span>
-                      {isSelected ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
-                          Active
-                        </span>
-                      ) : null}
                     </div>
+                    {/* <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                        {workspace.owner.displayName}
+                      </span>
+                    </div> */}
                   </div>
                 </DropdownMenuRadioItem>
               );

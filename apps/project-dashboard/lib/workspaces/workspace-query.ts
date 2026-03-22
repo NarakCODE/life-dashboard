@@ -23,6 +23,7 @@ import {
   switchWorkspace,
   resolveWorkspaceContext,
   getMyInvitations,
+  getWorkspaceInvitations,
   inviteMember,
   acceptInvitation,
   rejectInvitation,
@@ -46,6 +47,8 @@ export const workspaceKeys = {
   contextWithId: (id?: string) => [...workspaceKeys.context(), { id }] as const,
   invitations: () => [...workspaceKeys.all, "invitations"] as const,
   myInvitations: () => [...workspaceKeys.invitations(), "mine"] as const,
+  workspaceInvitations: (workspaceId: string) =>
+    [...workspaceKeys.invitations(), "workspace", workspaceId] as const,
 } as const;
 
 // ============================================================================
@@ -86,6 +89,14 @@ export const workspaceQueries = {
     queryKey: workspaceKeys.myInvitations(),
     queryFn: getMyInvitations,
     staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000,
+  }),
+
+  workspaceInvitations: (workspaceId: string) => ({
+    queryKey: workspaceKeys.workspaceInvitations(workspaceId),
+    queryFn: () => getWorkspaceInvitations(workspaceId),
+    enabled: Boolean(workspaceId),
+    staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   }),
 };
@@ -137,6 +148,19 @@ export function useMyInvitationsQuery(
 ) {
   return useQuery({
     ...workspaceQueries.myInvitations(),
+    ...options,
+  });
+}
+
+export function useWorkspaceInvitationsQuery(
+  workspaceId: string,
+  options?: Omit<
+    UseQueryOptions<WorkspaceInvitation[], ApiError>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    ...workspaceQueries.workspaceInvitations(workspaceId),
     ...options,
   });
 }
@@ -331,9 +355,13 @@ export function useInviteMemberMutation() {
       workspaceId: string;
       input: InviteMemberInput;
     }) => inviteMember(workspaceId, input),
-    onSuccess: () => {
-      // Invitations affect the workspace detail (member count, etc.)
-      // But we don't have a specific invitations list to invalidate here
+    onSuccess: (_data, { workspaceId }) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.workspaceInvitations(workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(workspaceId),
+      });
     },
   });
 }
@@ -380,8 +408,13 @@ export function useRevokeInvitationMutation() {
       workspaceId: string;
       invitationId: string;
     }) => revokeInvitation(workspaceId, invitationId),
-    onSuccess: () => {
-      // Invitations list may be affected if viewing workspace invitations
+    onSuccess: (_data, { workspaceId }) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.workspaceInvitations(workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(workspaceId),
+      });
     },
   });
 }

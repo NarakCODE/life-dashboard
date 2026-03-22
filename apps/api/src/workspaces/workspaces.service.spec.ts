@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { UsersService } from '../users/users.service';
 import { WorkspacesService } from './workspaces.service';
@@ -52,7 +53,9 @@ describe('WorkspacesService', () => {
     };
 
     const membershipModel = {
-      findOneAndUpdate: jest.fn().mockReturnValue(execMock(Promise.resolve(membership))),
+      findOneAndUpdate: jest
+        .fn()
+        .mockReturnValue(execMock(Promise.resolve(membership))),
     };
 
     const invitationModel = {};
@@ -68,7 +71,9 @@ describe('WorkspacesService', () => {
       usersService as never,
     );
 
-    const result = await service.ensureDefaultWorkspaceForUser(userId.toString());
+    const result = await service.ensureDefaultWorkspaceForUser(
+      userId.toString(),
+    );
 
     expect(result).toBe(workspace);
     expect(workspaceModel.create).toHaveBeenCalledWith({
@@ -80,10 +85,13 @@ describe('WorkspacesService', () => {
       defaultForUserId: userId,
       members: [{ userId, role: WorkspaceRole.OWNER }],
     });
-    expect(usersService.updateWorkspacePreferences).toHaveBeenCalledWith(userId, {
-      defaultWorkspaceId: workspaceId,
-      activeWorkspaceId: workspaceId,
-    });
+    expect(usersService.updateWorkspacePreferences).toHaveBeenCalledWith(
+      userId,
+      {
+        defaultWorkspaceId: workspaceId,
+        activeWorkspaceId: workspaceId,
+      },
+    );
   });
 
   it('returns the existing membership after a duplicate-key race during upsert', async () => {
@@ -124,6 +132,190 @@ describe('WorkspacesService', () => {
     ).upsertMembership(workspaceId, userId, WorkspaceRole.OWNER);
 
     expect(result).toBe(existingMembership);
-    expect(membershipModel.findOne).toHaveBeenCalledWith({ workspaceId, userId });
+    expect(membershipModel.findOne).toHaveBeenCalledWith({
+      workspaceId,
+      userId,
+    });
+  });
+
+  it('rejects inviteMember with an invalid workspace id instead of throwing a 500', async () => {
+    const service = new WorkspacesService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as UsersService,
+    );
+
+    await expect(
+      service.inviteMember(
+        'invalid-workspace-id',
+        new Types.ObjectId().toString(),
+        {
+          email: 'invitee@example.com',
+          role: WorkspaceRole.MEMBER,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects acceptInvitation with an invalid invitation id instead of throwing a 500', async () => {
+    const service = new WorkspacesService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as UsersService,
+    );
+
+    await expect(
+      service.acceptInvitation(
+        'invalid-invitation-id',
+        new Types.ObjectId().toString(),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('retires an expired pending invitation before creating a replacement', async () => {
+    const workspaceId = new Types.ObjectId();
+    const inviterId = new Types.ObjectId();
+    const expiredInvitation = {
+      _id: new Types.ObjectId(),
+      workspaceId,
+      email: 'invitee@example.com',
+      role: WorkspaceRole.MEMBER,
+      status: 'pending',
+      expiresAt: new Date('2026-03-21T00:00:00.000Z'),
+      respondedAt: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const createdInvitation = {
+      _id: new Types.ObjectId(),
+      workspaceId,
+      email: 'invitee@example.com',
+      invitedBy: inviterId,
+      role: WorkspaceRole.MEMBER,
+      status: 'pending',
+      token: 'token-123',
+      expiresAt: new Date('2026-03-29T00:00:00.000Z'),
+      acceptedBy: null,
+      respondedAt: null,
+      createdAt: new Date('2026-03-22T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-22T00:00:00.000Z'),
+    };
+
+    const invitationModel = Object.assign(
+      jest.fn().mockImplementation((payload) => ({
+        ...payload,
+        save: jest.fn().mockResolvedValue(createdInvitation),
+      })),
+      {
+        findOne: jest
+          .fn()
+          .mockReturnValue(execMock(Promise.resolve(expiredInvitation))),
+      },
+    );
+
+    const service = new WorkspacesService(
+      {} as never,
+      invitationModel as never,
+      {
+        findOne: jest.fn().mockReturnValue(execMock(Promise.resolve(null))),
+      } as never,
+      {
+        findByEmail: jest.fn().mockResolvedValue(null),
+      } as never,
+    );
+
+    const result = await service.inviteMember(
+      workspaceId.toString(),
+      inviterId.toString(),
+      {
+        email: 'invitee@example.com',
+        role: WorkspaceRole.MEMBER,
+      },
+    );
+
+    expect(expiredInvitation.status).toBe('rejected');
+    expect(expiredInvitation.respondedAt).toBeInstanceOf(Date);
+    expect(expiredInvitation.save).toHaveBeenCalled();
+    expect(invitationModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId,
+        email: 'invitee@example.com',
+        invitedBy: inviterId,
+        role: WorkspaceRole.MEMBER,
+      }),
+    );
+    expect(result).toEqual({
+      id: createdInvitation._id.toString(),
+      workspaceId: workspaceId.toString(),
+      email: 'invitee@example.com',
+      invitedBy: inviterId.toString(),
+      role: WorkspaceRole.MEMBER,
+      status: 'pending',
+      token: 'token-123',
+      expiresAt: new Date('2026-03-29T00:00:00.000Z'),
+      acceptedBy: null,
+      respondedAt: null,
+      createdAt: new Date('2026-03-22T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-22T00:00:00.000Z'),
+    });
+  });
+
+  it('lists pending workspace invitations as serialized responses', async () => {
+    const workspaceId = new Types.ObjectId();
+    const inviterId = new Types.ObjectId();
+    const invitation = {
+      _id: new Types.ObjectId(),
+      workspaceId,
+      email: 'invitee@example.com',
+      invitedBy: inviterId,
+      role: WorkspaceRole.ADMIN,
+      status: 'pending',
+      token: 'token-123',
+      expiresAt: new Date('2026-03-29T00:00:00.000Z'),
+      acceptedBy: null,
+      respondedAt: null,
+      createdAt: new Date('2026-03-22T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-22T00:00:00.000Z'),
+    };
+
+    const invitationModel = {
+      find: jest.fn().mockReturnValue({
+        sort: jest
+          .fn()
+          .mockReturnValue(execMock(Promise.resolve([invitation]))),
+      }),
+    };
+
+    const service = new WorkspacesService(
+      {} as never,
+      invitationModel as never,
+      {} as never,
+      {} as UsersService,
+    );
+
+    await expect(
+      service.listWorkspaceInvitations(workspaceId.toString()),
+    ).resolves.toEqual([
+      {
+        id: invitation._id.toString(),
+        workspaceId: workspaceId.toString(),
+        email: 'invitee@example.com',
+        invitedBy: inviterId.toString(),
+        role: WorkspaceRole.ADMIN,
+        status: 'pending',
+        token: 'token-123',
+        expiresAt: new Date('2026-03-29T00:00:00.000Z'),
+        acceptedBy: null,
+        respondedAt: null,
+        createdAt: new Date('2026-03-22T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-22T00:00:00.000Z'),
+      },
+    ]);
+    expect(invitationModel.find).toHaveBeenCalledWith({
+      workspaceId,
+      status: 'pending',
+    });
   });
 });

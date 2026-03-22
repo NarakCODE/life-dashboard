@@ -132,7 +132,14 @@ export function AppSidebar() {
         toast.error("Failed to switch workspace");
       }
     },
-    [activeWorkspaceId, pathname, queryClient, routeWorkspaceId, router, switchWorkspace],
+    [
+      activeWorkspaceId,
+      pathname,
+      queryClient,
+      routeWorkspaceId,
+      router,
+      switchWorkspace,
+    ],
   );
 
   const handleCreateWorkspace = useCallback(() => {
@@ -185,10 +192,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none border-none">
-      <SidebarHeader className="p-4">
+      <SidebarHeader>
         <WorkspaceCombobox
           workspaces={workspaces}
           selectedId={activeWorkspaceId}
+          userActiveWorkspaceId={auth.user?.activeWorkspaceId}
           onSelect={handleWorkspaceSelect}
           onCreateNew={handleCreateWorkspace}
           onManageWorkspaces={handleManageWorkspaces}

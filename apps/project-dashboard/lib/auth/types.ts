@@ -9,6 +9,8 @@ export interface AuthUser {
   email: string
   displayName: string
   isEmailVerified: boolean
+  defaultWorkspaceId: string | null
+  activeWorkspaceId: string | null
   createdAt: string
   updatedAt: string
 }

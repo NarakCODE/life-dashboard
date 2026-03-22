@@ -52,6 +52,8 @@ export type WorkstreamTask = {
   assignee?: User
   /** Optional start date for the task (used in task views). */
   startDate?: Date
+  /** Optional due date for edit flows and scheduling UI. */
+  dueDate?: Date
   /** Optional priority identifier for the task. */
   priority?: "no-priority" | "low" | "medium" | "high" | "urgent"
   /** Optional tag label for the task (e.g. Feature, Bug). */

@@ -1,5 +1,44 @@
 # Lessons Learned
 
+## Date: 2026-03-22
+
+### Lesson: Edit Task Plans Carefully
+
+**Context**: Added a new task plan entry to `tasks/todo.md` while another completed plan already existed at the top of the file.
+
+**Mistake/Risk Avoided**:
+- The first patch duplicated an existing heading block and briefly left `tasks/todo.md` with redundant status sections.
+- That kind of bookkeeping error makes the plan file harder to trust during longer sessions.
+
+**Root Cause**:
+- I inserted the new plan at the file top without first checking how the previous top-level section should be preserved.
+
+**Preventative Rule**:
+1. Read the current top section of tracking files before prepending a new plan.
+2. Replace or insert with exact surrounding context instead of broad top-of-file patches.
+3. Re-read the diff for tracking files immediately after patching them.
+
+**Applied In**: `tasks/todo.md` was corrected in the same session after the duplicate sections were detected.
+
+### Lesson: Avoid Socket-Bound HTTP Tests in This Sandbox
+
+**Context**: Added a regression test for `GET /workspaces/resolve-context` while working inside the Codex sandbox.
+
+**Mistake/Risk Avoided**:
+- An initial `supertest` route test tried to bind a local port and failed with `listen EPERM`.
+- That failure was environmental noise, not a backend regression, and could have wasted time or produced a misleading result.
+
+**Root Cause**:
+- This sandbox can restrict socket binding even for local test servers.
+- `supertest` can still attempt to listen when given a non-listening server object.
+
+**Preventative Rule**:
+1. Prefer controller/unit or metadata-based route regression tests when the sandbox blocks local port binding.
+2. Only use socket-bound integration tests when the environment explicitly supports local listeners.
+3. If a route-order bug is the real concern, assert the static route metadata and controller method order directly.
+
+**Applied In**: `apps/api/src/workspaces/workspaces.controller.spec.ts` now verifies the `resolve-context` route without opening a socket.
+
 ## Date: 2026-03-21
 
 ### Lesson: Dependency Update Strategy

@@ -61,6 +61,21 @@ export interface WorkspaceWithDetails {
   updatedAt: Date;
 }
 
+export interface WorkspaceInvitationResponse {
+  id: string;
+  workspaceId: string;
+  email: string;
+  invitedBy: string;
+  role: WorkspaceRole;
+  status: InvitationStatus;
+  token: string;
+  expiresAt: Date;
+  acceptedBy?: string | null;
+  respondedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class WorkspacesService {
   constructor(
@@ -255,13 +270,14 @@ export class WorkspacesService {
     workspaceId: string,
     invitedBy: string,
     dto: InviteMemberDto,
-  ) {
+  ): Promise<WorkspaceInvitationResponse> {
+    const workspaceObjectId = this.toObjectId(workspaceId, 'workspaceId');
     const userToInvite = await this.usersService.findByEmail(dto.email);
 
     if (userToInvite) {
       const existingMembership = await this.membershipModel
         .findOne({
-          workspaceId: new Types.ObjectId(workspaceId),
+          workspaceId: workspaceObjectId,
           userId: userToInvite._id,
           status: WorkspaceMembershipStatus.ACTIVE,
         })
@@ -276,27 +292,50 @@ export class WorkspacesService {
 
     const existingPendingInvitation = await this.invitationModel
       .findOne({
-        workspaceId: new Types.ObjectId(workspaceId),
+        workspaceId: workspaceObjectId,
         email: dto.email.toLowerCase(),
         status: InvitationStatus.PENDING,
       })
       .exec();
 
     if (existingPendingInvitation) {
-      throw new BadRequestException('A pending invitation already exists');
+      if (existingPendingInvitation.expiresAt > new Date()) {
+        throw new BadRequestException('A pending invitation already exists');
+      }
+
+      existingPendingInvitation.status = InvitationStatus.REJECTED;
+      existingPendingInvitation.respondedAt = new Date();
+      await existingPendingInvitation.save();
     }
 
     const invitation = new this.invitationModel({
-      workspaceId: new Types.ObjectId(workspaceId),
+      workspaceId: workspaceObjectId,
       email: dto.email,
-      invitedBy: new Types.ObjectId(invitedBy),
+      invitedBy: this.toObjectId(invitedBy, 'invitedBy'),
       role: dto.role,
       status: InvitationStatus.PENDING,
       token: randomBytes(24).toString('hex'),
       expiresAt: this.buildInvitationExpiry(),
     });
 
-    return invitation.save();
+    const savedInvitation = await invitation.save();
+    return this.serializeInvitation(savedInvitation);
+  }
+
+  async listWorkspaceInvitations(
+    workspaceId: string,
+  ): Promise<WorkspaceInvitationResponse[]> {
+    const invitations = await this.invitationModel
+      .find({
+        workspaceId: this.toObjectId(workspaceId, 'workspaceId'),
+        status: InvitationStatus.PENDING,
+      })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return invitations.map((invitation) =>
+      this.serializeInvitation(invitation),
+    );
   }
 
   async removeMember(workspaceId: string, userIdToRemove: string) {
@@ -483,7 +522,10 @@ export class WorkspacesService {
     };
   }
 
-  async acceptInvitation(invitationId: string, userId: string) {
+  async acceptInvitation(
+    invitationId: string,
+    userId: string,
+  ): Promise<WorkspaceInvitationResponse> {
     const invitation = await this.getPendingInvitation(invitationId);
     const user = await this.usersService.findById(userId);
 
@@ -520,10 +562,13 @@ export class WorkspacesService {
       });
     }
 
-    return invitation;
+    return this.serializeInvitation(invitation);
   }
 
-  async rejectInvitation(invitationId: string, userId: string) {
+  async rejectInvitation(
+    invitationId: string,
+    userId: string,
+  ): Promise<WorkspaceInvitationResponse> {
     const invitation = await this.getPendingInvitation(invitationId);
     const user = await this.usersService.findById(userId);
 
@@ -535,14 +580,17 @@ export class WorkspacesService {
     invitation.respondedAt = new Date();
     await invitation.save();
 
-    return invitation;
+    return this.serializeInvitation(invitation);
   }
 
-  async revokeInvitation(workspaceId: string, invitationId: string) {
+  async revokeInvitation(
+    workspaceId: string,
+    invitationId: string,
+  ): Promise<WorkspaceInvitationResponse> {
     const invitation = await this.invitationModel
       .findOne({
-        _id: new Types.ObjectId(invitationId),
-        workspaceId: new Types.ObjectId(workspaceId),
+        _id: this.toObjectId(invitationId, 'invitationId'),
+        workspaceId: this.toObjectId(workspaceId, 'workspaceId'),
         status: InvitationStatus.PENDING,
       })
       .exec();
@@ -555,7 +603,7 @@ export class WorkspacesService {
     invitation.respondedAt = new Date();
     await invitation.save();
 
-    return invitation;
+    return this.serializeInvitation(invitation);
   }
 
   async leaveWorkspace(workspaceId: string, userId: string): Promise<void> {
@@ -586,9 +634,11 @@ export class WorkspacesService {
     });
   }
 
-  async listPendingInvitationsForUser(userId: string) {
+  async listPendingInvitationsForUser(
+    userId: string,
+  ): Promise<WorkspaceInvitationResponse[]> {
     const user = await this.usersService.findById(userId);
-    return this.invitationModel
+    const invitations = await this.invitationModel
       .find({
         email: user.email.toLowerCase(),
         status: InvitationStatus.PENDING,
@@ -596,6 +646,10 @@ export class WorkspacesService {
       })
       .sort({ createdAt: -1 })
       .exec();
+
+    return invitations.map((invitation) =>
+      this.serializeInvitation(invitation),
+    );
   }
 
   private async upsertMembership(
@@ -677,7 +731,7 @@ export class WorkspacesService {
   private async getPendingInvitation(invitationId: string) {
     const invitation = await this.invitationModel
       .findOne({
-        _id: new Types.ObjectId(invitationId),
+        _id: this.toObjectId(invitationId, 'invitationId'),
         status: InvitationStatus.PENDING,
       })
       .exec();
@@ -700,5 +754,32 @@ export class WorkspacesService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
     return expiresAt;
+  }
+
+  private serializeInvitation(
+    invitation: WorkspaceInvitationDocument,
+  ): WorkspaceInvitationResponse {
+    return {
+      id: invitation._id.toString(),
+      workspaceId: invitation.workspaceId.toString(),
+      email: invitation.email,
+      invitedBy: invitation.invitedBy.toString(),
+      role: invitation.role,
+      status: invitation.status,
+      token: invitation.token,
+      expiresAt: invitation.expiresAt,
+      acceptedBy: invitation.acceptedBy?.toString() ?? null,
+      respondedAt: invitation.respondedAt ?? null,
+      createdAt: invitation.createdAt,
+      updatedAt: invitation.updatedAt,
+    };
+  }
+
+  private toObjectId(value: string, fieldName: string): Types.ObjectId {
+    if (!Types.ObjectId.isValid(value)) {
+      throw new BadRequestException(`Invalid ${fieldName}`);
+    }
+
+    return new Types.ObjectId(value);
   }
 }

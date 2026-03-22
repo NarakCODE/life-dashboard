@@ -154,7 +154,10 @@ export class AuthService {
     _refreshToken: string,
   ): Promise<AuthTokensDto> {
     const user = await this.usersService.findById(_userId);
-    return this.issueTokens(user);
+    return this.issueTokens(user, {
+      refreshToken: _refreshToken,
+      persistRefreshToken: false,
+    });
   }
 
   /**
@@ -187,7 +190,13 @@ export class AuthService {
     });
   }
 
-  private async issueTokens(user: UserDocument): Promise<AuthTokensDto> {
+  private async issueTokens(
+    user: UserDocument,
+    options?: {
+      refreshToken?: string;
+      persistRefreshToken?: boolean;
+    },
+  ): Promise<AuthTokensDto> {
     await this.workspacesService.ensureDefaultWorkspaceForUser(
       user._id.toString(),
     );
@@ -209,23 +218,27 @@ export class AuthService {
     const refreshExpiry = this.config.get<string>('jwt.refreshExpiresIn', '7d');
 
     // Sign both tokens concurrently
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: accessSecret,
-        expiresIn: accessExpiry as never,
-      }),
-      this.jwtService.signAsync(payload, {
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: accessSecret,
+      expiresIn: accessExpiry as never,
+    });
+
+    const shouldPersistRefreshToken = options?.persistRefreshToken !== false;
+    const refreshToken =
+      options?.refreshToken ??
+      (await this.jwtService.signAsync(payload, {
         secret: refreshSecret,
         expiresIn: refreshExpiry as never,
-      }),
-    ]);
+      }));
 
-    // Hash and store the new refresh token (rotation pattern)
-    const refreshTokenHash = await bcrypt.hash(refreshToken, BCRYPT_ROUNDS);
-    await this.usersRepo.updateRefreshTokenHash(
-      user._id.toString(),
-      refreshTokenHash,
-    );
+    if (shouldPersistRefreshToken) {
+      // Store the initial refresh token hash at login; refresh reuses the same token.
+      const refreshTokenHash = await bcrypt.hash(refreshToken, BCRYPT_ROUNDS);
+      await this.usersRepo.updateRefreshTokenHash(
+        user._id.toString(),
+        refreshTokenHash,
+      );
+    }
 
     return { accessToken, refreshToken, expiresIn: this.jwtExpiresIn };
   }

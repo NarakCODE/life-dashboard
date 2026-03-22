@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   HttpCode,
@@ -54,6 +55,49 @@ export class WorkspacesController {
     return { success: true, data };
   }
 
+  @Get('resolve-context')
+  @ApiOperation({
+    summary:
+      'Resolve the authenticated user workspace context for the requested workspace',
+  })
+  async resolveContext(
+    @CurrentUser('sub') userId: string,
+    @Query('workspaceId') workspaceId?: string,
+  ) {
+    const data = await this.workspacesService.resolveAccessContext(
+      userId,
+      workspaceId,
+    );
+    return { success: true, data };
+  }
+
+  @Post(':workspaceId/invitations')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Invite a user to the workspace' })
+  async invite(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: InviteMemberDto,
+  ) {
+    const data = await this.workspacesService.inviteMember(
+      workspaceId,
+      userId,
+      dto,
+    );
+    return { success: true, data };
+  }
+
+  @Get(':workspaceId/invitations')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'List pending invitations for a workspace' })
+  async listWorkspaceInvitations(@Param('workspaceId') workspaceId: string) {
+    const data =
+      await this.workspacesService.listWorkspaceInvitations(workspaceId);
+    return { success: true, data };
+  }
+
   @Get(':workspaceId')
   @UseGuards(WorkspaceAccessGuard)
   @ApiOperation({ summary: 'Get workspace details' })
@@ -81,23 +125,6 @@ export class WorkspacesController {
   @ApiOperation({ summary: 'Delete a workspace' })
   async remove(@Param('workspaceId') workspaceId: string) {
     await this.workspacesService.delete(workspaceId);
-  }
-
-  @Post(':workspaceId/invitations')
-  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
-  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
-  @ApiOperation({ summary: 'Invite a user to the workspace' })
-  async invite(
-    @Param('workspaceId') workspaceId: string,
-    @CurrentUser('sub') userId: string,
-    @Body() dto: InviteMemberDto,
-  ) {
-    const data = await this.workspacesService.inviteMember(
-      workspaceId,
-      userId,
-      dto,
-    );
-    return { success: true, data };
   }
 
   @Delete(':workspaceId/members/:memberId')

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { CalendarBlank, ChartBar, Paperclip, Tag as TagIcon, Microphone, UserCircle, X, Folder, Rows } from '@phosphor-icons/react/dist/ssr'
+import { CalendarBlank, ChartBar, Paperclip, Tag, Microphone, UserCircle, X, Folder, Rows } from '@phosphor-icons/react/dist/ssr'
 
 import type { ProjectTask } from '@/lib/data/project-details'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,11 @@ export type TagOption = {
   label: string
 }
 
+interface PickerOption {
+  id: string
+  label: string
+}
+
 const STATUS_OPTIONS: StatusOption[] = [
   { id: 'todo', label: 'To do' },
   { id: 'in-progress', label: 'In progress' },
@@ -74,6 +79,25 @@ export const TAG_OPTIONS: TagOption[] = [
   { id: 'bug', label: 'Bug' },
   { id: 'internal', label: 'Internal' },
 ]
+
+function resolveCreateDefaults(
+  projectOptions: PickerOption[],
+  projects: Array<{ id: string; workstreams: PickerOption[] }>,
+  context?: CreateTaskContext,
+) {
+  const resolvedProjectId = context?.projectId ?? projectOptions[0]?.id
+  const resolvedProject = projects.find((project) => project.id === resolvedProjectId)
+  const workstreamOptions = resolvedProject?.workstreams ?? []
+  const resolvedWorkstream =
+    workstreamOptions.find((workstream) => workstream.id === context?.workstreamId) ??
+    workstreamOptions[0]
+
+  return {
+    projectId: resolvedProjectId,
+    workstreamId: resolvedWorkstream?.id,
+    workstreamName: context?.workstreamName ?? resolvedWorkstream?.label,
+  }
+}
 
 export function TaskQuickCreateModal({ open, onClose, context, editingTask }: TaskQuickCreateModalProps) {
   const auth = useAuth()
@@ -103,6 +127,23 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
   const [priority, setPriority] = useState<PriorityOption | undefined>(DEFAULT_PRIORITY_OPTION)
   const [selectedTag, setSelectedTag] = useState<TagOption | undefined>(undefined)
 
+  const projectOptions = useMemo(
+    () => projects.map((p) => ({ id: p.id, label: p.name })),
+    [projects],
+  )
+
+  const projectWorkstreams = useMemo(
+    () =>
+      projects.map((project) => ({
+        id: project.id,
+        workstreams: project.workstreams.map((workstream) => ({
+          id: workstream.id,
+          label: workstream.name,
+        })),
+      })),
+    [projects],
+  )
+
   useEffect(() => {
     if (!open) return
 
@@ -127,7 +168,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
       setStatus(statusOption ?? DEFAULT_STATUS_OPTION)
 
       setStartDate(editingTask.startDate ?? new Date())
-      setTargetDate(undefined)
+      setTargetDate(editingTask.dueDate)
 
       const priorityOption = editingTask.priority
         ? PRIORITY_OPTIONS.find((p) => p.id === editingTask.priority)
@@ -142,23 +183,11 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
       return
     }
 
-    const defaultProjectId = context?.projectId
-    setProjectId(defaultProjectId)
+    const defaults = resolveCreateDefaults(projectOptions, projectWorkstreams, context)
 
-    const workstreams = defaultProjectId
-      ? (
-          projects.find((project) => project.id === defaultProjectId)?.workstreams ??
-          []
-        ).map((workstream) => ({
-          id: workstream.id,
-          label: workstream.name,
-        }))
-      : []
-    const initialWorkstream = workstreams.find((ws) => ws.id === context?.workstreamId)
-
-    setWorkstreamId(initialWorkstream?.id)
-    setWorkstreamName(context?.workstreamName ?? initialWorkstream?.label)
-
+    setProjectId(defaults.projectId)
+    setWorkstreamId(defaults.workstreamId)
+    setWorkstreamName(defaults.workstreamName)
     setTitle('')
     setDescription(undefined)
     setCreateMore(false)
@@ -169,12 +198,14 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
     setTargetDate(undefined)
     setPriority(DEFAULT_PRIORITY_OPTION)
     setSelectedTag(undefined)
-  }, [open, context?.projectId, context?.workstreamId, context?.workstreamName, editingTask, assigneeOptions, projects])
-
-  const projectOptions = useMemo(
-    () => projects.map((p) => ({ id: p.id, label: p.name })),
-    [projects],
-  )
+  }, [
+    open,
+    context,
+    editingTask,
+    assigneeOptions,
+    projectOptions,
+    projectWorkstreams,
+  ])
 
   const workstreamOptions = useMemo(
     () => {
@@ -188,7 +219,11 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
   )
 
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId) {
+      setWorkstreamId(undefined)
+      setWorkstreamName(undefined)
+      return
+    }
 
     if (!workstreamOptions.length) {
       setWorkstreamId(undefined)
@@ -200,10 +235,8 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
     const fallback = workstreamOptions[0]
     const next = existing ?? fallback
     setWorkstreamId(next?.id)
-    if (!workstreamName) {
-      setWorkstreamName(next?.label)
-    }
-  }, [projectId, workstreamOptions, workstreamId, workstreamName])
+    setWorkstreamName(next?.label)
+  }, [projectId, workstreamOptions, workstreamId])
 
   const resetCreateForm = () => {
     setTitle('')
@@ -294,7 +327,11 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
           <GenericPicker
             items={projectOptions}
             selectedId={projectId}
-            onSelect={(item) => setProjectId(item.id)}
+            onSelect={(item) => {
+              setProjectId(item.id)
+              setWorkstreamId(undefined)
+              setWorkstreamName(undefined)
+            }}
             placeholder="Choose project..."
             renderItem={(item) => (
               <div className="flex items-center justify-between w-full gap-2">
@@ -307,7 +344,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
                 className="bg-background flex gap-2 h-7 items-center px-2 py-1 rounded-lg border border-background hover:border-primary/50 transition-colors text-xs disabled:opacity-60"
               >
                 <Folder className="size-4 text-muted-foreground" />
-                <span className="truncate max-w-[160px] font-medium text-foreground">
+                <span className="truncate max-w-40 font-medium text-foreground">
                   {projectLabel ?? 'Choose project'}
                 </span>
               </button>
@@ -491,7 +528,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
           )}
           trigger={
             <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
-              <TagIcon className="size-4 text-muted-foreground" />
+              <Tag className="size-4 text-muted-foreground" />
               <span className="font-medium text-foreground text-sm leading-5">
                 {selectedTag?.label ?? 'Tag'}
               </span>

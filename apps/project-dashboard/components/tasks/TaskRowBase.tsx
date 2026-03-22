@@ -9,6 +9,7 @@ export type TaskRowBaseProps = {
   checked: boolean
   title: string
   onCheckedChange?: () => void
+  onOpen?: () => void
   titleAriaLabel?: string
   titleSuffix?: ReactNode
   meta?: ReactNode
@@ -20,6 +21,7 @@ export function TaskRowBase({
   checked,
   title,
   onCheckedChange,
+  onOpen,
   titleAriaLabel,
   titleSuffix,
   meta,
@@ -30,12 +32,25 @@ export function TaskRowBase({
     <div
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted/60",
+        onOpen && "cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
         className,
       )}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (!onOpen) return
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        onOpen()
+      }}
+      tabIndex={onOpen ? 0 : undefined}
+      role={onOpen ? "button" : undefined}
+      aria-label={onOpen ? `Edit task ${title}` : undefined}
     >
       <Checkbox
         checked={checked}
         onCheckedChange={onCheckedChange}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
         aria-label={titleAriaLabel ?? title}
         className="rounded-full border-border bg-background data-[state=checked]:border-teal-600 data-[state=checked]:bg-teal-600 hover:cursor-pointer"
       />

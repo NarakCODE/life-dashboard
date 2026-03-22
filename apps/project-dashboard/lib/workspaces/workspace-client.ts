@@ -97,6 +97,17 @@ export async function getMyInvitations(): Promise<WorkspaceInvitation[]> {
   return response.data.data ?? response.data
 }
 
+export async function getWorkspaceInvitations(
+  workspaceId: string,
+): Promise<WorkspaceInvitation[]> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceInvitation[]>>({
+    path: `/workspaces/${workspaceId}/invitations`,
+    method: "GET",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
 export async function inviteMember(
   workspaceId: string,
   input: InviteMemberInput
