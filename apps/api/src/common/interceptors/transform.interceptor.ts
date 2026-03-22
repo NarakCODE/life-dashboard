@@ -10,6 +10,7 @@ import { map } from 'rxjs/operators';
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
+  meta?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -27,11 +28,32 @@ export class TransformInterceptor<T> implements NestInterceptor<
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data: T) => ({
-        success: true,
-        data,
-        timestamp: new Date().toISOString(),
-      })),
+      map((data: T) => {
+        if (
+          data !== null &&
+          typeof data === 'object' &&
+          'meta' in (data as Record<string, unknown>) &&
+          'data' in (data as Record<string, unknown>)
+        ) {
+          const payload = data as unknown as {
+            data: T;
+            meta: Record<string, unknown>;
+          };
+
+          return {
+            success: true,
+            data: payload.data,
+            meta: payload.meta,
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        return {
+          success: true,
+          data,
+          timestamp: new Date().toISOString(),
+        };
+      }),
     );
   }
 }

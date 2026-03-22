@@ -1,3 +1,65 @@
+# Tasks API Design Implementation Plan
+
+## Status: COMPLETE
+
+### 1. Contract alignment and scope
+- [x] Confirm the current tasks module gaps against `tasks/tasks_api_design.md` and the existing frontend `ProjectTask` shape
+- [x] Keep the current owner-scoped permission model for now because this repo has no project/project-membership backend yet
+- [x] Preserve compatibility for the existing dashboard task overview endpoint while introducing the new task contract
+
+### 2. Response and DTO design
+- [x] Update the success response interceptor so task list responses can expose top-level `meta.filterCounts` without double-wrapping
+- [x] Replace the tasks DTOs with the project/workstream-oriented request and response contract
+- [x] Add explicit DTO support for faceted task queries (`status`, `assigneeIds`, `tags`, `startDateFrom`, `startDateTo`, `projectId`)
+
+### 3. Tasks module implementation
+- [x] Refactor the task schema to store the fields required by the tasks UI (`name`, project/workstream fields, assignee snapshot, `startDate`, string priority/tag values)
+- [x] Update the repository with owner-scoped CRUD, my-tasks listing, pagination, and filter-count aggregation
+- [x] Update the service to enforce access rules, normalize responses, and keep task status side effects/events intact
+- [x] Update the controller to expose `GET /tasks/my-tasks` plus the supporting CRUD endpoints with JWT protection and Swagger docs
+
+### 4. Verification
+- [x] Run relevant `apps/api` validation
+- [x] Record review/results and residual risks
+
+## Review / Results
+- Reworked the `apps/api` tasks module from the older personal-task shape into a project/workstream-oriented contract that matches the current `MyTasksPage` UI requirements: `name`, `projectId`, `projectName`, `workstreamId`, `workstreamName`, `assignee`, `startDate`, string priorities, and single-tag support.
+- Added `GET /api/v1/tasks/my-tasks` and aligned `GET /api/v1/tasks` to the same owner-scoped paginated query path, returning `{ success, data, meta, timestamp }` with `meta.filterCounts`.
+- Preserved compatibility for the existing dashboard overview endpoint by keeping the overview aggregation output as `todo`, `in_progress`, `done`, and `archived`, while normalizing the newer task status contract to `in-progress` for the tasks API itself.
+- Added assignee snapshot resolution via `UsersService` so task responses can include an assignee object without introducing a new projects/users lookup layer in the controller.
+- Verification:
+  - `pnpm --filter api check-types` ✅
+  - `pnpm --filter api lint` ✅ with pre-existing warnings in unrelated files under goals, journal-entries, notifications, and transactions
+  - `pnpm --filter api test -- --runInBand` ✅
+- Remaining risks:
+  - The repo still has no project or project-membership backend, so visibility remains owner-scoped rather than true project-membership-aware access control.
+  - `projectName` and `workstreamName` are denormalized request fields for now because there is no backend source of truth for projects/workstreams yet.
+  - User records currently expose `displayName` only, so assignee `avatarUrl` and `role` remain unsupported until the users domain stores them.
+
+# Dashboard Section Cards Grid Update
+
+## Status: COMPLETE
+
+### 1. Scope and layout review
+- [x] Inspect `SectionCards` and the protected dashboard page skeleton
+- [x] Confirm the existing grid uses container-query breakpoints that should be simplified
+
+### 2. Implementation
+- [x] Update dashboard section cards to use a responsive 4-column layout with viewport breakpoints
+- [x] Keep loading skeleton layout aligned with the live cards
+
+### 3. Verification
+- [x] Run relevant validation for `apps/project-dashboard`
+- [x] Record review/results and any remaining risks
+
+## Review / Results
+- Replaced the dashboard stats grid container-query classes with viewport-based responsive breakpoints so the cards now scale from 1 column to 2 columns and then 4 columns on larger screens.
+- Kept the loading skeleton grid in sync with the live card layout to avoid a layout jump during suspense fallback.
+- Verification:
+  - `pnpm --filter my-v0-project lint` ✅
+- Remaining risk:
+  - lint still reports many pre-existing warnings elsewhere in `apps/project-dashboard`, but no new errors were introduced by this task.
+
 # Frontend Authentication UI Implementation Plan
 
 ## Status: COMPLETE

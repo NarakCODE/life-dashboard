@@ -1,16 +1,28 @@
-import { Exclude, Expose } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Exclude, Expose, Type } from 'class-transformer';
 import { TaskPriority, TaskStatus } from '../schemas/task.schema';
 
 @Exclude()
-export class TaskTagResponseDto {
+export class TaskAssigneeResponseDto {
+  @Expose()
+  @ApiProperty()
+  id: string;
+
   @Expose()
   @ApiProperty()
   name: string;
 
   @Expose()
-  @ApiProperty()
-  color: string;
+  @ApiPropertyOptional()
+  avatarUrl?: string;
+
+  @Expose()
+  @ApiPropertyOptional()
+  role?: string;
+
+  constructor(partial: Partial<TaskAssigneeResponseDto>) {
+    Object.assign(this, partial);
+  }
 }
 
 @Exclude()
@@ -21,35 +33,56 @@ export class TaskResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
-
-  @Expose()
-  @ApiProperty()
-  title: string;
-
-  @Expose()
-  @ApiProperty()
-  description?: string;
+  name: string;
 
   @Expose()
   @ApiProperty({ enum: TaskStatus })
   status: TaskStatus;
 
   @Expose()
-  @ApiProperty({ enum: TaskPriority })
-  priority: TaskPriority;
+  @ApiProperty()
+  projectId: string;
 
   @Expose()
   @ApiProperty()
+  projectName: string;
+
+  @Expose()
+  @ApiPropertyOptional()
+  workstreamId?: string;
+
+  @Expose()
+  @ApiPropertyOptional()
+  workstreamName?: string;
+
+  @Expose()
+  @Type(() => TaskAssigneeResponseDto)
+  @ApiPropertyOptional({ type: TaskAssigneeResponseDto })
+  assignee?: TaskAssigneeResponseDto;
+
+  @Expose()
+  @ApiPropertyOptional()
+  startDate?: Date;
+
+  @Expose()
+  @ApiPropertyOptional({ enum: TaskPriority })
+  priority?: TaskPriority;
+
+  @Expose()
+  @ApiPropertyOptional()
+  tag?: string;
+
+  @Expose()
+  @ApiPropertyOptional()
+  description?: string;
+
+  @Expose()
+  @ApiPropertyOptional()
   dueDate?: Date;
 
   @Expose()
-  @ApiProperty()
-  completedAt?: Date;
-
-  @Expose()
-  @ApiProperty({ type: [TaskTagResponseDto] })
-  tags: TaskTagResponseDto[];
+  @ApiPropertyOptional()
+  completedAt?: Date | null;
 
   @Expose()
   @ApiProperty()
@@ -62,4 +95,65 @@ export class TaskResponseDto {
   constructor(partial: Partial<TaskResponseDto>) {
     Object.assign(this, partial);
   }
+}
+
+export class TaskPaginationDto {
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  limit: number;
+
+  @ApiProperty()
+  totalPages: number;
+}
+
+export class TaskFilterCountsDto {
+  @ApiPropertyOptional({
+    additionalProperties: { type: 'number' },
+    type: 'object',
+  })
+  status?: Record<string, number>;
+
+  @ApiPropertyOptional({
+    additionalProperties: { type: 'number' },
+    type: 'object',
+  })
+  priority?: Record<string, number>;
+
+  @ApiPropertyOptional({
+    additionalProperties: { type: 'number' },
+    type: 'object',
+  })
+  tags?: Record<string, number>;
+
+  @ApiPropertyOptional({
+    additionalProperties: { type: 'number' },
+    type: 'object',
+  })
+  members?: Record<string, number>;
+}
+
+export class MyTasksDataDto {
+  @ApiProperty({ type: [TaskResponseDto] })
+  tasks: TaskResponseDto[];
+
+  @ApiProperty({ type: TaskPaginationDto })
+  pagination: TaskPaginationDto;
+}
+
+export class MyTasksMetaDto {
+  @ApiProperty({ type: TaskFilterCountsDto })
+  filterCounts: TaskFilterCountsDto;
+}
+
+export class MyTasksResultDto {
+  @ApiProperty({ type: MyTasksDataDto })
+  data: MyTasksDataDto;
+
+  @ApiProperty({ type: MyTasksMetaDto })
+  meta: MyTasksMetaDto;
 }

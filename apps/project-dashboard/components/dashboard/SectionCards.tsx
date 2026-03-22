@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
   AlertCircle,
@@ -10,44 +10,43 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-} from "lucide-react"
+} from "lucide-react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { getDashboardStats, type DashboardStats } from "@/lib/data/dashboard"
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { getDashboardStats, type DashboardStats } from "@/lib/data/dashboard";
 
 interface SectionCardsProps {
-  initialData?: DashboardStats
+  initialData?: DashboardStats;
 }
 
 interface MetricCardProps {
-  title: string
-  value: string
-  description: string
-  icon: React.ReactNode
-  tooltip: string
-  tone?: "neutral" | "positive" | "warning" | "danger"
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  tooltip: string;
+  tone?: "neutral" | "positive" | "warning" | "danger";
 }
 
 function calculateCompletionRate(stats: DashboardStats): number {
-  if (stats.totalTasks === 0) return 0
-  return Math.round((stats.countsByStatus.done / stats.totalTasks) * 100)
+  if (stats.totalTasks === 0) return 0;
+  return Math.round((stats.countsByStatus.done / stats.totalTasks) * 100);
 }
 
 function getTrendIcon(value: number, inverse = false) {
-  if (value === 0) return <Minus className="size-4" />
-  const isPositive = inverse ? value < 0 : value > 0
+  if (value === 0) return <Minus className="size-4" />;
+  const isPositive = inverse ? value < 0 : value > 0;
   return isPositive ? (
     <TrendingUp className="size-4" />
   ) : (
     <TrendingDown className="size-4" />
-  )
+  );
 }
 
 function MetricCard({
@@ -65,13 +64,15 @@ function MetricCard({
         ? "text-amber-600"
         : tone === "danger"
           ? "text-rose-600"
-          : "text-muted-foreground"
+          : "text-muted-foreground";
 
   return (
     <Card className="border-border/60 bg-card/70">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
         <div className="flex items-center gap-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -87,7 +88,12 @@ function MetricCard({
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-full bg-muted/40", toneClass)}>
+        <div
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full bg-muted/40",
+            toneClass,
+          )}
+        >
           {icon}
         </div>
       </CardHeader>
@@ -96,7 +102,7 @@ function MetricCard({
         <p className="text-xs text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function SectionCards({ initialData }: SectionCardsProps) {
@@ -104,17 +110,21 @@ export function SectionCards({ initialData }: SectionCardsProps) {
     queryKey: ["dashboard-stats"],
     queryFn: getDashboardStats,
     initialData,
-  })
+  });
 
-  if (!stats) return null
+  if (!stats) return null;
 
-  const completionRate = calculateCompletionRate(stats)
-  const completionDelta = completionRate - 50
+  const completionRate = calculateCompletionRate(stats);
+  const completionDelta = completionRate - 50;
   const completionTone: MetricCardProps["tone"] =
-    completionDelta > 0 ? "positive" : completionDelta < 0 ? "warning" : "neutral"
+    completionDelta > 0
+      ? "positive"
+      : completionDelta < 0
+        ? "warning"
+        : "neutral";
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4 lg:px-6">
       <MetricCard
         title="Total Tasks"
         value={stats.totalTasks.toLocaleString()}
@@ -131,7 +141,13 @@ export function SectionCards({ initialData }: SectionCardsProps) {
             ? `${stats.completedSummary.total} tasks completed. ${getCompletionSummaryLabel(completionDelta)} ${getTrendLabel(completionDelta)}`
             : "No tasks yet, so the completion rate is currently zero."
         }
-        icon={completionDelta === 0 ? <CheckCircle2 className="h-4 w-4" /> : getTrendIcon(completionDelta)}
+        icon={
+          completionDelta === 0 ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            getTrendIcon(completionDelta)
+          )
+        }
         tooltip="Calculated from completed tasks divided by total tasks. The tone shifts based on whether the rate is above or below 50%."
         tone={completionTone}
       />
@@ -144,7 +160,13 @@ export function SectionCards({ initialData }: SectionCardsProps) {
             ? `Requires attention now. ${stats.upcomingCount} more tasks are coming up soon.`
             : `No overdue tasks right now. ${stats.upcomingCount} tasks are scheduled next.`
         }
-        icon={stats.overdueCount > 0 ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+        icon={
+          stats.overdueCount > 0 ? (
+            <AlertCircle className="h-4 w-4" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )
+        }
         tooltip="Tasks past their due date. Zero is ideal; any positive count means work is already late."
         tone={stats.overdueCount > 0 ? "danger" : "positive"}
       />
@@ -162,15 +184,15 @@ export function SectionCards({ initialData }: SectionCardsProps) {
         tone="warning"
       />
     </div>
-  )
+  );
 }
 
 function getTrendLabel(value: number) {
-  if (value === 0) return "on target."
-  return value > 0 ? "above the baseline." : "below the baseline."
+  if (value === 0) return "on target.";
+  return value > 0 ? "above the baseline." : "below the baseline.";
 }
 
 function getCompletionSummaryLabel(value: number) {
-  if (value === 0) return "Completion is"
-  return value > 0 ? "Progress is tracking" : "Progress is trending"
+  if (value === 0) return "Completion is";
+  return value > 0 ? "Progress is tracking" : "Progress is trending";
 }

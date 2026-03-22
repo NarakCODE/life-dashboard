@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateTaskDto } from './create-task.dto';
-import { IsOptional, IsDate } from 'class-validator';
+import { IsDate, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 

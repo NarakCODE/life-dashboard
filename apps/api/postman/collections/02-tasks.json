@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "02 - Tasks",
-    "description": "Task management endpoints - Full CRUD with pagination and filtering",
+    "description": "Task management endpoints for the project/workstream task contract, including my-tasks filtering and CRUD.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -38,14 +38,79 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Complete project documentation\",\n  \"description\": \"Write comprehensive docs for the API\",\n  \"status\": \"todo\",\n  \"priority\": 2,\n  \"dueDate\": \"2024-12-31T23:59:59.000Z\",\n  \"tags\": [{ \"name\": \"work\" }, { \"name\": \"urgent\" }]\n}"
+          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"project-fintech-redesign\",\n  \"projectName\": \"Fintech Mobile App Redesign\",\n  \"workstreamId\": \"ws-discovery\",\n  \"workstreamName\": \"Initial discovery & alignment\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"design\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks"
+          ]
         },
-        "description": "Create a new task"
+        "description": "Create a new project-oriented task."
+      }
+    },
+    {
+      "name": "Get My Tasks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId=project-fintech-redesign&tags=design&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "my-tasks"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "status",
+              "value": "todo,in-progress"
+            },
+            {
+              "key": "projectId",
+              "value": "project-fintech-redesign"
+            },
+            {
+              "key": "tags",
+              "value": "design"
+            },
+            {
+              "key": "view",
+              "value": "board"
+            },
+            {
+              "key": "groupBy",
+              "value": "status"
+            },
+            {
+              "key": "sortBy",
+              "value": "startDate"
+            },
+            {
+              "key": "sortOrder",
+              "value": "asc"
+            }
+          ]
+        },
+        "description": "Fetch the authenticated user's tasks with pagination and top-level meta.filterCounts."
       }
     },
     {
@@ -59,9 +124,13 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks?page=1&limit=10&status=todo&sortBy=createdAt&sortOrder=desc",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks"],
+          "raw": "{{baseUrl}}/tasks?page=1&limit=10&priority=high&sortBy=createdAt&sortOrder=desc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks"
+          ],
           "query": [
             {
               "key": "page",
@@ -72,8 +141,8 @@
               "value": "10"
             },
             {
-              "key": "status",
-              "value": "todo"
+              "key": "priority",
+              "value": "high"
             },
             {
               "key": "sortBy",
@@ -85,7 +154,7 @@
             }
           ]
         },
-        "description": "List tasks with pagination and filters"
+        "description": "List tasks through the general authenticated listing endpoint."
       }
     },
     {
@@ -100,10 +169,15 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/tasks/{{taskId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks", "{{taskId}}"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
         },
-        "description": "Get a specific task by ID"
+        "description": "Fetch a single task by id."
       }
     },
     {
@@ -122,14 +196,19 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"status\": \"in_progress\",\n  \"title\": \"Updated task title\"\n}"
+          "raw": "{\n  \"status\": \"in-progress\",\n  \"name\": \"Updated design system setup\",\n  \"tag\": \"frontend\",\n  \"startDate\": \"2026-03-26T00:00:00.000Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks/{{taskId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks", "{{taskId}}"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
         },
-        "description": "Update a task"
+        "description": "Update task fields such as status, name, tag, or dates."
       }
     },
     {
@@ -144,10 +223,15 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/tasks/{{taskId}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks", "{{taskId}}"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
         },
-        "description": "Delete a task"
+        "description": "Delete a task."
       }
     },
     {
@@ -161,13 +245,17 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks?search=documentation&page=1&limit=10",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks"],
+          "raw": "{{baseUrl}}/tasks?search=design&page=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks"
+          ],
           "query": [
             {
               "key": "search",
-              "value": "documentation"
+              "value": "design"
             },
             {
               "key": "page",
@@ -179,11 +267,11 @@
             }
           ]
         },
-        "description": "Search tasks by title/description"
+        "description": "Search tasks by name, description, project name, or workstream name."
       }
     },
     {
-      "name": "Filter by Due Date",
+      "name": "Filter by Start Date",
       "request": {
         "method": "GET",
         "header": [
@@ -193,17 +281,22 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks?dueDateFrom=2024-01-01&dueDateTo=2024-12-31&page=1&limit=20",
-          "host": ["{{baseUrl}}"],
-          "path": ["tasks"],
+          "raw": "{{baseUrl}}/tasks/my-tasks?startDateFrom=2026-03-01&startDateTo=2026-03-31&page=1&limit=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "my-tasks"
+          ],
           "query": [
             {
-              "key": "dueDateFrom",
-              "value": "2024-01-01"
+              "key": "startDateFrom",
+              "value": "2026-03-01"
             },
             {
-              "key": "dueDateTo",
-              "value": "2024-12-31"
+              "key": "startDateTo",
+              "value": "2026-03-31"
             },
             {
               "key": "page",
@@ -215,7 +308,7 @@
             }
           ]
         },
-        "description": "Filter tasks by due date range"
+        "description": "Filter tasks by scheduled start date range."
       }
     }
   ]

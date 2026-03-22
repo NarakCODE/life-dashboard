@@ -5,29 +5,36 @@ export type TaskDocument = HydratedDocument<Task>;
 
 export enum TaskStatus {
   TODO = 'todo',
-  IN_PROGRESS = 'in_progress',
+  IN_PROGRESS = 'in-progress',
   DONE = 'done',
   ARCHIVED = 'archived',
 }
 
 export enum TaskPriority {
-  NONE = 0,
-  LOW = 1,
-  MEDIUM = 2,
-  HIGH = 3,
-  URGENT = 4,
+  NONE = 'no-priority',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent',
 }
 
-@Schema({ _id: true, timestamps: false })
-export class TaskTag {
+@Schema({ _id: false, timestamps: false })
+export class TaskAssigneeSnapshot {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  id: Types.ObjectId;
+
   @Prop({ required: true, trim: true })
   name: string;
 
-  @Prop({ default: '#6b7280' })
-  color: string;
+  @Prop({ trim: true })
+  avatarUrl?: string;
+
+  @Prop({ trim: true })
+  role?: string;
 }
 
-export const TaskTagSchema = SchemaFactory.createForClass(TaskTag);
+export const TaskAssigneeSnapshotSchema =
+  SchemaFactory.createForClass(TaskAssigneeSnapshot);
 
 @Schema({ timestamps: true, collection: 'tasks' })
 export class Task {
@@ -35,7 +42,7 @@ export class Task {
   userId: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
-  title: string;
+  name: string;
 
   @Prop({ trim: true })
   description?: string;
@@ -48,21 +55,40 @@ export class Task {
   })
   status: TaskStatus;
 
+  // Denormalized project metadata keeps the tasks API usable until a
+  // dedicated projects/workstreams backend exists.
+  @Prop({ required: true, trim: true, index: true })
+  projectId: string;
+
+  @Prop({ required: true, trim: true })
+  projectName: string;
+
+  @Prop({ trim: true })
+  workstreamId?: string;
+
+  @Prop({ trim: true })
+  workstreamName?: string;
+
+  @Prop({ type: TaskAssigneeSnapshotSchema, default: null })
+  assignee?: TaskAssigneeSnapshot | null;
+
+  @Prop()
+  startDate?: Date;
+
   @Prop({
-    min: 0,
-    max: 4,
+    enum: Object.values(TaskPriority),
     default: TaskPriority.NONE,
   })
   priority: TaskPriority;
+
+  @Prop()
+  tag?: string;
 
   @Prop()
   dueDate?: Date;
 
   @Prop({ default: null })
   completedAt?: Date;
-
-  @Prop({ type: [TaskTagSchema], default: [] })
-  tags: TaskTag[];
 
   createdAt: Date;
   updatedAt: Date;
@@ -71,6 +97,9 @@ export class Task {
 export const TaskSchema = SchemaFactory.createForClass(Task);
 
 TaskSchema.index({ userId: 1, status: 1 });
+TaskSchema.index({ userId: 1, projectId: 1 });
+TaskSchema.index({ userId: 1, startDate: 1 });
 TaskSchema.index({ userId: 1, dueDate: 1 });
-TaskSchema.index({ userId: 1, priority: -1 });
-TaskSchema.index({ userId: 1, 'tags.name': 1 });
+TaskSchema.index({ userId: 1, priority: 1 });
+TaskSchema.index({ userId: 1, tag: 1 });
+TaskSchema.index({ userId: 1, 'assignee.id': 1 });
