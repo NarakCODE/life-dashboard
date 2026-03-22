@@ -17,6 +17,13 @@ export class UsersRepository {
     return this.userModel.findById(id).exec();
   }
 
+  async findByIds(ids: (string | Types.ObjectId)[]): Promise<UserDocument[]> {
+    const objectIds = ids.map((id) =>
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id),
+    );
+    return this.userModel.find({ _id: { $in: objectIds } }).exec();
+  }
+
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email: email.toLowerCase() }).exec();
   }

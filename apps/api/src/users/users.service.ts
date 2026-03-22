@@ -16,6 +16,11 @@ export class UsersService {
     return user;
   }
 
+  async findByIds(ids: (string | Types.ObjectId)[]): Promise<UserDocument[]> {
+    if (!ids.length) return [];
+    return this.usersRepo.findByIds(ids);
+  }
+
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.usersRepo.findByEmail(email);
   }

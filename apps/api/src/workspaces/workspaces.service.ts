@@ -31,6 +31,36 @@ import {
 import { WorkspaceRequestContext } from './interfaces/workspace-context.interface';
 import { getWorkspacePermissions } from './workspace-permissions';
 
+// User details interface for populated responses
+export interface UserDetails {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+// Member with populated user details
+export interface WorkspaceMemberWithDetails {
+  userId: string;
+  role: WorkspaceRole;
+  user: UserDetails;
+}
+
+// Workspace with fully populated details
+export interface WorkspaceWithDetails {
+  id: string;
+  name: string;
+  type: WorkspaceType;
+  status: WorkspaceStatus;
+  ownerId: string;
+  owner: UserDetails;
+  createdById: string;
+  createdBy: UserDetails;
+  defaultForUserId: string | null;
+  members: WorkspaceMemberWithDetails[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class WorkspacesService {
   constructor(
@@ -43,7 +73,10 @@ export class WorkspacesService {
     private usersService: UsersService,
   ) {}
 
-  async create(userId: string, dto: CreateWorkspaceDto): Promise<Workspace> {
+  async create(
+    userId: string,
+    dto: CreateWorkspaceDto,
+  ): Promise<WorkspaceWithDetails> {
     const user = await this.usersService.findById(userId);
     const workspace = await this.workspaceModel.create({
       name: dto.name,
@@ -77,11 +110,16 @@ export class WorkspacesService {
       });
     }
 
-    return workspace.toObject();
+    // Return enriched workspace with user details
+    const enriched = await this.enrichWorkspacesWithUserDetails([
+      workspace.toObject(),
+    ]);
+    return enriched[0];
   }
 
-  async findAllForUser(userId: string): Promise<Workspace[]> {
+  async findAllForUser(userId: string): Promise<WorkspaceWithDetails[]> {
     await this.ensureDefaultWorkspaceForUser(userId);
+
     const memberships = await this.membershipModel
       .find({
         userId: new Types.ObjectId(userId),
@@ -93,30 +131,117 @@ export class WorkspacesService {
     const workspaceIds = memberships.map(
       (membership) => membership.workspaceId,
     );
+
     if (!workspaceIds.length) {
       return [];
     }
 
-    return this.workspaceModel
+    const workspaces = await this.workspaceModel
       .find({
         _id: { $in: workspaceIds },
         status: WorkspaceStatus.ACTIVE,
       })
+      .lean()
       .exec();
+
+    // Enrich workspaces with full user details
+    return this.enrichWorkspacesWithUserDetails(workspaces);
   }
 
-  async findOne(id: string): Promise<Workspace> {
-    const workspace = await this.workspaceModel.findById(id).exec();
+  async findOne(id: string): Promise<WorkspaceWithDetails> {
+    const workspace = await this.workspaceModel.findById(id).lean().exec();
     if (!workspace) throw new NotFoundException('Workspace not found');
-    return workspace;
+
+    const enriched = await this.enrichWorkspacesWithUserDetails([workspace]);
+    return enriched[0];
   }
 
-  async update(id: string, dto: UpdateWorkspaceDto): Promise<Workspace> {
+  /**
+   * Enrich workspaces with full user details for owner, createdBy, and members
+   */
+  private async enrichWorkspacesWithUserDetails(
+    workspaces: any[],
+  ): Promise<WorkspaceWithDetails[]> {
+    if (!workspaces.length) return [];
+
+    // Collect all unique user IDs that need to be fetched
+    const userIdSet = new Set<string>();
+    workspaces.forEach((workspace) => {
+      userIdSet.add(workspace.ownerId.toString());
+      userIdSet.add(workspace.createdBy.toString());
+      workspace.members?.forEach((member: any) => {
+        userIdSet.add(member.userId.toString());
+      });
+    });
+
+    // Fetch all users in a single query
+    const userIds = Array.from(userIdSet);
+    const users = await this.usersService.findByIds(userIds);
+
+    // Create a map for quick lookup
+    const userMap = new Map<string, UserDetails>();
+    users.forEach((user) => {
+      userMap.set(user._id.toString(), {
+        id: user._id.toString(),
+        email: user.email,
+        displayName: user.displayName,
+      });
+    });
+
+    // Build enriched workspaces
+    return workspaces.map((workspace) => {
+      const ownerId = workspace.ownerId.toString();
+      const createdById = workspace.createdBy.toString();
+
+      return {
+        id: workspace._id.toString(),
+        name: workspace.name,
+        type: workspace.type,
+        status: workspace.status,
+        ownerId,
+        owner: userMap.get(ownerId) ?? {
+          id: ownerId,
+          email: 'unknown',
+          displayName: 'Unknown User',
+        },
+        createdById,
+        createdBy: userMap.get(createdById) ?? {
+          id: createdById,
+          email: 'unknown',
+          displayName: 'Unknown User',
+        },
+        defaultForUserId: workspace.defaultForUserId?.toString() ?? null,
+        members:
+          workspace.members?.map((member: any) => {
+            const memberUserId = member.userId.toString();
+            return {
+              userId: memberUserId,
+              role: member.role,
+              user: userMap.get(memberUserId) ?? {
+                id: memberUserId,
+                email: 'unknown',
+                displayName: 'Unknown User',
+              },
+            };
+          }) ?? [],
+        createdAt: workspace.createdAt,
+        updatedAt: workspace.updatedAt,
+      };
+    });
+  }
+
+  async update(
+    id: string,
+    dto: UpdateWorkspaceDto,
+  ): Promise<WorkspaceWithDetails> {
     const workspace = await this.workspaceModel
       .findByIdAndUpdate(id, { $set: dto }, { new: true })
+      .lean()
       .exec();
     if (!workspace) throw new NotFoundException('Workspace not found');
-    return workspace;
+
+    const enriched = await this.enrichWorkspacesWithUserDetails([workspace]);
+    return enriched[0];
   }
 
   async delete(id: string): Promise<void> {
