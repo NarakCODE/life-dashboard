@@ -3,6 +3,7 @@
 import { AuthGuard, GuestOnlyGuard } from "@/components/auth/auth-guard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { WorkspaceRouteBoundary } from "@/components/workspaces/workspace-route-boundary";
 
 interface ProtectedAppShellProps {
   children: React.ReactNode;
@@ -15,12 +16,14 @@ interface GuestShellProps {
 export function ProtectedAppShell({ children }: ProtectedAppShellProps) {
   return (
     <AuthGuard>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset className="bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-          {children}
-        </SidebarInset>
-      </SidebarProvider>
+      <WorkspaceRouteBoundary>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset className="bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
+      </WorkspaceRouteBoundary>
     </AuthGuard>
   );
 }

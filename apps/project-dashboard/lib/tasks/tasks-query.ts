@@ -13,37 +13,57 @@ import type {
 } from "@/lib/tasks/types"
 
 export const taskKeys = {
-  all: ["tasks"] as const,
-  myTasks: (query: MyTasksQuery) => [...taskKeys.all, "my-tasks", query] as const,
-  projects: () => [...taskKeys.all, "projects"] as const,
+  all: (workspaceId: string) => ["workspace", workspaceId, "tasks"] as const,
+  myTasks: (workspaceId: string, query: MyTasksQuery) =>
+    [...taskKeys.all(workspaceId), "my-tasks", query] as const,
+  projects: (workspaceId: string) =>
+    ["workspace", workspaceId, "projects"] as const,
+  dashboard: (workspaceId: string) =>
+    ["workspace", workspaceId, "dashboard", "stats"] as const,
 }
 
-export function useMyTasksQuery(query: MyTasksQuery, enabled = true) {
+export function useMyTasksQuery(
+  workspaceId: string,
+  query: MyTasksQuery,
+  enabled = true,
+) {
   return useQuery({
-    queryKey: taskKeys.myTasks(query),
-    queryFn: () => getMyTasks(query),
-    enabled,
+    queryKey: taskKeys.myTasks(workspaceId, query),
+    queryFn: () => getMyTasks(workspaceId, query),
+    enabled: enabled && Boolean(workspaceId),
   })
 }
 
-export function useCreateTaskMutation(queryToInvalidate?: MyTasksQuery) {
+export function useCreateTaskMutation(
+  workspaceId: string,
+  queryToInvalidate?: MyTasksQuery,
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CreateTaskInput) => createTask(input),
+    mutationFn: (input: CreateTaskInput) => {
+      if (!workspaceId) {
+        throw new Error("Workspace context is unavailable")
+      }
+
+      return createTask(workspaceId, input)
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: taskKeys.all })
+      await queryClient.invalidateQueries({ queryKey: taskKeys.all(workspaceId) })
 
       if (queryToInvalidate) {
         await queryClient.invalidateQueries({
-          queryKey: taskKeys.myTasks(queryToInvalidate),
+          queryKey: taskKeys.myTasks(workspaceId, queryToInvalidate),
         })
       }
     },
   })
 }
 
-export function useUpdateTaskMutation(queryToInvalidate?: MyTasksQuery) {
+export function useUpdateTaskMutation(
+  workspaceId: string,
+  queryToInvalidate?: MyTasksQuery,
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -53,30 +73,45 @@ export function useUpdateTaskMutation(queryToInvalidate?: MyTasksQuery) {
     }: {
       taskId: string
       input: UpdateTaskInput
-    }) => updateTask(taskId, input),
+    }) => {
+      if (!workspaceId) {
+        throw new Error("Workspace context is unavailable")
+      }
+
+      return updateTask(workspaceId, taskId, input)
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: taskKeys.all })
+      await queryClient.invalidateQueries({ queryKey: taskKeys.all(workspaceId) })
 
       if (queryToInvalidate) {
         await queryClient.invalidateQueries({
-          queryKey: taskKeys.myTasks(queryToInvalidate),
+          queryKey: taskKeys.myTasks(workspaceId, queryToInvalidate),
         })
       }
     },
   })
 }
 
-export function useDeleteTaskMutation(queryToInvalidate?: MyTasksQuery) {
+export function useDeleteTaskMutation(
+  workspaceId: string,
+  queryToInvalidate?: MyTasksQuery,
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (taskId: string) => deleteTask(taskId),
+    mutationFn: (taskId: string) => {
+      if (!workspaceId) {
+        throw new Error("Workspace context is unavailable")
+      }
+
+      return deleteTask(workspaceId, taskId)
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: taskKeys.all })
+      await queryClient.invalidateQueries({ queryKey: taskKeys.all(workspaceId) })
 
       if (queryToInvalidate) {
         await queryClient.invalidateQueries({
-          queryKey: taskKeys.myTasks(queryToInvalidate),
+          queryKey: taskKeys.myTasks(workspaceId, queryToInvalidate),
         })
       }
     },

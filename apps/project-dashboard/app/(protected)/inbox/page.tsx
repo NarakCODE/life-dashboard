@@ -1,11 +1,7 @@
-import { Suspense } from "react";
+"use client";
 
-import { InboxPage } from "@/components/inbox/InboxPage";
+import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-redirect";
 
 export default function InboxRoutePage() {
-  return (
-    <Suspense fallback={null}>
-      <InboxPage />
-    </Suspense>
-  );
+  return <WorkspaceRouteRedirect pathname="/inbox" />;
 }

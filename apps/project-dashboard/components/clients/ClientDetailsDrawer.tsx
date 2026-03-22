@@ -31,6 +31,8 @@ import type { QuickLink } from "@/lib/data/project-details"
 import { projects } from "@/lib/data/projects"
 import { ClientWizard } from "@/components/clients/ClientWizard"
 import { ProjectWizard } from "@/components/project-wizard/ProjectWizard"
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 interface ClientDetailsDrawerProps {
   clientId: string | null
@@ -38,6 +40,7 @@ interface ClientDetailsDrawerProps {
 }
 
 export function ClientDetailsDrawer({ clientId, onClose }: ClientDetailsDrawerProps) {
+  const { workspaceId } = useWorkspaceScope()
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isProjectWizardOpen, setIsProjectWizardOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(true)
@@ -224,7 +227,11 @@ export function ClientDetailsDrawer({ clientId, onClose }: ClientDetailsDrawerPr
                   {relatedProjects.map((p) => (
                     <Link
                       key={p.id}
-                      href={`/projects/${p.id}`}
+                      href={
+                        workspaceId
+                          ? buildWorkspacePath(workspaceId, `/projects/${p.id}`)
+                          : `/projects/${p.id}`
+                      }
                       className="flex min-w-[220px] flex-col justify-between rounded-[24px] border border-border bg-muted px-4 py-4 shadow-[var(--shadow-workstream)] hover:bg-muted/80 sm:min-w-[240px]"
                     >
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background">
@@ -356,4 +363,3 @@ export function ClientDetailsDrawer({ clientId, onClose }: ClientDetailsDrawerPr
     </div>
   )
 }
-

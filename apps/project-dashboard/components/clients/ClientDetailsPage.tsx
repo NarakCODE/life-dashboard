@@ -16,6 +16,8 @@ import {
 } from "@/lib/data/clients";
 import { projects } from "@/lib/data/projects";
 import { ClientWizard } from "@/components/clients/ClientWizard";
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 import Link from "next/link";
 
 type ClientDetailsPageProps = {
@@ -25,6 +27,7 @@ type ClientDetailsPageProps = {
 type LoadState = { status: "loading" } | { status: "ready"; client: Client };
 
 export function ClientDetailsPage({ clientId }: ClientDetailsPageProps) {
+  const { workspaceId } = useWorkspaceScope();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
@@ -209,7 +212,14 @@ export function ClientDetailsPage({ clientId }: ClientDetailsPageProps) {
                             {relatedProjects.map((p) => (
                               <Link
                                 key={p.id}
-                                href={`/projects/${p.id}`}
+                                href={
+                                  workspaceId
+                                    ? buildWorkspacePath(
+                                        workspaceId,
+                                        `/projects/${p.id}`,
+                                      )
+                                    : `/projects/${p.id}`
+                                }
                                 className="flex items-center justify-between px-4 py-3 hover:bg-muted/80"
                               >
                                 <div className="flex flex-col">

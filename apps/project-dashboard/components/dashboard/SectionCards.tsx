@@ -19,7 +19,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getDashboardStats, type DashboardStats } from "@/lib/data/dashboard";
+import {
+  getDashboardStats,
+  getDashboardStatsQueryKey,
+  type DashboardStats,
+} from "@/lib/data/dashboard";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 
 interface SectionCardsProps {
   initialData?: DashboardStats;
@@ -106,10 +111,14 @@ function MetricCard({
 }
 
 export function SectionCards({ initialData }: SectionCardsProps) {
+  const { workspaceId } = useWorkspaceScope();
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: getDashboardStats,
+    queryKey: workspaceId
+      ? getDashboardStatsQueryKey(workspaceId)
+      : ["workspace", "pending", "dashboard", "stats"],
+    queryFn: () => getDashboardStats(workspaceId!),
     initialData,
+    enabled: Boolean(workspaceId),
   });
 
   if (!stats) return null;

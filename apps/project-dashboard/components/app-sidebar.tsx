@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -52,8 +53,13 @@ import { WorkspaceCombobox } from "@/components/workspaces/workspace-combobox";
 import {
   useWorkspacesQuery,
   useSwitchWorkspaceMutation,
-  useWorkspaceContextQuery,
 } from "@/lib/workspaces/workspace-query";
+import {
+  buildWorkspacePath,
+  getWorkspaceChildPath,
+  replaceWorkspaceInPath,
+} from "@/lib/workspaces/workspace-routing";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 import { toast } from "sonner";
 
 const navItemIcons: Record<
@@ -79,6 +85,7 @@ const footerItemIcons: Record<
 
 export function AppSidebar() {
   const auth = useAuth();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -87,10 +94,15 @@ export function AppSidebar() {
   // Workspace data fetching
   const { data: workspaces = [], isLoading: isLoadingWorkspaces } =
     useWorkspacesQuery();
-  const { data: workspaceContext } = useWorkspaceContextQuery();
+  const { workspaceId: currentWorkspaceId, routeWorkspaceId } =
+    useWorkspaceScope();
   const switchWorkspace = useSwitchWorkspaceMutation();
 
-  const activeWorkspaceId = workspaceContext?.activeWorkspaceId;
+  const activeWorkspaceId = currentWorkspaceId;
+  const scopedPathname = getWorkspaceChildPath(
+    pathname,
+    routeWorkspaceId ?? currentWorkspaceId,
+  );
 
   const handleWorkspaceSelect = useCallback(
     async (workspace: { id: string; name: string }) => {
@@ -98,14 +110,29 @@ export function AppSidebar() {
 
       try {
         await switchWorkspace.mutateAsync(workspace.id);
+
+        if (activeWorkspaceId) {
+          await queryClient.cancelQueries({
+            queryKey: ["workspace", activeWorkspaceId],
+          });
+          queryClient.removeQueries({
+            queryKey: ["workspace", activeWorkspaceId],
+          });
+        }
+
         toast.success(`Switched to ${workspace.name}`);
-        // Refresh the page to reload data with new workspace context
-        router.refresh();
+        router.push(
+          replaceWorkspaceInPath(
+            pathname,
+            workspace.id,
+            routeWorkspaceId ?? activeWorkspaceId,
+          ),
+        );
       } catch {
         toast.error("Failed to switch workspace");
       }
     },
-    [activeWorkspaceId, switchWorkspace, router],
+    [activeWorkspaceId, pathname, queryClient, routeWorkspaceId, router, switchWorkspace],
   );
 
   const handleCreateWorkspace = useCallback(() => {
@@ -119,33 +146,39 @@ export function AppSidebar() {
   }, [router]);
 
   const getHrefForNavItem = (id: NavItemId): string => {
-    if (id === "dashboard") return "/";
-    if (id === "my-tasks") return "/tasks";
-    if (id === "projects") return "/projects";
-    if (id === "inbox") return "/inbox";
-    if (id === "clients") return "/clients";
-    if (id === "performance") return "/performance";
+    if (!currentWorkspaceId) return "#";
+
+    if (id === "dashboard") return buildWorkspacePath(currentWorkspaceId);
+    if (id === "my-tasks")
+      return buildWorkspacePath(currentWorkspaceId, "/tasks");
+    if (id === "projects")
+      return buildWorkspacePath(currentWorkspaceId, "/projects");
+    if (id === "inbox") return buildWorkspacePath(currentWorkspaceId, "/inbox");
+    if (id === "clients")
+      return buildWorkspacePath(currentWorkspaceId, "/clients");
+    if (id === "performance")
+      return buildWorkspacePath(currentWorkspaceId, "/performance");
     return "#";
   };
 
   const isItemActive = (id: NavItemId): boolean => {
     if (id === "dashboard") {
-      return pathname === "/";
+      return scopedPathname === "/";
     }
     if (id === "projects") {
-      return pathname.startsWith("/projects");
+      return scopedPathname.startsWith("/projects");
     }
     if (id === "my-tasks") {
-      return pathname.startsWith("/tasks");
+      return scopedPathname.startsWith("/tasks");
     }
     if (id === "inbox") {
-      return pathname.startsWith("/inbox");
+      return scopedPathname.startsWith("/inbox");
     }
     if (id === "clients") {
-      return pathname.startsWith("/clients");
+      return scopedPathname.startsWith("/clients");
     }
     if (id === "performance") {
-      return pathname.startsWith("/performance");
+      return scopedPathname.startsWith("/performance");
     }
     return false;
   };
@@ -154,14 +187,13 @@ export function AppSidebar() {
     <Sidebar className="border-border/40 border-r-0 shadow-none border-none">
       <SidebarHeader className="p-4">
         <WorkspaceCombobox
-          workspaces={workspaces.data || []}
+          workspaces={workspaces}
           selectedId={activeWorkspaceId}
           onSelect={handleWorkspaceSelect}
           onCreateNew={handleCreateWorkspace}
           onManageWorkspaces={handleManageWorkspaces}
           isLoading={isLoadingWorkspaces}
           disabled={switchWorkspace.isPending}
-          triggerClassName="h-10"
         />
       </SidebarHeader>
 

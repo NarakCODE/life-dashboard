@@ -22,6 +22,7 @@ interface ApiRequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
   body?: unknown
   headers?: HeadersInit
+  workspaceId?: string | null
   auth?: "required" | "optional" | "none"
   retryOnUnauthorized?: boolean
 }
@@ -72,6 +73,10 @@ function createHeaders(options: ApiRequestOptions, accessToken?: string) {
 
   if (accessToken && options.auth !== "none") {
     headers.set("Authorization", `Bearer ${accessToken}`)
+  }
+
+  if (options.workspaceId) {
+    headers.set("x-workspace-id", options.workspaceId)
   }
 
   return headers

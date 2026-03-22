@@ -16,9 +16,12 @@ export interface TaskProjectSummary {
   workstreams: TaskProjectWorkstream[]
 }
 
-export async function getTaskProjects(): Promise<TaskProjectSummary[]> {
+export async function getTaskProjects(
+  workspaceId: string,
+): Promise<TaskProjectSummary[]> {
   return apiRequest<TaskProjectSummary[]>({
     path: "/projects",
     auth: "required",
+    workspaceId,
   })
 }

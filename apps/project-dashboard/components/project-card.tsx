@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils"
 import { PriorityBadge } from "@/components/priority-badge"
 import { ProjectProgress } from "@/components/project-progress"
 import { useRouter } from "next/navigation"
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 type ProjectCardProps = {
   project: Project
@@ -66,6 +68,7 @@ export function ProjectCard({ project, actions, variant = "list" }: ProjectCardP
   const avatarUrl = getAvatarUrl(assignee)
   const isBoard = variant === "board"
   const router = useRouter()
+  const { workspaceId } = useWorkspaceScope()
   const draggingRef = useRef(false)
   const startPosRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -90,7 +93,13 @@ export function ProjectCard({ project, actions, variant = "list" }: ProjectCardP
     return format(dueDate, "MMM d")
   })()
 
-  const goToDetails = () => router.push(`/projects/${project.id}`)
+  const goToDetails = () => {
+    const href = workspaceId
+      ? buildWorkspacePath(workspaceId, `/projects/${project.id}`)
+      : `/projects/${project.id}`
+
+    router.push(href)
+  }
 
   const onKeyNavigate: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (e.key === "Enter" || e.key === " ") {

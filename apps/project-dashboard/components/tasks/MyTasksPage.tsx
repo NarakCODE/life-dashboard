@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useTaskProjectsQuery } from "@/lib/projects/projects-query"
 import { useMyTasksQuery, useUpdateTaskMutation } from "@/lib/tasks/tasks-query"
 import type { MyTasksQuery } from "@/lib/tasks/types"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 const TASK_STATUS_OPTIONS = [
   { id: "todo", label: "To do", color: "var(--chart-2)" },
@@ -107,6 +108,7 @@ function buildFallbackProject(task: ProjectTask): ProjectTaskGroup["project"] {
 
 export function MyTasksPage() {
   const auth = useAuth()
+  const { workspaceId } = useWorkspaceScope()
   const [filters, setFilters] = useState<FilterChipType[]>([])
   const [viewOptions, setViewOptions] = useState<ViewOptions>(DEFAULT_VIEW_OPTIONS)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
@@ -127,11 +129,19 @@ export function MyTasksPage() {
     [filters, viewOptions, currentUser],
   )
 
-  const isQueryEnabled = auth.hasHydrated && auth.isAuthenticated
+  const isQueryEnabled =
+    auth.hasHydrated && auth.isAuthenticated && Boolean(workspaceId)
 
-  const { data: myTasks, isPending, error } = useMyTasksQuery(taskQuery, isQueryEnabled)
-  const { data: projects = [] } = useTaskProjectsQuery(isQueryEnabled)
-  const updateTaskMutation = useUpdateTaskMutation(taskQuery)
+  const { data: myTasks, isPending, error } = useMyTasksQuery(
+    workspaceId ?? "",
+    taskQuery,
+    isQueryEnabled,
+  )
+  const { data: projects = [] } = useTaskProjectsQuery(
+    workspaceId ?? "",
+    isQueryEnabled,
+  )
+  const updateTaskMutation = useUpdateTaskMutation(workspaceId ?? "", taskQuery)
 
   const tasks = useMemo(() => myTasks?.data.tasks ?? [], [myTasks?.data.tasks])
   const filterCounts = useMemo(

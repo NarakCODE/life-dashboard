@@ -1,11 +1,7 @@
-import { Suspense } from "react"
+"use client";
 
-import { MyTasksPage } from "@/components/tasks/MyTasksPage"
+import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-redirect";
 
 export default function TasksPage() {
-  return (
-    <Suspense fallback={null}>
-      <MyTasksPage />
-    </Suspense>
-  )
+  return <WorkspaceRouteRedirect pathname="/tasks" />;
 }

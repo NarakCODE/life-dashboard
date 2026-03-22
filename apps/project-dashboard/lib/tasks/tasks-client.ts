@@ -27,10 +27,14 @@ function buildQueryString(query: MyTasksQuery) {
   return serialized ? `?${serialized}` : ""
 }
 
-export async function getMyTasks(query: MyTasksQuery): Promise<MyTasksResponse> {
+export async function getMyTasks(
+  workspaceId: string,
+  query: MyTasksQuery,
+): Promise<MyTasksResponse> {
   const payload = await apiRequestEnvelope<MyTasksResponse["data"], MyTasksResponseMeta>({
     path: `/tasks/my-tasks${buildQueryString(query)}`,
     auth: "required",
+    workspaceId,
   })
 
   return {
@@ -39,28 +43,35 @@ export async function getMyTasks(query: MyTasksQuery): Promise<MyTasksResponse> 
   }
 }
 
-export async function createTask(input: CreateTaskInput) {
+export async function createTask(workspaceId: string, input: CreateTaskInput) {
   return apiRequest({
     path: "/tasks",
     method: "POST",
     body: input,
     auth: "required",
+    workspaceId,
   })
 }
 
-export async function updateTask(taskId: string, input: UpdateTaskInput) {
+export async function updateTask(
+  workspaceId: string,
+  taskId: string,
+  input: UpdateTaskInput,
+) {
   return apiRequest({
     path: `/tasks/${taskId}`,
     method: "PATCH",
     body: input,
     auth: "required",
+    workspaceId,
   })
 }
 
-export async function deleteTask(taskId: string) {
+export async function deleteTask(workspaceId: string, taskId: string) {
   return apiRequest({
     path: `/tasks/${taskId}`,
     method: "DELETE",
     auth: "required",
+    workspaceId,
   })
 }

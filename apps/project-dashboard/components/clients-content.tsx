@@ -24,6 +24,8 @@ import { clients, getProjectCountForClient, type ClientStatus } from "@/lib/data
 import { projects } from "@/lib/data/projects"
 import { ClientWizard } from "@/components/clients/ClientWizard"
 import { ClientDetailsDrawer } from "@/components/clients/ClientDetailsDrawer"
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 function statusLabel(status: ClientStatus): string {
   if (status === "prospect") return "Prospect"
@@ -115,6 +117,7 @@ function ClientProjectsBadge({
 }
 
 export function ClientsContent() {
+  const { workspaceId } = useWorkspaceScope()
   const [query, setQuery] = useState("")
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<"all" | ClientStatus>("all")
@@ -467,7 +470,18 @@ export function ClientsContent() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
-                                <Link href={`/clients/${client.id}`}>View full page</Link>
+                                <Link
+                                  href={
+                                    workspaceId
+                                      ? buildWorkspacePath(
+                                          workspaceId,
+                                          `/clients/${client.id}`,
+                                        )
+                                      : `/clients/${client.id}`
+                                  }
+                                >
+                                  View full page
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

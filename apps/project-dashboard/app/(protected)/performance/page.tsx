@@ -1,11 +1,7 @@
-import { Suspense } from "react"
+"use client";
 
-import { PerformanceContent } from "@/components/performance-content"
+import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-redirect";
 
 export default function PerformancePage() {
-  return (
-    <Suspense fallback={null}>
-      <PerformanceContent />
-    </Suspense>
-  )
+  return <WorkspaceRouteRedirect pathname="/performance" />;
 }

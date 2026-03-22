@@ -1,11 +1,7 @@
-import { Suspense } from "react"
+"use client";
 
-import { ProjectsContent } from "@/components/projects-content"
+import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-redirect";
 
 export default function ProjectsPage() {
-  return (
-    <Suspense fallback={null}>
-      <ProjectsContent />
-    </Suspense>
-  )
+  return <WorkspaceRouteRedirect pathname="/projects" />;
 }

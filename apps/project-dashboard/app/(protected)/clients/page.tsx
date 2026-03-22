@@ -1,11 +1,7 @@
-import { Suspense } from "react"
+"use client";
 
-import { ClientsContent } from "@/components/clients-content"
+import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-redirect";
 
 export default function ClientsPage() {
-  return (
-    <Suspense fallback={null}>
-      <ClientsContent />
-    </Suspense>
-  )
+  return <WorkspaceRouteRedirect pathname="/clients" />;
 }

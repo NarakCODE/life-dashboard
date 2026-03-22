@@ -17,6 +17,7 @@ import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
 } from '@/lib/tasks/tasks-query'
+import { useWorkspaceScope } from '@/lib/workspaces/use-workspace-scope'
 
 export type CreateTaskContext = {
   projectId?: string
@@ -76,9 +77,10 @@ export const TAG_OPTIONS: TagOption[] = [
 
 export function TaskQuickCreateModal({ open, onClose, context, editingTask }: TaskQuickCreateModalProps) {
   const auth = useAuth()
-  const { data: projects = [] } = useTaskProjectsQuery(open)
-  const createTaskMutation = useCreateTaskMutation()
-  const updateTaskMutation = useUpdateTaskMutation()
+  const { workspaceId } = useWorkspaceScope()
+  const { data: projects = [] } = useTaskProjectsQuery(workspaceId ?? "", open)
+  const createTaskMutation = useCreateTaskMutation(workspaceId ?? "")
+  const updateTaskMutation = useUpdateTaskMutation(workspaceId ?? "")
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState<string | undefined>(undefined)
   const [createMore, setCreateMore] = useState(false)
@@ -212,6 +214,11 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
   }
 
   const handleSubmit = async () => {
+    if (!workspaceId) {
+      toast.error('Workspace context is unavailable')
+      return
+    }
+
     if (!projectId) {
       toast.error('Please choose a project first')
       return

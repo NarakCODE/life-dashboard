@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import type { Client, ClientStatus } from "@/lib/data/clients"
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 interface ClientCardProps {
   client: Client
@@ -16,6 +18,8 @@ function statusLabel(status: ClientStatus): string {
 }
 
 export function ClientCard({ client }: ClientCardProps) {
+  const { workspaceId } = useWorkspaceScope()
+
   return (
     <div className="rounded-lg border border-border bg-card/80 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -25,7 +29,14 @@ export function ClientCard({ client }: ClientCardProps) {
         </Badge>
       </div>
       <div className="space-y-1">
-        <Link href={`/clients/${client.id}`} className="text-sm font-medium text-foreground hover:underline underline-offset-2">
+        <Link
+          href={
+            workspaceId
+              ? buildWorkspacePath(workspaceId, `/clients/${client.id}`)
+              : `/clients/${client.id}`
+          }
+          className="text-sm font-medium text-foreground hover:underline underline-offset-2"
+        >
           {client.name}
         </Link>
         {client.primaryContactName && (
