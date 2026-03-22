@@ -17,6 +17,7 @@ interface ProjectHeaderProps {
   viewOptions: ViewOptions
   onViewOptionsChange: (options: ViewOptions) => void
   onAddProject?: () => void
+  canAddProject?: boolean
 }
 
 export function ProjectHeader({
@@ -27,6 +28,7 @@ export function ProjectHeader({
   viewOptions,
   onViewOptionsChange,
   onAddProject,
+  canAddProject = true,
 }: ProjectHeaderProps) {
   return (
     <PageHeader
@@ -36,7 +38,7 @@ export function ProjectHeader({
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
             <LinkIcon className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={onAddProject}>
+          <Button variant="ghost" size="sm" onClick={onAddProject} disabled={!canAddProject}>
             <Plus className="h-4 w-4" weight="bold" />
             Add Project
           </Button>

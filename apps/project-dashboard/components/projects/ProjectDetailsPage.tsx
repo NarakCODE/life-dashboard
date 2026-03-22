@@ -1,12 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { LinkSimple, SquareHalf } from "@phosphor-icons/react/dist/ssr"
 import { toast } from "sonner"
 import { AnimatePresence, motion } from "motion/react"
 
-import type { ProjectDetails } from "@/lib/data/project-details"
-import { getProjectDetailsById } from "@/lib/data/project-details"
+import { buildProjectDetailsFromSummary } from "@/lib/data/project-details"
 import { Breadcrumbs } from "@/components/projects/Breadcrumbs"
 import { ProjectHeader } from "@/components/projects/ProjectHeader"
 import { ScopeColumns } from "@/components/projects/ScopeColumns"
@@ -18,42 +17,31 @@ import { WorkstreamTab } from "@/components/projects/WorkstreamTab"
 import { ProjectTasksTab } from "@/components/projects/ProjectTasksTab"
 import { NotesTab } from "@/components/projects/NotesTab"
 import { AssetsFilesTab } from "@/components/projects/AssetsFilesTab"
-import { ProjectWizard } from "@/components/project-wizard/ProjectWizard"
+import { ProjectFormDialog } from "@/components/projects/ProjectFormDialog"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
+import { useProjectQuery, useUpdateProjectMutation } from "@/lib/projects/projects-query"
+import type { ProjectInput } from "@/lib/projects/projects-client"
 
 type ProjectDetailsPageProps = {
   projectId: string
 }
 
-type LoadState =
-  | { status: "loading" }
-  | { status: "ready"; project: ProjectDetails }
-
 export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
-  const [state, setState] = useState<LoadState>({ status: "loading" })
+  const { workspaceId, workspaceContext, isPending: isWorkspacePending } =
+    useWorkspaceScope()
+  const { data: projectSummary, isPending: isProjectPending } = useProjectQuery(
+    workspaceId ?? "",
+    projectId,
+    Boolean(workspaceId),
+  )
+  const updateProjectMutation = useUpdateProjectMutation(workspaceId ?? "")
   const [showMeta, setShowMeta] = useState(true)
-  const [isWizardOpen, setIsWizardOpen] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ status: "loading" })
-
-    const delay = 600 + Math.floor(Math.random() * 301)
-    const t = setTimeout(() => {
-      if (cancelled) return
-      const project = getProjectDetailsById(projectId)
-      setState({ status: "ready", project })
-    }, delay)
-
-    return () => {
-      cancelled = true
-      clearTimeout(t)
-    }
-  }, [projectId])
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const copyLink = useCallback(async () => {
     if (!navigator.clipboard) {
@@ -69,7 +57,11 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
     }
   }, [])
 
-  const projectName = state.status === "ready" ? state.project.name : ""
+  const project = useMemo(
+    () => (projectSummary ? buildProjectDetailsFromSummary(projectSummary) : null),
+    [projectSummary],
+  )
+  const projectName = project?.name ?? ""
 
   const breadcrumbs = useMemo(
     () => [
@@ -79,19 +71,31 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
     [projectName]
   )
 
+  const canManageProjects =
+    workspaceContext?.permissions.includes("project.write") ?? false
+
   const openWizard = useCallback(() => {
-    setIsWizardOpen(true)
-  }, [])
+    if (!canManageProjects) return
+    setIsEditOpen(true)
+  }, [canManageProjects])
 
-  const closeWizard = useCallback(() => {
-    setIsWizardOpen(false)
-  }, [])
-
-  if (state.status === "loading") {
+  if (isWorkspacePending || isProjectPending || !project) {
     return <ProjectDetailsSkeleton />
   }
 
-  const project = state.project
+  const handleProjectUpdate = async (input: ProjectInput) => {
+    try {
+      await updateProjectMutation.mutateAsync({
+        projectId,
+        input,
+      })
+      toast.success("Project updated successfully")
+      setIsEditOpen(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update project"
+      toast.error(message)
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
@@ -133,7 +137,10 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
               }
             >
               <div className="space-y-6 pt-4">
-                <ProjectHeader project={project} onEditProject={openWizard} />
+                <ProjectHeader
+                  project={project}
+                  onEditProject={canManageProjects ? openWizard : undefined}
+                />
 
                 <Tabs defaultValue="overview">
                   <TabsList className="w-full gap-6">
@@ -192,9 +199,14 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
 
         <Separator className="mt-auto" />
 
-        {isWizardOpen && (
-          <ProjectWizard onClose={closeWizard} onCreate={closeWizard} />
-        )}
+        <ProjectFormDialog
+          open={isEditOpen}
+          mode="edit"
+          project={projectSummary}
+          isPending={updateProjectMutation.isPending}
+          onOpenChange={setIsEditOpen}
+          onSubmit={handleProjectUpdate}
+        />
       </div>
     </div>
   )

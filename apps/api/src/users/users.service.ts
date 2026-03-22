@@ -44,4 +44,14 @@ export class UsersService {
   ): Promise<void> {
     return this.usersRepo.updateWorkspacePreferences(id, update);
   }
+
+  async updateProfile(
+    id: string | Types.ObjectId,
+    update: {
+      displayName?: string;
+      avatarUrl?: string | null;
+    },
+  ): Promise<void> {
+    return this.usersRepo.updateProfile(id, update);
+  }
 }

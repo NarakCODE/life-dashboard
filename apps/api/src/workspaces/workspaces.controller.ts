@@ -18,10 +18,13 @@ import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
+import { WorkspacePermissionGuard } from './guards/workspace-permission.guard';
 import { WorkspaceRoleGuard } from './guards/workspace-role.guard';
+import { RequireWorkspacePermission } from './decorators/require-workspace-permission.decorator';
 import { RequireWorkspaceRole } from './decorators/require-workspace-role.decorator';
 import { WorkspaceRole } from './schemas/workspace.schema';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { WorkspacePermission } from './workspace-permissions';
 
 @ApiTags('workspaces')
 @ApiBearerAuth()
@@ -72,8 +75,8 @@ export class WorkspacesController {
   }
 
   @Post(':workspaceId/invitations')
-  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
-  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @UseGuards(WorkspaceAccessGuard, WorkspacePermissionGuard)
+  @RequireWorkspacePermission(WorkspacePermission.MEMBER_INVITE)
   @ApiOperation({ summary: 'Invite a user to the workspace' })
   async invite(
     @Param('workspaceId') workspaceId: string,
@@ -89,8 +92,8 @@ export class WorkspacesController {
   }
 
   @Get(':workspaceId/invitations')
-  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
-  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @UseGuards(WorkspaceAccessGuard, WorkspacePermissionGuard)
+  @RequireWorkspacePermission(WorkspacePermission.MEMBER_INVITE)
   @ApiOperation({ summary: 'List pending invitations for a workspace' })
   async listWorkspaceInvitations(@Param('workspaceId') workspaceId: string) {
     const data =
@@ -166,8 +169,8 @@ export class WorkspacesController {
   }
 
   @Delete(':workspaceId/invitations/:invitationId')
-  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
-  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @UseGuards(WorkspaceAccessGuard, WorkspacePermissionGuard)
+  @RequireWorkspacePermission(WorkspacePermission.MEMBER_INVITE)
   @ApiOperation({ summary: 'Revoke a pending workspace invitation' })
   async revokeInvitation(
     @Param('workspaceId') workspaceId: string,

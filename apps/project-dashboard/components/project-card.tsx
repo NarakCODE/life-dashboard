@@ -2,11 +2,8 @@
 
 import type { ReactNode } from "react"
 import { useRef } from "react"
-import { format } from "date-fns"
-import type { Project } from "@/lib/data/projects"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { getAvatarUrl } from "@/lib/assets/avatars"
-import { Folder, CalendarBlank, Flag, User } from "@phosphor-icons/react/dist/ssr"
+import type { ProjectSummary } from "@/lib/projects/projects-client"
+import { Folder, Flag, Rows } from "@phosphor-icons/react/dist/ssr"
 import { cn } from "@/lib/utils"
 import { PriorityBadge } from "@/components/priority-badge"
 import { ProjectProgress } from "@/components/project-progress"
@@ -15,12 +12,12 @@ import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
 import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 type ProjectCardProps = {
-  project: Project
+  project: ProjectSummary
   actions?: ReactNode
   variant?: "list" | "board"
 }
 
-function statusConfig(status: Project["status"]) {
+function statusConfig(status: ProjectSummary["status"]) {
   switch (status) {
     case "active":
       return {
@@ -63,34 +60,14 @@ function statusConfig(status: Project["status"]) {
 
 export function ProjectCard({ project, actions, variant = "list" }: ProjectCardProps) {
   const s = statusConfig(project.status)
-  const assignee = project.members?.[0]
-  const dueDate = project.endDate
-  const avatarUrl = getAvatarUrl(assignee)
   const isBoard = variant === "board"
   const router = useRouter()
   const { workspaceId } = useWorkspaceScope()
   const draggingRef = useRef(false)
   const startPosRef = useRef<{ x: number; y: number } | null>(null)
 
-  const initials = assignee ? assignee.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() : null
-
   const secondaryLine = (() => {
-    const a = project.client
-    const b = project.typeLabel
-    const c = project.durationLabel
-    if (a || b || c) {
-      return [a, b, c].filter(Boolean).join(" • ")
-    }
-    if (project.tags && project.tags.length > 0) {
-      return project.tags.join(" • ")
-    }
-    return ""
-  })()
-
-  const dueLabel = (() => {
-    if (!dueDate) return "No due date"
-    // Board view: dùng format ngắn gọn cho header
-    return format(dueDate, "MMM d")
+    return [project.typeLabel, project.durationLabel].filter(Boolean).join(" • ")
   })()
 
   const goToDetails = () => {
@@ -148,8 +125,8 @@ export function ProjectCard({ project, actions, variant = "list" }: ProjectCardP
         <div className="flex items-center justify-between">
           {isBoard ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Flag className="h-4 w-4" />
-              <span>{dueLabel}</span>
+              <Rows className="h-4 w-4" />
+              <span>{project.workstreams.length} workstreams</span>
             </div>
           ) : (
             <div className="text-muted-foreground">
@@ -195,8 +172,8 @@ export function ProjectCard({ project, actions, variant = "list" }: ProjectCardP
         {!isBoard && (
           <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <CalendarBlank className="h-4 w-4" />
-              <span>{dueDate ? format(dueDate, "MMM d, yyyy") : "—"}</span>
+              <Flag className="h-4 w-4" />
+              <span>{project.workstreams.length} workstreams</span>
             </div>
             <PriorityBadge level={project.priority} appearance="inline" />
           </div>
@@ -206,12 +183,9 @@ export function ProjectCard({ project, actions, variant = "list" }: ProjectCardP
 
         <div className="mt-3 flex items-center justify-between">
           <ProjectProgress project={project} size={isBoard ? 20 : 18} />
-          <Avatar className="size-6 border border-border">
-            <AvatarImage alt={assignee ?? ""} src={avatarUrl} />
-            <AvatarFallback className="text-xs">
-              {initials ? initials : <User className="h-4 w-4 text-muted-foreground" />}
-            </AvatarFallback>
-          </Avatar>
+          <div className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground">
+            {s.label}
+          </div>
         </div>
       </div>
     </div>

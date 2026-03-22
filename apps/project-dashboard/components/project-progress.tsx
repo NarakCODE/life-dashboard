@@ -1,34 +1,34 @@
 "use client"
 
 import { ListChecks } from "@phosphor-icons/react/dist/ssr"
-import type { Project } from "@/lib/data/projects"
 import { ProgressCircle } from "@/components/progress-circle"
 import { cn } from "@/lib/utils"
+import type { ProjectSummary } from "@/lib/projects/projects-client"
 
 export type ProjectProgressProps = {
-  project: Project
+  project: ProjectSummary
   className?: string
-  /**
-   * Progress circle size in pixels, default 18px (matches sidebar Active Projects)
-   */
   size?: number
-  /**
-   * Whether to show the "done / total Tasks" summary text
-   */
   showTaskSummary?: boolean
 }
 
-function computeProjectProgress(project: Project) {
-  const totalTasks = project.tasks?.length ?? project.taskCount ?? 0
-  const doneTasks = project.tasks
-    ? project.tasks.filter((t) => t.status === "done").length
-    : Math.round(((project.progress ?? 0) / 100) * totalTasks)
+function computeProjectProgress(project: ProjectSummary) {
+  const totalTasks = project.workstreams.length
+  const doneTasks =
+    project.status === "completed"
+      ? totalTasks
+      : project.status === "active"
+        ? Math.max(1, Math.round(totalTasks / 2))
+        : 0
 
-  const percent = typeof project.progress === "number"
-    ? project.progress
-    : totalTasks
-      ? Math.round((doneTasks / totalTasks) * 100)
-      : 0
+  const percent =
+    project.status === "completed"
+      ? 100
+      : project.status === "active"
+        ? 60
+        : project.status === "planned"
+          ? 25
+          : 0
 
   return {
     totalTasks,
@@ -48,6 +48,7 @@ function getProgressColor(percent: number): string {
 export function ProjectProgress({ project, className, size = 18, showTaskSummary = true }: ProjectProgressProps) {
   const { totalTasks, doneTasks, percent } = computeProjectProgress(project)
   const color = getProgressColor(percent)
+  const summaryLabel = totalTasks === 1 ? "Workstream" : "Workstreams"
 
   return (
     <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", className)}>
@@ -57,7 +58,7 @@ export function ProjectProgress({ project, className, size = 18, showTaskSummary
         {showTaskSummary && totalTasks > 0 && (
           <span className="flex items-center gap-1 text-sm">
             <ListChecks className="h-4 w-4" />
-            {doneTasks} / {totalTasks} Tasks
+            {doneTasks} / {totalTasks} {summaryLabel}
           </span>
         )}
       </div>

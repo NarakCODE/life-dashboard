@@ -176,6 +176,16 @@ export class AuthService {
     return this.toResponseDto(user);
   }
 
+  /**
+   * Update the authenticated user's profile.
+   */
+  async updateProfile(
+    userId: string,
+    update: { displayName?: string; avatarUrl?: string | null },
+  ): Promise<void> {
+    await this.usersService.updateProfile(userId, update);
+  }
+
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private async sendVerificationEmail(user: UserDocument): Promise<void> {

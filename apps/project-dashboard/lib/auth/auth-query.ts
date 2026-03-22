@@ -7,8 +7,10 @@ import {
   refreshSession,
   register,
   resendVerification,
+  updateProfile,
   verifyEmail,
 } from "@/lib/auth/auth-client"
+import type { UpdateProfileInput } from "@/lib/auth/auth-client"
 import { clearAuthTokens, setAuthTokens } from "@/lib/auth/auth-store"
 import type {
   LoginInput,
@@ -68,6 +70,17 @@ export function useResendVerificationMutation() {
 export function useRefreshSessionMutation() {
   return useMutation({
     mutationFn: (refreshToken: string) => refreshSession(refreshToken),
+  })
+}
+
+export function useUpdateProfileMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateProfileInput) => updateProfile(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: authKeys.me() })
+    },
   })
 }
 

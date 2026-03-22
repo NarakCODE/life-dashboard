@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { ProtectedAppShell } from "@/components/auth/auth-shell"
 
 interface ProtectedLayoutProps {
@@ -5,5 +6,9 @@ interface ProtectedLayoutProps {
 }
 
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  return <ProtectedAppShell>{children}</ProtectedAppShell>
+  return (
+    <Suspense fallback={null}>
+      <ProtectedAppShell>{children}</ProtectedAppShell>
+    </Suspense>
+  )
 }

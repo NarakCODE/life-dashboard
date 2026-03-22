@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
-import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 export type TaskRowBaseProps = {
-  checked: boolean
-  title: string
-  onCheckedChange?: () => void
-  onOpen?: () => void
-  titleAriaLabel?: string
-  titleSuffix?: ReactNode
-  meta?: ReactNode
-  className?: string
-  subtitle?: ReactNode
-}
+  checked: boolean;
+  title: string;
+  onCheckedChange?: () => void;
+  onOpen?: () => void;
+  titleAriaLabel?: string;
+  titleSuffix?: ReactNode;
+  meta?: ReactNode;
+  className?: string;
+  subtitle?: ReactNode;
+};
 
 export function TaskRowBase({
   checked,
@@ -32,15 +32,16 @@ export function TaskRowBase({
     <div
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted/60",
-        onOpen && "cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
+        onOpen &&
+          "cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
         className,
       )}
       onClick={onOpen}
       onKeyDown={(event) => {
-        if (!onOpen) return
-        if (event.key !== "Enter" && event.key !== " ") return
-        event.preventDefault()
-        onOpen()
+        if (!onOpen) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onOpen();
       }}
       tabIndex={onOpen ? 0 : undefined}
       role={onOpen ? "button" : undefined}
@@ -58,18 +59,19 @@ export function TaskRowBase({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "flex-1 truncate text-left max-w-[60vw] sm:max-w-none",
+              "flex-1  truncate text-left max-w-[60vw] sm:max-w-none",
               checked && "line-through text-muted-foreground",
             )}
           >
             {title}
+
+            <span className="ml-2">{titleSuffix}</span>
           </span>
-          {titleSuffix}
         </div>
         {subtitle && (
           <div
             className={cn(
-              "mt-0.5 text-xs text-muted-foreground truncate",
+              "text-xs text-muted-foreground truncate",
               checked && "line-through opacity-70",
             )}
           >
@@ -81,5 +83,5 @@ export function TaskRowBase({
         {meta}
       </div>
     </div>
-  )
+  );
 }

@@ -6,6 +6,8 @@ import {
   FolderSimple,
   CalendarBlank,
   Tag,
+  Trash,
+  DotsThree,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +22,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TAG_OPTIONS } from "@/components/tasks/TaskQuickCreateModal";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type TaskBoardCardVariant = "default" | "completed" | "empty";
 
@@ -33,6 +47,14 @@ type TaskBoardCardProps = {
    * The value is the tag label (e.g. "Feature") or undefined for no tag.
    */
   onChangeTag?: (tagLabel?: string) => void;
+  /**
+   * Called when the task should be deleted.
+   */
+  onDelete?: () => void;
+  /**
+   * Whether delete is in progress.
+   */
+  isDeleting?: boolean;
 };
 
 export function TaskBoardCard({
@@ -41,6 +63,8 @@ export function TaskBoardCard({
   onToggle,
   onOpen,
   onChangeTag,
+  onDelete,
+  isDeleting,
 }: TaskBoardCardProps) {
   const isCompleted = variant === "completed" && task;
   const isEmpty = variant === "empty";
@@ -64,7 +88,7 @@ export function TaskBoardCard({
   return (
     <div
       className={cn(
-        "border border-border bg-card hover:shadow-lg/5 transition-shadow cursor-pointer focus:outline-none rounded-2xl p-4 flex flex-col gap-3",
+        "group border border-border bg-card hover:shadow-lg/5 transition-shadow cursor-pointer focus:outline-none rounded-2xl p-4 flex flex-col gap-3",
         isCompleted && "opacity-70",
       )}
       onClick={onOpen}
@@ -78,30 +102,67 @@ export function TaskBoardCard({
       role="button"
       aria-label={`Open task ${task.name}`}
     >
-      {/* Top row: badge + avatar */}
+      {/* Top row: badge + avatar + actions */}
       <div className="flex items-center justify-between">
         <Badge
           variant="secondary"
-          className="text-xs max-w-40 truncate whitespace-nowrap bg-background px-0 text-muted-foreground"
+          className="text-xs max-w-32 truncate whitespace-nowrap bg-background px-0 text-muted-foreground"
         >
           {badgeText}
         </Badge>
-        <Avatar className="size-6 border border-border">
-          {task.assignee?.avatarUrl ? (
-            <AvatarImage
-              src={task.assignee.avatarUrl}
-              alt={task.assignee.name}
-            />
-          ) : (
-            <AvatarFallback className="text-xs">
-              {task.assignee ? (
-                task.assignee.name.charAt(0).toUpperCase()
-              ) : (
-                <FolderSimple className="h-4 w-4 text-muted-foreground" />
-              )}
-            </AvatarFallback>
+        <div className="flex items-center gap-1">
+          <Avatar className="size-6 border border-border">
+            {task.assignee?.avatarUrl ? (
+              <AvatarImage
+                src={task.assignee.avatarUrl}
+                alt={task.assignee.name}
+              />
+            ) : (
+              <AvatarFallback className="text-xs">
+                {task.assignee ? (
+                  task.assignee.name.charAt(0).toUpperCase()
+                ) : (
+                  <FolderSimple className="h-4 w-4 text-muted-foreground" />
+                )}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={isDeleting}
+                >
+                  <Trash className="size-3 text-muted-foreground hover:text-destructive" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete &quot;{task.name}&quot;? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </Avatar>
+        </div>
       </div>
 
       {/* Middle row: checkbox + title */}

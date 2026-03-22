@@ -1,4 +1,110 @@
+# Settings Dialog Panel Extraction Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Review `apps/project-dashboard/components/settings/SettingsDialog.tsx` and identify panel, shell, and shared-component boundaries
+- [x] Define the extraction target for config, sidebar, formatters, and panel files
+
+### 2. Refactor
+- [x] Replace the monolithic settings dialog with a shell-only orchestrator
+- [x] Extract each settings panel into its own component while preserving existing UI and behavior
+- [x] Move shared settings config, sidebar nav, section/row primitives, formatters, and invite feedback banner into dedicated files
+
+### 3. Verification
+- [x] Run targeted frontend lint on the extracted settings module
+- [x] Run focused TypeScript checks for the extracted settings files
+- [x] Record results and remaining risks
+
+## Review / Results
+- Replaced the large single-file settings dialog with a small shell in `components/settings/SettingsDialog.tsx` that only manages dialog state, sidebar selection, and active panel rendering.
+- Added `components/settings/settings-config.ts`, `components/settings/shared/*`, and one file per panel in `components/settings/panels/*` so each settings area is independently readable and maintainable.
+- Preserved the existing account, teammates, import, notifications, preferences, identity, types, billing, agents, skills, and placeholder behavior during the extraction.
+- Verification:
+  - `pnpm exec eslint components/settings/SettingsDialog.tsx components/settings/settings-config.ts components/settings/shared/*.tsx components/settings/shared/*.ts components/settings/panels/*.tsx` in `apps/project-dashboard` ✅
+  - `pnpm exec tsc --noEmit 2>&1 | rg "components/settings/|settings-config|shared/Setting|shared/settings-formatters|InlineFeedbackBanner|SettingsSidebarNav"` in `apps/project-dashboard` returned no matches, so there were no TypeScript errors in the extracted settings files ✅
+- Remaining risks:
+  - I validated the extracted settings module specifically. I did not re-run full frontend lint/typecheck for unrelated files outside this refactor.
+
 # Task Dialog Consistency Plan
+
+# Project CRUD UI Integration Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `apps/api/src/projects/projects.controller.ts` and current project dashboard UI/query wiring
+- [x] Confirm the project dashboard list/board views still rely on local mock data and a non-persisted wizard flow
+
+### 2. Frontend integration
+- [x] Add a real project client/query layer for list/create/update/delete
+- [x] Wire the projects page list and board views to backend project data
+- [x] Add create, edit, delete, and status-update UI backed by the project controller endpoints
+
+### 3. Verification
+- [x] Run targeted frontend lint on the changed project files
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added a real project frontend client/query layer for `GET /projects`, `POST /projects`, `PATCH /projects/:id`, and `DELETE /projects/:id`, with invalidation that also refreshes the task-project selector cache.
+- Replaced the projects page’s mock-backed create flow with a real `ProjectFormDialog` and wired list/board views to backend data, including create, edit, delete, and board status updates.
+- Refactored the project cards and project progress summary to render from the backend project shape returned by `projects.controller.ts`, using workstreams as the visible project structure summary.
+- Verification:
+  - `pnpm exec eslint components/projects-content.tsx components/project-card.tsx components/project-cards-view.tsx components/project-board-view.tsx components/project-header.tsx components/project-progress.tsx components/projects/ProjectFormDialog.tsx lib/projects/projects-client.ts lib/projects/projects-query.ts` in `apps/project-dashboard` ✅
+  - `pnpm exec tsc --noEmit 2>&1 | rg "projects-content|project-card|project-cards-view|project-board-view|project-header|project-progress|ProjectFormDialog|lib/projects/projects-client|lib/projects/projects-query"` in `apps/project-dashboard` returned no errors for the changed files ✅
+- Remaining risks:
+  - The separate project timeline/details surfaces still rely on older mock-data paths and are not yet integrated with the backend project controller.
+  - `pnpm exec tsc --noEmit` for the whole frontend still fails on multiple pre-existing unrelated files outside this change set.
+
+# Project Timeline And Details Integration Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Confirm `ProjectTimeline` still bootstraps from `lib/data/projects`
+- [x] Confirm `ProjectDetailsPage` still loads from `getProjectDetailsById(...)`
+
+### 2. Frontend integration
+- [x] Add project detail query support for `GET /projects/:id`
+- [x] Wire the project details page to backend data and backend edit flow
+- [x] Wire the project timeline to backend project list data through a shared adapter
+
+### 3. Verification
+- [x] Run targeted frontend lint on the changed timeline/details files
+- [x] Check TypeScript output for the changed files
+
+## Review / Results
+- Added `getProject(...)` plus `useProjectQuery(...)` so project details can read a single backend project record from `projects.controller.ts`.
+- Replaced the mock load in `ProjectDetailsPage` with `useProjectQuery(...)`, mapped the backend project into the existing detail-page view model, and swapped the edit button to the real `ProjectFormDialog` plus update mutation.
+- Replaced the hardcoded timeline seed data in `ProjectTimeline` with `useProjectsQuery(...)` and a shared summary-to-list-item adapter, so the timeline now reflects backend projects instead of the static demo list.
+- Added shared adapters in `lib/data/project-details.ts` to map the backend project summary into the existing project list/detail UI shapes, keeping the current detail subcomponents working without a full redesign.
+- Verification:
+  - `pnpm exec eslint components/project-timeline.tsx components/projects/ProjectDetailsPage.tsx lib/data/project-details.ts lib/projects/projects-client.ts lib/projects/projects-query.ts` in `apps/project-dashboard` produced warnings only; no errors ✅
+  - `pnpm exec tsc --noEmit 2>&1 | rg "project-timeline|ProjectDetailsPage|lib/data/project-details|lib/projects/projects-client|lib/projects/projects-query"` in `apps/project-dashboard` returned no errors for the changed files ✅
+- Remaining risks:
+  - `ProjectTimeline` still has pre-existing lint warnings unrelated to the backend data integration (`useMemo` dependency and two unused `_checked` params).
+  - The detail page still uses adapted placeholder content for notes/files/overview sections because the backend currently exposes project CRUD data, not the richer project-detail domain data those tabs would need.
+
+# Workspace Invitation Permission UI Plan
+
+## Status: COMPLETE
+
+### 1. UI permissions
+- [x] Disable teammate invitation actions for non-admin workspace roles in `TeammatesSettingsPane`
+- [x] Add clear inline messaging for roles that cannot invite or revoke
+
+### 2. Verification
+- [x] Run targeted frontend lint on the settings dialog
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added frontend permission gating in `TeammatesSettingsPane` based on `workspaceContext.role`, allowing invitation management only for `OWNER` and `ADMIN`.
+- Disabled the invite email field, role selector, invite button, and pending-invitation `Revoke` buttons for `MEMBER` and `VIEWER`, and added inline explanatory text when the current role cannot manage invitations.
+- Kept defensive handler checks in place so even if a disabled UI state is bypassed in the browser, the pane still shows a permission error message instead of attempting the action silently.
+- Verification:
+  - `pnpm exec eslint components/settings/SettingsDialog.tsx` in `apps/project-dashboard` produced warnings only; no errors ✅
+- Remaining risks:
+  - `SettingsDialog.tsx` still has pre-existing warnings unrelated to this permission change (`EmptyState`, `members` hook dependency, `resolvedTheme`, `handleResetPhoto`, and `<img>` usage).
 
 # Refresh Token Unauthorized Fix Plan
 
@@ -243,3 +349,78 @@
 - Remaining risks:
   - Some protected screens still use mock data instead of workspace-scoped API data, so this refactor hardens the real API-backed surfaces first but does not make the mock-data screens truly multi-tenant.
   - There are still two pre-existing unrelated lint warnings in `components/clients-content.tsx` and `components/clients/ClientDetailsDrawer.tsx`.
+# Workspace Invitation API Permission Enforcement Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect workspace invitation routes and confirm current backend protection
+- [x] Confirm frontend lockout should be backed by explicit API authorization
+
+### 2. Backend fix
+- [x] Protect invite/list/revoke invitation routes with explicit workspace permission enforcement
+- [x] Add regression coverage for invitation permission metadata and permission guard behavior
+
+### 3. Verification
+- [x] Run targeted backend tests and lint
+- [x] Record results and remaining risks
+
+## Review / Results
+- Switched workspace invitation management routes from role-threshold checks to the explicit workspace permission contract. `invite`, `listWorkspaceInvitations`, and `revokeInvitation` now use `WorkspacePermissionGuard` plus `RequireWorkspacePermission(WorkspacePermission.MEMBER_INVITE)`.
+- This keeps the API aligned with the frontend lockout: `OWNER` and `ADMIN` still pass through the permission map, while `MEMBER` and `VIEWER` are blocked even if they call the endpoints directly.
+- Added controller metadata coverage to ensure the invitation-management routes keep both `WorkspaceAccessGuard` and `WorkspacePermissionGuard`, and added a focused `WorkspacePermissionGuard` spec for allow/deny behavior.
+- Verification:
+  - `pnpm test -- workspaces.controller.spec.ts workspace-permission.guard.spec.ts` in `apps/api` ✅
+  - `pnpm exec eslint src/workspaces/workspaces.controller.ts src/workspaces/workspaces.controller.spec.ts src/workspaces/guards/workspace-permission.guard.spec.ts` in `apps/api` ✅
+- Remaining risks:
+  - This enforces invitation-management permissions at the route level. If you later want even tighter defense-in-depth, the service methods could also accept the actor context and assert permissions internally, but that was not necessary to close the direct API-call gap.
+
+# Task Delete Alert Dialog Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Confirm the task row delete action still uses `window.confirm` in `task-helpers.tsx`
+- [x] Confirm the project already has shadcn `alert-dialog` available
+
+### 2. Frontend fix
+- [x] Replace the delete confirmation with shadcn `AlertDialog`
+- [x] Prevent the dialog trigger from bubbling into the task row open handler
+
+### 3. Verification
+- [x] Run targeted frontend lint on the changed task helper file
+- [x] Record results and remaining risks
+
+## Review / Results
+- Replaced the task-row delete `window.confirm` flow with the existing shadcn `AlertDialog` component in `task-helpers.tsx`.
+- Wrapped the delete icon button in `AlertDialogTrigger asChild` and added propagation guards on the trigger so opening the confirm dialog does not also open the task edit flow.
+- The confirm action now deletes through the existing `onDelete` handler, while cancel and confirm stay inside the modal interaction pattern.
+- Verification:
+  - `pnpm exec eslint components/tasks/task-helpers.tsx` in `apps/project-dashboard` ✅
+- Remaining risks:
+  - I attempted `npx shadcn@latest docs alert-dialog` per the shadcn workflow, but it did not return in this environment, so the implementation uses the local installed `components/ui/alert-dialog.tsx` API directly.
+
+# Task List Delete Wiring Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Confirm the list-view delete path in `task-helpers.tsx` is failing because delete props are referenced without being declared or forwarded
+
+### 2. Frontend fix
+- [x] Add delete-related props to `ProjectTasksSection`
+- [x] Forward delete props from `ProjectTaskListView` into `ProjectTasksSection`
+
+### 3. Verification
+- [x] Run targeted frontend lint on the changed task helper file
+- [x] Record results and remaining risks
+
+## Review / Results
+- Root cause: `ProjectTasksSection` referenced `onDeleteTask` and `deletingTaskId` without declaring them in its props or function parameters, which caused the runtime `ReferenceError` in list view.
+- Added those delete props to `ProjectTasksSection` and forwarded them from `ProjectTaskListView`, restoring the existing delete handler path that `MyTasksPage` already provides.
+- Verification:
+  - `pnpm exec eslint components/tasks/task-helpers.tsx` in `apps/project-dashboard` ✅
+- Remaining risks:
+  - This fixes list-view delete wiring only. Broader task-flow behavior still depends on the existing delete mutation and confirmation UI, which were not changed here.
+
+# Task Dialog Consistency Plan

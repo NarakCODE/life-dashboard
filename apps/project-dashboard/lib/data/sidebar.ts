@@ -1,4 +1,4 @@
-export type NavItemId = "dashboard" | "inbox" | "my-tasks" | "projects" | "clients" | "performance"
+export type NavItemId = "dashboard" | "inbox" | "my-tasks" | "projects" | "clients" | "performance" | "habits"
 
 export type SidebarFooterItemId = "settings" | "templates" | "help"
 
@@ -28,6 +28,7 @@ export const navItems: NavItem[] = [
     { id: "projects", label: "Projects" },
     { id: "clients", label: "Clients" },
     { id: "performance", label: "Performance" },
+    { id: "habits", label: "Habits" },
 ]
 
 export const activeProjects: ActiveProjectSummary[] = [

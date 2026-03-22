@@ -1,14 +1,14 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import type { Project } from "@/lib/data/projects"
 import { ProjectCard } from "@/components/project-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { DotsThreeVertical, Plus, StackSimple, Spinner, CircleNotch, CheckCircle } from "@phosphor-icons/react/dist/ssr"
+import type { ProjectSummary, ProjectStatus } from "@/lib/projects/projects-client"
 
-function columnStatusIcon(status: Project["status"]): React.JSX.Element {
+function columnStatusIcon(status: ProjectSummary["status"]): React.JSX.Element {
   switch (status) {
     case "backlog":
       return <StackSimple className="h-4 w-4 text-muted-foreground" />
@@ -24,14 +24,18 @@ function columnStatusIcon(status: Project["status"]): React.JSX.Element {
 }
 
 type ProjectBoardViewProps = {
-  projects: Project[]
+  projects: ProjectSummary[]
   loading?: boolean
   onAddProject?: () => void
+  onEditProject?: (project: ProjectSummary) => void
+  onChangeStatus?: (project: ProjectSummary, status: ProjectStatus) => void
+  renderActions?: (project: ProjectSummary) => React.ReactNode
+  canManageProjects?: boolean
 }
 
-const COLUMN_ORDER: Array<Project["status"]> = ["backlog", "planned", "active", "completed"]
+const COLUMN_ORDER: ProjectStatus[] = ["backlog", "planned", "active", "completed"]
 
-function columnStatusLabel(status: Project["status"]): string {
+function columnStatusLabel(status: ProjectStatus): string {
   switch (status) {
     case "backlog":
       return "Backlog"
@@ -48,8 +52,16 @@ function columnStatusLabel(status: Project["status"]): string {
   }
 }
 
-export function ProjectBoardView({ projects, loading = false, onAddProject }: ProjectBoardViewProps) {
-  const [items, setItems] = useState<Project[]>(projects)
+export function ProjectBoardView({
+  projects,
+  loading = false,
+  onAddProject,
+  onEditProject,
+  onChangeStatus,
+  renderActions,
+  canManageProjects = true,
+}: ProjectBoardViewProps) {
+  const [items, setItems] = useState<ProjectSummary[]>(projects)
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -57,28 +69,32 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
   }, [projects])
 
   const groups = useMemo(() => {
-    const m = new Map<Project["status"], Project[]>()
+    const m = new Map<ProjectStatus, ProjectSummary[]>()
     for (const s of COLUMN_ORDER) m.set(s, [])
     for (const p of items) m.get(p.status)!.push(p)
     return m
   }, [items])
 
-  const onDropTo = (status: Project["status"]) => (e: React.DragEvent<HTMLDivElement>) => {
+  const onDropTo = (status: ProjectStatus) => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     const id = e.dataTransfer.getData("text/id")
     if (!id) return
     setDraggingId(null)
+    const target = items.find((item) => item.id === id)
+    if (!target || target.status === status) return
+
     setItems((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
+    onChangeStatus?.(target, status)
   }
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
   }
 
-  const draggableCard = (p: Project) => (
+  const draggableCard = (p: ProjectSummary) => (
     <div
       key={p.id}
-      draggable
+      draggable={canManageProjects}
       className={`transition-all ${
         draggingId === p.id
           ? "cursor-grabbing opacity-70 shadow-lg shadow-lg/20 scale-[0.98]"
@@ -93,7 +109,7 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
       <ProjectCard
         project={p}
         variant="board"
-        actions={
+        actions={renderActions?.(p) ?? (
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg">
@@ -102,11 +118,22 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
             </PopoverTrigger>
             <PopoverContent className="w-40 p-2" align="end">
               <div className="space-y-1">
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-1 text-left text-sm hover:bg-accent"
+                  onClick={() => onEditProject?.(p)}
+                >
+                  Edit project
+                </button>
                 {COLUMN_ORDER.map((s) => (
                   <button
                     key={s}
+                    type="button"
                     className="w-full rounded-md px-2 py-1 text-left text-sm hover:bg-accent"
-                    onClick={() => setItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: s } : x)))}
+                    onClick={() => {
+                      setItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: s } : x)))
+                      onChangeStatus?.(p, s)
+                    }}
                   >
                     Move to {s}
                   </button>
@@ -114,7 +141,7 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
               </div>
             </PopoverContent>
           </Popover>
-        }
+        )}
       />
     </div>
   )
@@ -173,6 +200,7 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
                   className="h-7 w-7 rounded-lg"
                   type="button"
                   onClick={onAddProject}
+                  disabled={!canManageProjects}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -193,6 +221,7 @@ export function ProjectBoardView({ projects, loading = false, onAddProject }: Pr
                 size="sm"
                 type="button"
                 onClick={onAddProject}
+                disabled={!canManageProjects}
               >
                 <Plus className="mr-1 h-4 w-4" />
                 Add project

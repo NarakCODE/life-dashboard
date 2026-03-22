@@ -28,11 +28,14 @@ import { PageHeader, PageToolbar, AiButton } from "@/components/page-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskProjectsQuery } from "@/lib/projects/projects-query";
 import {
+  useAllTasksQuery,
+  useDeleteTaskMutation,
   useMyTasksQuery,
   useUpdateTaskMutation,
 } from "@/lib/tasks/tasks-query";
 import type { MyTasksQuery } from "@/lib/tasks/types";
 import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
+import { toast } from "sonner";
 
 const TASK_STATUS_OPTIONS = [
   { id: "todo", label: "To do", color: "var(--chart-2)" },
@@ -118,7 +121,9 @@ export function MyTasksPage() {
   const [filters, setFilters] = useState<FilterChipType[]>([]);
   const [viewOptions, setViewOptions] =
     useState<ViewOptions>(DEFAULT_VIEW_OPTIONS);
+  const [viewMode, setViewMode] = useState<"my-tasks" | "all-tasks">("my-tasks");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [createContext, setCreateContext] = useState<
     CreateTaskContext | undefined
   >(undefined);
@@ -147,9 +152,14 @@ export function MyTasksPage() {
 
   const {
     data: myTasks,
-    isPending,
-    error,
-  } = useMyTasksQuery(workspaceId ?? "", taskQuery, isQueryEnabled);
+    isPending: isMyTasksPending,
+    error: myTasksError,
+  } = useMyTasksQuery(workspaceId ?? "", taskQuery, isQueryEnabled && viewMode === "my-tasks");
+  const {
+    data: allTasks,
+    isPending: isAllTasksPending,
+    error: allTasksError,
+  } = useAllTasksQuery(workspaceId ?? "", taskQuery, isQueryEnabled && viewMode === "all-tasks");
   const { data: projects = [] } = useTaskProjectsQuery(
     workspaceId ?? "",
     isQueryEnabled,
@@ -158,11 +168,24 @@ export function MyTasksPage() {
     workspaceId ?? "",
     taskQuery,
   );
+  const deleteTaskMutation = useDeleteTaskMutation(
+    workspaceId ?? "",
+    taskQuery,
+  );
+  const allTasksQuery = useAllTasksQuery(
+    workspaceId ?? "",
+    taskQuery,
+    isQueryEnabled && viewMode === "all-tasks",
+  );
 
-  const tasks = useMemo(() => myTasks?.data.tasks ?? [], [myTasks?.data.tasks]);
+  const tasksData = viewMode === "my-tasks" ? myTasks : allTasks;
+  const isPending = viewMode === "my-tasks" ? isMyTasksPending : isAllTasksPending;
+  const error = viewMode === "my-tasks" ? myTasksError : allTasksError;
+
+  const tasks = useMemo(() => tasksData?.data.tasks ?? [], [tasksData?.data.tasks]);
   const filterCounts = useMemo(
-    () => myTasks?.meta.filterCounts ?? {},
-    [myTasks?.meta.filterCounts],
+    () => tasksData?.meta.filterCounts ?? {},
+    [tasksData?.meta.filterCounts],
   );
 
   const projectMap = useMemo(
@@ -256,6 +279,19 @@ export function MyTasksPage() {
         startDate: newDate.toISOString(),
       },
     });
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    setDeletingTaskId(taskId);
+    try {
+      await deleteTaskMutation.mutateAsync(taskId);
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete task";
+      toast.error(message);
+    } finally {
+      setDeletingTaskId(null);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -354,6 +390,24 @@ export function MyTasksPage() {
             }
             right={
               <>
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+                  <Button
+                    size="sm"
+                    variant={viewMode === "my-tasks" ? "secondary" : "ghost"}
+                    className="h-7 text-xs"
+                    onClick={() => setViewMode("my-tasks")}
+                  >
+                    My Tasks
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === "all-tasks" ? "secondary" : "ghost"}
+                    className="h-7 text-xs"
+                    onClick={() => setViewMode("all-tasks")}
+                  >
+                    All Tasks
+                  </Button>
+                </div>
                 <ViewOptionsPopover
                   options={viewOptions}
                   onChange={setViewOptions}
@@ -394,6 +448,8 @@ export function MyTasksPage() {
               onToggleTask={handleStatusToggle}
               onAddTask={(context) => openCreateTask(context)}
               onOpenTask={openEditTask}
+              onDeleteTask={handleDeleteTask}
+              deletingTaskId={deletingTaskId}
             />
           </DndContext>
         )}
@@ -406,6 +462,8 @@ export function MyTasksPage() {
             onChangeTag={handleTagChange}
             onMoveTaskDate={handleTaskDateMove}
             onOpenTask={openEditTask}
+            onDeleteTask={handleDeleteTask}
+            deletingTaskId={deletingTaskId}
           />
         )}
       </div>

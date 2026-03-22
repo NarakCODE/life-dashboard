@@ -70,3 +70,17 @@ export function getCurrentUser() {
     auth: "required",
   })
 }
+
+export interface UpdateProfileInput {
+  displayName?: string
+  avatarUrl?: string | null
+}
+
+export function updateProfile(input: UpdateProfileInput) {
+  return apiRequest<AuthUser>({
+    path: "/auth/me",
+    method: "PATCH",
+    body: input,
+    auth: "required",
+  })
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"
-import { projects as initialProjects, type Project } from "@/lib/data/projects"
+import type { Project } from "@/lib/data/projects"
 import {
   differenceInCalendarDays,
   addDays,
@@ -26,6 +26,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { DraggableBar } from "@/components/project-timeline-draggable-bar"
 import { PriorityGlyphIcon } from "@/components/priority-badge"
+import { useProjectsQuery } from "@/lib/projects/projects-query"
+import { mapProjectSummaryToListItem } from "@/lib/data/project-details"
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
 
 // Fixed "today" so the demo stays visually consistent over time.
 // This controls the initial viewport and the vertical "today" line.
@@ -34,8 +37,18 @@ const FIXED_TODAY = new Date(2024, 0, 23) // 23 Jan 2024
 // projects imported from lib/data
 
 export function ProjectTimeline() {
-  const [projects, setProjects] = useState(initialProjects)
-  const [expandedProjects, setExpandedProjects] = useState<string[]>(initialProjects.map((p) => p.id))
+  const { workspaceId } = useWorkspaceScope()
+  const { data: projectSummaries = [] } = useProjectsQuery(
+    workspaceId ?? "",
+    Boolean(workspaceId),
+  )
+  const initialProjects = useMemo(
+    () => projectSummaries.map((project) => mapProjectSummaryToListItem(project)),
+    [projectSummaries],
+  )
+
+  const [projects, setProjects] = useState<Project[]>([])
+  const [expandedProjects, setExpandedProjects] = useState<string[]>([])
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month" | "Quarter">("Week")
   const [zoom, setZoom] = useState(1)
@@ -70,6 +83,11 @@ export function ProjectTimeline() {
   })
 
   const viewModes = useMemo(() => ["Day", "Week", "Month", "Quarter"] as const, [])
+
+  useEffect(() => {
+    setProjects(initialProjects)
+    setExpandedProjects(initialProjects.map((project) => project.id))
+  }, [initialProjects])
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects((prev) =>
@@ -119,7 +137,13 @@ export function ProjectTimeline() {
 
   // Calculate today line position (based on fixed demo date)
   useEffect(() => {
-    const offset = differenceInCalendarDays(FIXED_TODAY, dates[0])
+    const firstDate = dates[0]
+    if (!firstDate) {
+      setTodayOffsetDays(null)
+      return
+    }
+
+    const offset = differenceInCalendarDays(FIXED_TODAY, firstDate)
     if (offset < 0 || offset >= dates.length) {
       setTodayOffsetDays(null)
       return
@@ -288,8 +312,6 @@ export function ProjectTimeline() {
     if (!editDialog.type || !editDialog.projectId) return
 
     const newStart = new Date(editStartDate)
-    const newEnd = new Date(editEndDate)
-
     if (editDialog.type === "project") {
       handleUpdateProject(editDialog.projectId, newStart)
     } else if (editDialog.type === "task" && editDialog.taskId) {
@@ -312,8 +334,8 @@ export function ProjectTimeline() {
       projectId,
       taskId: taskId || null
     })
-    setEditStartDate(item.startDate.toISOString().split('T')[0])
-    setEditEndDate(item.endDate.toISOString().split('T')[0])
+    setEditStartDate(item.startDate.toISOString().split('T')[0] ?? "")
+    setEditEndDate(item.endDate.toISOString().split('T')[0] ?? "")
   }
 
   return (

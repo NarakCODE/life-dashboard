@@ -42,9 +42,11 @@ type TaskWeekBoardViewProps = {
   onChangeTag?: (taskId: string, tagLabel?: string) => void
   onMoveTaskDate?: (taskId: string, newDate: Date) => void
   onOpenTask?: (task: ProjectTask) => void
+  onDeleteTask?: (taskId: string) => void
+  deletingTaskId?: string | null
 }
 
-export function TaskWeekBoardView({ tasks, onAddTask, onToggleTask, onChangeTag, onMoveTaskDate, onOpenTask }: TaskWeekBoardViewProps) {
+export function TaskWeekBoardView({ tasks, onAddTask, onToggleTask, onChangeTag, onMoveTaskDate, onOpenTask, onDeleteTask, deletingTaskId }: TaskWeekBoardViewProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday
   )
@@ -272,6 +274,8 @@ export function TaskWeekBoardView({ tasks, onAddTask, onToggleTask, onChangeTag,
                   onToggleTask={onToggleTask}
                   onOpenTask={onOpenTask}
                   onChangeTag={onChangeTag}
+                  onDeleteTask={onDeleteTask}
+                  deletingTaskId={deletingTaskId}
                 />
               )
             })}
@@ -306,6 +310,8 @@ type DayColumnDroppableProps = {
   onToggleTask?: (taskId: string) => void
   onOpenTask?: (task: ProjectTask) => void
   onChangeTag?: (taskId: string, tagLabel?: string) => void
+  onDeleteTask?: (taskId: string) => void
+  deletingTaskId?: string | null
 }
 
 function DayColumnDroppable({
@@ -320,6 +326,8 @@ function DayColumnDroppable({
   onToggleTask,
   onOpenTask,
   onChangeTag,
+  onDeleteTask,
+  deletingTaskId,
 }: DayColumnDroppableProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: dayKey,
@@ -375,6 +383,8 @@ function DayColumnDroppable({
                 onToggle={onToggleTask}
                 onOpen={onOpenTask}
                 onChangeTag={onChangeTag}
+                onDelete={onDeleteTask ? () => onDeleteTask(task.id) : undefined}
+                isDeleting={deletingTaskId === task.id}
               />
             ))
           )}
@@ -400,9 +410,11 @@ type SortableTaskCardProps = {
   onToggle?: (taskId: string) => void
   onOpen?: (task: ProjectTask) => void
   onChangeTag?: (taskId: string, tagLabel?: string) => void
+  onDelete?: () => void
+  isDeleting?: boolean
 }
 
-function SortableTaskCard({ task, dayKey, onToggle, onOpen, onChangeTag }: SortableTaskCardProps) {
+function SortableTaskCard({ task, dayKey, onToggle, onOpen, onChangeTag, onDelete, isDeleting }: SortableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: task.id,
     data: { dayKey },
@@ -421,6 +433,8 @@ function SortableTaskCard({ task, dayKey, onToggle, onOpen, onChangeTag }: Sorta
         onToggle={() => onToggle?.(task.id)}
         onOpen={() => onOpen?.(task)}
         onChangeTag={(tagLabel) => onChangeTag?.(task.id, tagLabel)}
+        onDelete={onDelete}
+        isDeleting={isDeleting}
       />
     </div>
   )

@@ -86,6 +86,27 @@ export class UsersRepository {
     await this.userModel.findByIdAndUpdate(id, normalizedUpdate).exec();
   }
 
+  async updateProfile(
+    id: string | Types.ObjectId,
+    update: {
+      displayName?: string;
+      avatarUrl?: string | null;
+    },
+  ): Promise<void> {
+    const updateData: Record<string, unknown> = {};
+    
+    if (update.displayName !== undefined) {
+      updateData.displayName = update.displayName;
+    }
+    if (update.avatarUrl !== undefined) {
+      updateData.avatarUrl = update.avatarUrl;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.userModel.findByIdAndUpdate(id, updateData).exec();
+    }
+  }
+
   private toObjectId(value: string | Types.ObjectId): Types.ObjectId {
     return value instanceof Types.ObjectId ? value : new Types.ObjectId(value);
   }

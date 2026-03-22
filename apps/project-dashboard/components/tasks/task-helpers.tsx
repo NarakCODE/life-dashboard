@@ -6,6 +6,7 @@ import {
   DotsSixVertical,
   FolderSimple,
   Plus,
+  Trash,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   SortableContext,
@@ -18,6 +19,17 @@ import type { FilterCounts } from "@/lib/data/projects";
 import type { ProjectTask } from "@/lib/data/project-details";
 import type { TaskProjectSummary } from "@/lib/projects/projects-client";
 import { TaskRowBase } from "@/components/tasks/TaskRowBase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -99,6 +111,8 @@ export type ProjectTasksSectionProps = {
   onToggleTask: (taskId: string) => void;
   onAddTask: (context: CreateTaskContext) => void;
   onOpenTask?: (task: ProjectTask) => void;
+  onDeleteTask?: (taskId: string) => void;
+  deletingTaskId?: string | null;
 };
 
 export function ProjectTasksSection({
@@ -106,6 +120,8 @@ export function ProjectTasksSection({
   onToggleTask,
   onAddTask,
   onOpenTask,
+  onDeleteTask,
+  deletingTaskId,
 }: ProjectTasksSectionProps) {
   const { project, tasks } = group;
   const total = tasks.length;
@@ -113,7 +129,7 @@ export function ProjectTasksSection({
   const percent = total ? Math.round((done / total) * 100) : 0;
 
   return (
-    <section className="max-w-6xl mx-auto rounded-3xl border border-border bg-muted shadow-workstream p-3 space-y-2">
+    <section className="group max-w-6xl mx-auto rounded-3xl border border-border bg-muted shadow-workstream p-3 space-y-2">
       <header className="flex items-center justify-between gap-4 px-0 py-1">
         <div className="flex size-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground">
           <FolderSimple className="h-5 w-5" weight="regular" />
@@ -177,6 +193,8 @@ export function ProjectTasksSection({
               task={task}
               onToggle={() => onToggleTask(task.id)}
               onOpen={onOpenTask}
+              onDelete={onDeleteTask ? () => onDeleteTask(task.id) : undefined}
+              isDeleting={deletingTaskId === task.id}
             />
           ))}
         </SortableContext>
@@ -299,9 +317,17 @@ export type TaskRowDnDProps = {
   task: ProjectTask;
   onToggle: () => void;
   onOpen?: (task: ProjectTask) => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 };
 
-export function TaskRowDnD({ task, onToggle, onOpen }: TaskRowDnDProps) {
+export function TaskRowDnD({
+  task,
+  onToggle,
+  onOpen,
+  onDelete,
+  isDeleting,
+}: TaskRowDnDProps) {
   const isDone = task.status === "done";
 
   const {
@@ -392,6 +418,47 @@ export function TaskRowDnD({ task, onToggle, onOpen }: TaskRowDnDProps) {
             >
               <DotsSixVertical className="h-4 w-4" weight="regular" />
             </Button>
+            {onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    className="size-7 rounded-md text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Delete task"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    disabled={isDeleting}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent size="sm">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete &quot;{task.name}&quot;.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={(event) => event.stopPropagation()}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete();
+                      }}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         }
         className={isDragging ? "opacity-60" : ""}
@@ -405,6 +472,8 @@ export type ProjectTaskListViewProps = {
   onToggleTask: (taskId: string) => void;
   onAddTask: (context: CreateTaskContext) => void;
   onOpenTask?: (task: ProjectTask) => void;
+  onDeleteTask?: (taskId: string) => void;
+  deletingTaskId?: string | null;
 };
 
 export function ProjectTaskListView({
@@ -412,6 +481,8 @@ export function ProjectTaskListView({
   onToggleTask,
   onAddTask,
   onOpenTask,
+  onDeleteTask,
+  deletingTaskId,
 }: ProjectTaskListViewProps) {
   return (
     <>
@@ -422,6 +493,8 @@ export function ProjectTaskListView({
           onToggleTask={onToggleTask}
           onAddTask={onAddTask}
           onOpenTask={onOpenTask}
+          onDeleteTask={onDeleteTask}
+          deletingTaskId={deletingTaskId}
         />
       ))}
     </>

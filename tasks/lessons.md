@@ -2,6 +2,25 @@
 
 ## Date: 2026-03-22
 
+### Lesson: Handle Indexed Array Access Explicitly Under Strict TypeScript
+
+**Context**: Split the settings import wizard into `ImportSettingsPane.tsx` during the settings dialog panel extraction.
+
+**Mistake/Risk Avoided**:
+- A refactor kept `const previousStage = importStages[index - 1]` behind an `index > 0` check, but TypeScript still treated the indexed lookup as possibly `undefined`.
+- That left the extracted panel failing focused type verification even though the runtime logic was safe.
+
+**Root Cause**:
+- With strict indexed access rules, numeric guards do not fully narrow array element reads.
+- The refactor preserved the old control flow but did not convert the indexed read into a fully typed fallback value.
+
+**Preventative Rule**:
+1. Treat `array[index]` as maybe-undefined in extracted UI logic even when the index appears guarded.
+2. Normalize guarded indexed reads into fallback scalars or optional chaining before using nested properties.
+3. Re-run focused TypeScript checks immediately after moving wizard or progress-step logic across files.
+
+**Applied In**: `apps/project-dashboard/components/settings/panels/ImportSettingsPane.tsx` now derives `previousStageThreshold` with an explicit fallback before the comparison.
+
 ### Lesson: Edit Task Plans Carefully
 
 **Context**: Added a new task plan entry to `tasks/todo.md` while another completed plan already existed at the top of the file.

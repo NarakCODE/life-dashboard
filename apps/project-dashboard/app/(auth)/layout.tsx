@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { GuestShell } from "@/components/auth/auth-shell"
 
 interface AuthLayoutProps {
@@ -5,5 +6,9 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  return <GuestShell>{children}</GuestShell>
+  return (
+    <Suspense fallback={null}>
+      <GuestShell>{children}</GuestShell>
+    </Suspense>
+  )
 }

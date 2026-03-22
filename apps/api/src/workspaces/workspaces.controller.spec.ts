@@ -1,7 +1,15 @@
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { RequestMethod } from '@nestjs/common';
+import { WorkspacePermissionGuard } from './guards/workspace-permission.guard';
+import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
+import { WORKSPACE_PERMISSION_KEY } from './decorators/require-workspace-permission.decorator';
 import { WorkspaceMembershipStatus } from './schemas/workspace-membership.schema';
 import { WorkspaceRole, WorkspaceType } from './schemas/workspace.schema';
+import { WorkspacePermission } from './workspace-permissions';
 import { WorkspacesController } from './workspaces.controller';
 import { WorkspacesService } from './workspaces.service';
 
@@ -102,5 +110,25 @@ describe('WorkspacesController', () => {
     expect(listInvitationsIndex).toBeGreaterThan(-1);
     expect(findOneIndex).toBeGreaterThan(-1);
     expect(listInvitationsIndex).toBeLessThan(findOneIndex);
+  });
+
+  it('protects invitation management routes with member.invite permission', () => {
+    const invitationHandlers = [
+      WorkspacesController.prototype.invite,
+      WorkspacesController.prototype.listWorkspaceInvitations,
+      WorkspacesController.prototype.revokeInvitation,
+    ];
+
+    for (const handler of invitationHandlers) {
+      expect(Reflect.getMetadata(WORKSPACE_PERMISSION_KEY, handler)).toBe(
+        WorkspacePermission.MEMBER_INVITE,
+      );
+
+      const guards = Reflect.getMetadata(GUARDS_METADATA, handler) ?? [];
+      const guardTypes = guards.map((guard: { name?: string }) => guard?.name);
+
+      expect(guardTypes).toContain(WorkspaceAccessGuard.name);
+      expect(guardTypes).toContain(WorkspacePermissionGuard.name);
+    }
   });
 });

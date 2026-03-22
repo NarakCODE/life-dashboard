@@ -39,6 +39,7 @@ import {
   SignOutIcon,
   CaretRightIcon,
   HouseIcon,
+  TargetIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   activeProjects,
@@ -72,6 +73,7 @@ const navItemIcons: Record<
   projects: FolderIcon,
   clients: UsersIcon,
   performance: ChartBarIcon,
+  habits: TargetIcon,
 };
 
 const footerItemIcons: Record<
@@ -165,6 +167,8 @@ export function AppSidebar() {
       return buildWorkspacePath(currentWorkspaceId, "/clients");
     if (id === "performance")
       return buildWorkspacePath(currentWorkspaceId, "/performance");
+    if (id === "habits")
+      return buildWorkspacePath(currentWorkspaceId, "/habits");
     return "#";
   };
 
@@ -186,6 +190,9 @@ export function AppSidebar() {
     }
     if (id === "performance") {
       return scopedPathname.startsWith("/performance");
+    }
+    if (id === "habits") {
+      return scopedPathname.startsWith("/habits");
     }
     return false;
   };

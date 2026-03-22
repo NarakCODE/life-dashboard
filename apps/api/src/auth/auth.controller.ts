@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   HttpCode,
@@ -24,6 +25,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from './dto/auth-tokens.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -135,6 +137,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Get the current authenticated user' })
   @ApiOkResponse({ type: UserResponseDto })
   getMe(@CurrentUser() user: JwtPayload): Promise<UserResponseDto> {
+    return this.authService.getMe(user.sub);
+  }
+
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update the current authenticated user profile' })
+  @ApiOkResponse({ type: UserResponseDto })
+  async updateMe(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    await this.authService.updateProfile(user.sub, dto);
     return this.authService.getMe(user.sub);
   }
 }

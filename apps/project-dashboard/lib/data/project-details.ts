@@ -1,6 +1,7 @@
 import type { Project as ProjectListItem } from "@/lib/data/projects"
 import { projects } from "@/lib/data/projects"
 import { getAvatarUrl } from "@/lib/assets/avatars"
+import type { ProjectSummary } from "@/lib/projects/projects-client"
 
 function addDays(base: Date, days: number): Date {
   const d = new Date(base)
@@ -179,7 +180,10 @@ function userFromName(name: string, role?: string): User {
 }
 
 function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
-  const picUsers = p.members.length ? p.members.map((n) => userFromName(n, "PIC")) : [userFromName("Jason Duong", "PIC")]
+  const picUsers = p.members.length
+    ? p.members.map((n) => userFromName(n, "PIC"))
+    : [userFromName("Jason Duong", "PIC")]
+  const primaryPic = picUsers[0] ?? userFromName("Jason Duong", "PIC")
   const today = new Date()
 
   return {
@@ -215,7 +219,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
             status: "done",
             dueLabel: "Today",
             dueTone: "muted",
-            assignee: picUsers[0],
+            assignee: primaryPic,
             startDate: today,
           },
           {
@@ -224,7 +228,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
             status: "in-progress",
             dueLabel: "Tomorrow",
             dueTone: "warning",
-            assignee: picUsers[0],
+            assignee: primaryPic,
             startDate: addDays(today, 1),
           },
           {
@@ -307,7 +311,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "audio",
         status: "completed",
         addedDate: new Date(2025, 6, 12),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         audioData: {
           duration: "00:02:21",
           fileName: "project-review-meeting.mp3",
@@ -340,7 +344,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "meeting",
         status: "completed",
         addedDate: new Date(2024, 8, 18),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Discussion about current sprint goals, open issues, and next steps for the design handoff.",
       },
@@ -350,7 +354,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "general",
         status: "completed",
         addedDate: new Date(2024, 8, 18),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Client shared feedback on the latest homepage iteration. Main concern is clarity of the hero copy.",
       },
@@ -360,7 +364,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "general",
         status: "completed",
         addedDate: new Date(2024, 8, 17),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Ideas for onboarding improvements, including checklists, progress indicators, and inline tips.",
       },
@@ -370,7 +374,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "general",
         status: "completed",
         addedDate: new Date(2024, 8, 17),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Copy options for the hero section headline and supporting description for A/B testing.",
       },
@@ -380,7 +384,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "meeting",
         status: "processing",
         addedDate: new Date(2024, 8, 17),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Notes about trade-offs between performance and flexibility for the new dashboard widgets.",
       },
@@ -390,7 +394,7 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "general",
         status: "completed",
         addedDate: new Date(2024, 8, 16),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "High-level roadmap for the next two quarters focusing on analytics and collaboration features.",
       },
@@ -400,13 +404,116 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         noteType: "general",
         status: "completed",
         addedDate: new Date(2024, 8, 16),
-        addedBy: picUsers[0],
+        addedBy: primaryPic,
         content:
           "Rough brainstorming around potential integrations and automation opportunities.",
       },
     ],
     source: p,
   }
+}
+
+export function mapProjectSummaryToListItem(project: ProjectSummary): ProjectListItem {
+  const startDate = new Date()
+  const endDate = addDays(startDate, Math.max(7, project.workstreams.length * 5))
+  const tasks = project.workstreams.map((workstream, index) => ({
+    id: `${project.id}-ws-${workstream.id}`,
+    name: workstream.name,
+    type: "task" as const,
+    assignee: "Team",
+    status: (
+      project.status === "completed"
+        ? "done"
+        : project.status === "active" && index === 0
+          ? "in-progress"
+          : "todo"
+    ) as "done" | "todo" | "in-progress",
+    startDate: addDays(startDate, index * 3),
+    endDate: addDays(startDate, index * 3 + 2),
+  }))
+
+  const progress =
+    project.status === "completed"
+      ? 100
+      : project.status === "active"
+        ? 60
+        : project.status === "planned"
+          ? 25
+          : 0
+
+  return {
+    id: project.id,
+    name: project.name,
+    taskCount: tasks.length,
+    progress,
+    startDate,
+    endDate,
+    status: project.status,
+    priority: project.priority,
+    tags: project.workstreams.map((workstream) => workstream.name),
+    members: [],
+    typeLabel: project.typeLabel,
+    durationLabel: project.durationLabel,
+    tasks,
+  }
+}
+
+export function buildProjectDetailsFromSummary(project: ProjectSummary): ProjectDetails {
+  const details = baseDetailsFromListItem(mapProjectSummaryToListItem(project))
+
+  details.description = `${project.name} is synced from the workspace project API.`
+  details.meta = {
+    priorityLabel: project.priority.charAt(0).toUpperCase() + project.priority.slice(1),
+    locationLabel: "Workspace",
+    sprintLabel:
+      [project.typeLabel, project.durationLabel].filter(Boolean).join(" ") || "Project",
+    lastSyncLabel: "Just now",
+  }
+  details.backlog.statusLabel =
+    project.status === "completed"
+      ? "Completed"
+      : project.status === "cancelled"
+        ? "Cancelled"
+        : project.status === "backlog"
+          ? "Backlog"
+          : project.status === "planned"
+            ? "Planned"
+            : "Active"
+
+  details.workstreams = project.workstreams.map((workstream, index) => ({
+    id: workstream.id,
+    name: workstream.name,
+    tasks: [
+      {
+        id: `${project.id}-${workstream.id}-task`,
+        name: `${workstream.name} setup`,
+        status:
+          project.status === "completed"
+            ? "done"
+            : project.status === "active" && index === 0
+              ? "in-progress"
+              : "todo",
+        dueLabel: index === 0 ? "Today" : undefined,
+        dueTone: index === 0 ? "muted" : undefined,
+        startDate: addDays(new Date(), index),
+      },
+    ],
+  }))
+  details.timelineTasks = details.workstreams.map((workstream, index) => ({
+    id: `${project.id}-timeline-${workstream.id}`,
+    name: workstream.name,
+    startDate: addDays(new Date(), index * 2),
+    endDate: addDays(new Date(), index * 2 + 2),
+    status:
+      project.status === "completed"
+        ? "done"
+        : project.status === "active" && index === 0
+          ? "in-progress"
+          : "planned",
+  }))
+  details.source = mapProjectSummaryToListItem(project)
+
+  return details
 }
 
 export function getProjectDetailsById(id: string): ProjectDetails {
@@ -456,7 +563,8 @@ export function getProjectDetailsById(id: string): ProjectDetails {
       p2: ["Visual polish & motion guidelines"],
     }
 
-    const primaryAssignee = details.backlog.picUsers[0]
+    const primaryAssignee =
+      details.backlog.picUsers[0] ?? userFromName("Jason Duong", "PIC")
     const today = new Date()
 
     const filesBaseDate = new Date(2024, 8, 18)

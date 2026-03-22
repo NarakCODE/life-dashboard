@@ -1,4 +1,5 @@
 import { apiRequest, apiRequestEnvelope } from "@/lib/api/api-client"
+import type { ProjectTask } from "@/lib/data/project-details"
 import type {
   CreateTaskInput,
   MyTasksQuery,
@@ -71,6 +72,33 @@ export async function deleteTask(workspaceId: string, taskId: string) {
   return apiRequest({
     path: `/tasks/${taskId}`,
     method: "DELETE",
+    auth: "required",
+    workspaceId,
+  })
+}
+
+export async function getAllTasks(
+  workspaceId: string,
+  query: MyTasksQuery,
+): Promise<MyTasksResponse> {
+  const payload = await apiRequestEnvelope<MyTasksResponse["data"], MyTasksResponseMeta>({
+    path: `/tasks${buildQueryString(query)}`,
+    auth: "required",
+    workspaceId,
+  })
+
+  return {
+    data: payload.data,
+    meta: payload.meta ?? { filterCounts: {} },
+  }
+}
+
+export async function getTask(
+  workspaceId: string,
+  taskId: string,
+): Promise<ProjectTask> {
+  return apiRequestEnvelope<ProjectTask>({
+    path: `/tasks/${taskId}`,
     auth: "required",
     workspaceId,
   })
