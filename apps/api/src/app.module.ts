@@ -27,6 +27,8 @@ import { validate } from './config/env.validation';
 
 import { DashboardModule } from './dashboard/dashboard.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
+import { ChatModule } from './chat/chat.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -107,6 +109,8 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     OtpCodesModule,
     DashboardModule,
     WorkspacesModule,
+    ChatModule,
+    OnboardingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

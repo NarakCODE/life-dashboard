@@ -1,9 +1,12 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { AuthGuard, GuestOnlyGuard } from "@/components/auth/auth-guard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceRouteBoundary } from "@/components/workspaces/workspace-route-boundary";
+import { useAuth } from "@/hooks/use-auth";
+import { isOnboardingPath } from "@/lib/onboarding/onboarding-utils";
 
 interface ProtectedAppShellProps {
   children: React.ReactNode;
@@ -14,16 +17,27 @@ interface GuestShellProps {
 }
 
 export function ProtectedAppShell({ children }: ProtectedAppShellProps) {
+  const pathname = usePathname();
+  const auth = useAuth();
+  const shouldUseOnboardingShell =
+    isOnboardingPath(pathname) || auth.user?.onboarding.requiresOnboarding;
+
   return (
     <AuthGuard>
-      <WorkspaceRouteBoundary>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset className="bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
-            {children}
-          </SidebarInset>
-        </SidebarProvider>
-      </WorkspaceRouteBoundary>
+      {shouldUseOnboardingShell ? (
+        <div className="min-h-svh bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_48%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </div>
+      ) : (
+        <WorkspaceRouteBoundary>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset className="bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+              {children}
+            </SidebarInset>
+          </SidebarProvider>
+        </WorkspaceRouteBoundary>
+      )}
     </AuthGuard>
   );
 }

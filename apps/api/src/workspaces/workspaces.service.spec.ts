@@ -1,12 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { UsersService } from '../users/users.service';
 import { WorkspacesService } from './workspaces.service';
-import {
-  WorkspaceRole,
-  WorkspaceStatus,
-  WorkspaceType,
-} from './schemas/workspace.schema';
+import { WorkspaceRole } from './schemas/workspace.schema';
 import { WorkspaceMembershipStatus } from './schemas/workspace-membership.schema';
 
 type MockExec<T> = { exec: jest.Mock<Promise<T>, []> };
@@ -18,80 +14,83 @@ function execMock<T>(value: Promise<T>): MockExec<T> {
 }
 
 describe('WorkspacesService', () => {
-  it('re-reads the default workspace when concurrent bootstrap hits a duplicate key', async () => {
-    const userId = new Types.ObjectId();
-    const workspaceId = new Types.ObjectId();
-    const createdAt = new Date('2026-03-22T00:00:00.000Z');
-
-    const user = {
-      _id: userId,
-      displayName: 'Narak',
-      defaultWorkspaceId: null,
-      activeWorkspaceId: null,
-    };
-
+  it('delegates default workspace provisioning to WorkspaceProvisioningService', async () => {
+    const userId = new Types.ObjectId().toString();
     const workspace = {
-      _id: workspaceId,
-      createdAt,
-    };
-
-    const workspaceModel = {
-      findById: jest.fn(),
-      findOne: jest
-        .fn()
-        .mockReturnValueOnce(execMock(Promise.resolve(null)))
-        .mockReturnValueOnce(execMock(Promise.resolve(workspace))),
-      create: jest.fn().mockRejectedValue({ code: 11000 }),
-    };
-
-    const membership = {
       _id: new Types.ObjectId(),
-      workspaceId,
-      userId,
-      role: WorkspaceRole.OWNER,
-      status: WorkspaceMembershipStatus.ACTIVE,
+      createdAt: new Date('2026-03-22T00:00:00.000Z'),
     };
-
-    const membershipModel = {
-      findOneAndUpdate: jest
-        .fn()
-        .mockReturnValue(execMock(Promise.resolve(membership))),
-    };
-
-    const invitationModel = {};
-    const usersService = {
-      findById: jest.fn().mockResolvedValue(user),
-      updateWorkspacePreferences: jest.fn().mockResolvedValue(undefined),
+    const workspaceProvisioningService = {
+      ensureDefaultWorkspaceForUser: jest.fn().mockResolvedValue(workspace),
     };
 
     const service = new WorkspacesService(
-      workspaceModel as never,
-      invitationModel as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as UsersService,
+      workspaceProvisioningService as never,
+    );
+
+    await expect(service.ensureDefaultWorkspaceForUser(userId)).resolves.toBe(
+      workspace,
+    );
+    expect(
+      workspaceProvisioningService.ensureDefaultWorkspaceForUser,
+    ).toHaveBeenCalledWith(userId);
+  });
+
+  it('lists user workspaces without implicitly provisioning a default workspace', async () => {
+    const userId = new Types.ObjectId().toString();
+    const membershipModel = {
+      find: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue(execMock(Promise.resolve([]))),
+      }),
+    };
+    const workspaceProvisioningService = {
+      ensureDefaultWorkspaceForUser: jest.fn(),
+    };
+
+    const service = new WorkspacesService(
+      {} as never,
+      {} as never,
       membershipModel as never,
-      usersService as never,
+      {} as UsersService,
+      workspaceProvisioningService as never,
     );
 
-    const result = await service.ensureDefaultWorkspaceForUser(
-      userId.toString(),
-    );
+    await expect(service.findAllForUser(userId)).resolves.toEqual([]);
+    expect(
+      workspaceProvisioningService.ensureDefaultWorkspaceForUser,
+    ).not.toHaveBeenCalled();
+  });
 
-    expect(result).toBe(workspace);
-    expect(workspaceModel.create).toHaveBeenCalledWith({
-      name: "Narak's Workspace",
-      ownerId: userId,
-      createdBy: userId,
-      type: WorkspaceType.SOLO,
-      status: WorkspaceStatus.ACTIVE,
-      defaultForUserId: userId,
-      members: [{ userId, role: WorkspaceRole.OWNER }],
-    });
-    expect(usersService.updateWorkspacePreferences).toHaveBeenCalledWith(
-      userId,
+  it('rejects access resolution when the user has not completed workspace setup', async () => {
+    const userId = new Types.ObjectId().toString();
+    const workspaceProvisioningService = {
+      ensureDefaultWorkspaceForUser: jest.fn(),
+    };
+
+    const service = new WorkspacesService(
+      {} as never,
+      {} as never,
+      {} as never,
       {
-        defaultWorkspaceId: workspaceId,
-        activeWorkspaceId: workspaceId,
-      },
+        findById: jest.fn().mockResolvedValue({
+          _id: new Types.ObjectId(userId),
+          defaultWorkspaceId: null,
+          activeWorkspaceId: null,
+        }),
+      } as never,
+      workspaceProvisioningService as never,
     );
+
+    await expect(service.resolveAccessContext(userId)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(
+      workspaceProvisioningService.ensureDefaultWorkspaceForUser,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns the existing membership after a duplicate-key race during upsert', async () => {
@@ -119,6 +118,7 @@ describe('WorkspacesService', () => {
       {} as never,
       membershipModel as never,
       {} as UsersService,
+      {} as never,
     );
 
     const result = await (
@@ -144,6 +144,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       {} as UsersService,
+      {} as never,
     );
 
     await expect(
@@ -164,6 +165,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       {} as UsersService,
+      {} as never,
     );
 
     await expect(
@@ -224,6 +226,7 @@ describe('WorkspacesService', () => {
       {
         findByEmail: jest.fn().mockResolvedValue(null),
       } as never,
+      {} as never,
     );
 
     const result = await service.inviteMember(
@@ -293,6 +296,7 @@ describe('WorkspacesService', () => {
       invitationModel as never,
       {} as never,
       {} as UsersService,
+      {} as never,
     );
 
     await expect(

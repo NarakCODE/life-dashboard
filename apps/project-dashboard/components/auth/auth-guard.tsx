@@ -4,6 +4,10 @@ import { useEffect } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { useAuth } from "@/hooks/use-auth"
+import {
+  isOnboardingPath,
+  normalizeNextTarget,
+} from "@/lib/onboarding/onboarding-utils"
 import { Button } from "@/components/ui/button"
 
 interface AuthGuardProps {
@@ -53,14 +57,34 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
 
   const nextPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`
+  const nextTarget = normalizeNextTarget(searchParams.get("next"))
+  const requiresOnboarding = auth.user?.onboarding.requiresOnboarding ?? false
+  const isOnboardingRoute = isOnboardingPath(pathname)
 
   useEffect(() => {
     if (!auth.hasHydrated || auth.isAuthLoading) return
-    if (auth.isAuthenticated) return
-
-    const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`
-    router.replace(loginUrl)
-  }, [auth.hasHydrated, auth.isAuthLoading, auth.isAuthenticated, nextPath, router])
+    if (!auth.isAuthenticated) {
+      const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`
+      router.replace(loginUrl)
+      return
+    }
+    if (requiresOnboarding && !isOnboardingRoute) {
+      router.replace(`/onboarding?next=${encodeURIComponent(nextPath)}`)
+      return
+    }
+    if (!requiresOnboarding && isOnboardingRoute) {
+      router.replace(nextTarget === "/onboarding" ? "/" : nextTarget)
+    }
+  }, [
+    auth.hasHydrated,
+    auth.isAuthLoading,
+    auth.isAuthenticated,
+    isOnboardingRoute,
+    nextPath,
+    nextTarget,
+    requiresOnboarding,
+    router,
+  ])
 
   if (!auth.hasHydrated || auth.isAuthLoading) {
     return <AuthRedirectState message="Checking your session..." />
@@ -74,6 +98,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <AuthRedirectState message="Redirecting to login..." />
   }
 
+  if (requiresOnboarding && !isOnboardingRoute) {
+    return <AuthRedirectState message="Redirecting to workspace setup..." />
+  }
+
+  if (!requiresOnboarding && isOnboardingRoute) {
+    return <AuthRedirectState message="Redirecting to your workspace..." />
+  }
+
   return <>{children}</>
 }
 
@@ -82,20 +114,40 @@ export function GuestOnlyGuard({ children }: GuestOnlyGuardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const nextTarget = searchParams.get("next") || "/"
+  const nextTarget = normalizeNextTarget(searchParams.get("next"))
+  const requiresOnboarding = auth.user?.onboarding.requiresOnboarding ?? false
 
   useEffect(() => {
     if (!auth.hasHydrated || auth.isAuthLoading) return
     if (!auth.isAuthenticated) return
+    if (requiresOnboarding) {
+      router.replace(`/onboarding?next=${encodeURIComponent(nextTarget)}`)
+      return
+    }
     router.replace(nextTarget)
-  }, [auth.hasHydrated, auth.isAuthLoading, auth.isAuthenticated, nextTarget, router])
+  }, [
+    auth.hasHydrated,
+    auth.isAuthLoading,
+    auth.isAuthenticated,
+    nextTarget,
+    requiresOnboarding,
+    router,
+  ])
 
   if (!auth.hasHydrated || auth.isAuthLoading) {
     return <AuthRedirectState message="Checking your session..." />
   }
 
   if (auth.isAuthenticated) {
-    return <AuthRedirectState message="Redirecting to your workspace..." />
+    return (
+      <AuthRedirectState
+        message={
+          requiresOnboarding
+            ? "Redirecting to workspace setup..."
+            : "Redirecting to your workspace..."
+        }
+      />
+    )
   }
 
   return <>{children}</>

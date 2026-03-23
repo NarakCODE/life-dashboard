@@ -18,7 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthTokensDto, JwtPayload } from './dto/auth-tokens.dto';
 import { UserDocument } from '../users/schemas/user.schema';
 import { UserResponseDto } from '../users/dto/user-response.dto';
-import { WorkspacesService } from '../workspaces/workspaces.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 
 const BCRYPT_ROUNDS = 10;
 const DEV_BOOTSTRAP_EMAIL = 'dev@life-dashboard.local';
@@ -36,7 +36,7 @@ export class AuthService {
     private readonly emailService: BrevoEmailService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    private readonly workspacesService: WorkspacesService,
+    private readonly onboardingService: OnboardingService,
   ) {
     const expiresIn = this.config.get<string>('jwt.expiresIn', '15m');
     this.jwtExpiresIn = this.parseExpiryToSeconds(expiresIn);
@@ -58,9 +58,6 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.usersService.create({ ...dto, passwordHash });
-    await this.workspacesService.ensureDefaultWorkspaceForUser(
-      user._id.toString(),
-    );
 
     // Send verification email (fire-and-forget)
     await this.sendVerificationEmail(user);
@@ -213,9 +210,12 @@ export class AuthService {
    * Get the authenticated user's profile.
    */
   async getMe(userId: string): Promise<UserResponseDto> {
-    await this.workspacesService.ensureDefaultWorkspaceForUser(userId);
-    const user = await this.usersService.findById(userId);
-    return this.toResponseDto(user);
+    const [user, onboarding] = await Promise.all([
+      this.usersService.findById(userId),
+      this.onboardingService.getSummary(userId),
+    ]);
+
+    return this.toResponseDto(user, onboarding);
   }
 
   /**
@@ -249,10 +249,6 @@ export class AuthService {
       persistRefreshToken?: boolean;
     },
   ): Promise<AuthTokensDto> {
-    await this.workspacesService.ensureDefaultWorkspaceForUser(
-      user._id.toString(),
-    );
-
     const payload: JwtPayload = {
       sub: user._id.toString(),
       email: user.email,
@@ -295,7 +291,10 @@ export class AuthService {
     return { accessToken, refreshToken, expiresIn: this.jwtExpiresIn };
   }
 
-  private toResponseDto(user: UserDocument): UserResponseDto {
+  private toResponseDto(
+    user: UserDocument,
+    onboarding: Awaited<ReturnType<OnboardingService['getSummary']>>,
+  ): UserResponseDto {
     return new UserResponseDto({
       id: user._id.toString(),
       email: user.email,
@@ -303,6 +302,7 @@ export class AuthService {
       isEmailVerified: user.isEmailVerified,
       defaultWorkspaceId: user.defaultWorkspaceId?.toString() ?? null,
       activeWorkspaceId: user.activeWorkspaceId?.toString() ?? null,
+      onboarding,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

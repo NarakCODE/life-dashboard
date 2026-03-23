@@ -19,10 +19,18 @@ import type {
   ResendVerificationInput,
   VerifyEmailInput,
 } from "@/lib/auth/types"
+import { workspaceKeys } from "@/lib/workspaces/workspace-query"
 
 export const authKeys = {
   all: ["auth"] as const,
   me: () => [...authKeys.all, "me"] as const,
+}
+
+async function invalidateAuthenticatedQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: authKeys.me() }),
+    queryClient.invalidateQueries({ queryKey: workspaceKeys.all }),
+  ])
 }
 
 export function useCurrentUserQuery(enabled: boolean) {
@@ -45,7 +53,7 @@ export function useLoginMutation() {
     mutationFn: (input: LoginInput) => login(input),
     onSuccess: async (tokens) => {
       setAuthTokens(tokens)
-      await queryClient.invalidateQueries({ queryKey: authKeys.me() })
+      await invalidateAuthenticatedQueries(queryClient)
     },
   })
 }
@@ -57,7 +65,7 @@ export function useDevBootstrapMutation() {
     mutationFn: () => devBootstrapSession(),
     onSuccess: async (tokens) => {
       setAuthTokens(tokens)
-      await queryClient.invalidateQueries({ queryKey: authKeys.me() })
+      await invalidateAuthenticatedQueries(queryClient)
     },
   })
 }

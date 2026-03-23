@@ -30,6 +30,7 @@ import {
 } from './schemas/workspace-membership.schema';
 import { WorkspaceRequestContext } from './interfaces/workspace-context.interface';
 import { getWorkspacePermissions } from './workspace-permissions';
+import { WorkspaceProvisioningService } from './workspace-provisioning.service';
 
 // User details interface for populated responses
 export interface UserDetails {
@@ -86,6 +87,7 @@ export class WorkspacesService {
     @InjectModel(WorkspaceMembership.name)
     private membershipModel: Model<WorkspaceMembershipDocument>,
     private usersService: UsersService,
+    private workspaceProvisioningService: WorkspaceProvisioningService,
   ) {}
 
   async create(
@@ -133,8 +135,6 @@ export class WorkspacesService {
   }
 
   async findAllForUser(userId: string): Promise<WorkspaceWithDetails[]> {
-    await this.ensureDefaultWorkspaceForUser(userId);
-
     const memberships = await this.membershipModel
       .find({
         userId: new Types.ObjectId(userId),
@@ -365,86 +365,25 @@ export class WorkspacesService {
   async ensureDefaultWorkspaceForUser(
     userId: string,
   ): Promise<WorkspaceDocument> {
-    const user = await this.usersService.findById(userId);
-
-    if (user.defaultWorkspaceId) {
-      if (!user.activeWorkspaceId) {
-        await this.usersService.updateWorkspacePreferences(user._id, {
-          activeWorkspaceId: user.defaultWorkspaceId,
-        });
-      }
-
-      const existingWorkspace = await this.workspaceModel
-        .findById(user.defaultWorkspaceId)
-        .exec();
-      if (existingWorkspace) {
-        return existingWorkspace;
-      }
-    }
-
-    let defaultWorkspace = await this.workspaceModel
-      .findOne({ defaultForUserId: user._id })
-      .exec();
-
-    if (!defaultWorkspace) {
-      try {
-        defaultWorkspace = await this.workspaceModel.create({
-          name: `${user.displayName}'s Workspace`,
-          ownerId: user._id,
-          createdBy: user._id,
-          type: WorkspaceType.SOLO,
-          status: WorkspaceStatus.ACTIVE,
-          defaultForUserId: user._id,
-          members: [{ userId: user._id, role: WorkspaceRole.OWNER }],
-        });
-      } catch (error) {
-        if (!this.isDuplicateKeyError(error)) {
-          throw error;
-        }
-
-        defaultWorkspace = await this.workspaceModel
-          .findOne({ defaultForUserId: user._id })
-          .exec();
-      }
-    }
-
-    if (!defaultWorkspace) {
-      throw new NotFoundException(
-        'Default workspace could not be resolved for the current user',
-      );
-    }
-
-    await this.upsertMembership(
-      defaultWorkspace._id,
-      user._id,
-      WorkspaceRole.OWNER,
-      {
-        status: WorkspaceMembershipStatus.ACTIVE,
-        joinedAt: defaultWorkspace.createdAt ?? new Date(),
-        lastActiveAt: new Date(),
-      },
+    return this.workspaceProvisioningService.ensureDefaultWorkspaceForUser(
+      userId,
     );
-
-    await this.usersService.updateWorkspacePreferences(user._id, {
-      defaultWorkspaceId: defaultWorkspace._id,
-      activeWorkspaceId: user.activeWorkspaceId ?? defaultWorkspace._id,
-    });
-
-    return defaultWorkspace;
   }
 
   async resolveAccessContext(
     userId: string,
     requestedWorkspaceId?: string,
   ): Promise<WorkspaceRequestContext> {
-    const defaultWorkspace = await this.ensureDefaultWorkspaceForUser(userId);
     const user = await this.usersService.findById(userId);
 
     const fallbackWorkspaceId =
       requestedWorkspaceId ??
       user.activeWorkspaceId?.toString() ??
-      user.defaultWorkspaceId?.toString() ??
-      defaultWorkspace._id.toString();
+      user.defaultWorkspaceId?.toString();
+
+    if (!fallbackWorkspaceId) {
+      throw new ForbiddenException('Workspace setup is incomplete');
+    }
 
     if (!Types.ObjectId.isValid(fallbackWorkspaceId)) {
       throw new ForbiddenException('Valid workspace id is required');

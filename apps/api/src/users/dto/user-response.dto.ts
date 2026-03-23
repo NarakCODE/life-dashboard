@@ -1,5 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { OnboardingSummaryDto } from '../../onboarding/dto/onboarding-summary.dto';
 
 /**
  * Safe public representation of a User — excludes sensitive fields.
@@ -30,6 +31,10 @@ export class UserResponseDto {
   @Expose()
   @ApiProperty({ required: false, nullable: true })
   activeWorkspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty({ type: () => OnboardingSummaryDto })
+  onboarding: OnboardingSummaryDto;
 
   @Expose()
   @ApiProperty()

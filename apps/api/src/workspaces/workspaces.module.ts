@@ -15,6 +15,7 @@ import { UsersModule } from '../users/users.module';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
 import { WorkspaceRoleGuard } from './guards/workspace-role.guard';
 import { WorkspacePermissionGuard } from './guards/workspace-permission.guard';
+import { WorkspaceProvisioningService } from './workspace-provisioning.service';
 
 @Module({
   imports: [
@@ -28,12 +29,14 @@ import { WorkspacePermissionGuard } from './guards/workspace-permission.guard';
   controllers: [WorkspacesController],
   providers: [
     WorkspacesService,
+    WorkspaceProvisioningService,
     WorkspaceAccessGuard,
     WorkspaceRoleGuard,
     WorkspacePermissionGuard,
   ],
   exports: [
     WorkspacesService,
+    WorkspaceProvisioningService,
     WorkspaceAccessGuard,
     WorkspaceRoleGuard,
     WorkspacePermissionGuard,

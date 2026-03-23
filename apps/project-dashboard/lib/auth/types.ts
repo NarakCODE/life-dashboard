@@ -1,3 +1,5 @@
+import type { OnboardingSummary } from "@/lib/onboarding/types"
+
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
@@ -11,6 +13,7 @@ export interface AuthUser {
   isEmailVerified: boolean
   defaultWorkspaceId: string | null
   activeWorkspaceId: string | null
+  onboarding: OnboardingSummary
   createdAt: string
   updatedAt: string
 }

@@ -2,6 +2,63 @@
 
 ## Date: 2026-03-23
 
+### Lesson: Redirect Incomplete Users Before Workspace Queries Mount
+
+**Context**: Integrated the new onboarding backend state into the Next.js frontend so authenticated users without completed setup are redirected into `/onboarding`.
+
+**Mistake/Risk Avoided**:
+- The protected frontend originally treated “authenticated” as equivalent to “workspace-ready” and mounted `WorkspaceRouteBoundary`, the sidebar, and workspace queries immediately.
+- Once the backend stopped auto-provisioning workspace context, that old assumption would have produced empty shells, `#` links, or failing workspace-context requests before the redirect could happen.
+
+**Root Cause**:
+- Workspace readiness is now a separate concern from authentication.
+- The route shell and guards were still keyed only on session validity, not on `auth/me` onboarding summary state.
+
+**Preventative Rule**:
+1. Gate protected workspace UI on both authentication and onboarding readiness.
+2. Redirect incomplete users to setup before rendering workspace-bound providers, sidebars, or query hooks.
+3. Give onboarding its own protected shell path that does not assume a workspace context exists yet.
+
+**Applied In**: `apps/project-dashboard/components/auth/auth-guard.tsx` now redirects incomplete users to `/onboarding`, and `apps/project-dashboard/components/auth/auth-shell.tsx` bypasses `WorkspaceRouteBoundary` and the sidebar for onboarding.
+
+### Lesson: Guard Dependencies Must Be Available In Every Consuming Module
+
+**Context**: `ChatController` applied `WorkspaceAccessGuard`, and Nest failed at startup with `Nest can't resolve dependencies of the WorkspaceAccessGuard ... WorkspacesService at index [0] is available in the ChatModule module`.
+
+**Mistake/Risk Avoided**:
+- The controller reused a guard exported from the workspace feature, but `ChatModule` did not import `WorkspacesModule`.
+- Nest resolves guard dependencies in the consuming module context, so exporting the guard alone is not enough if that context cannot also see the guard’s dependencies through module imports.
+
+**Root Cause**:
+- I treated controller-level guard reuse as if it were globally available once the app imported `WorkspacesModule` at the root.
+- Nest DI does not work that way; each feature module that uses the guard must import the module exporting the full dependency graph.
+
+**Preventative Rule**:
+1. When adding `@UseGuards(...)` with a feature guard, import the module that exports that guard into the same feature module as the controller.
+2. Verify the consuming module can see both the guard and the guard’s constructor dependencies.
+3. Add a focused module metadata regression test when a feature module starts depending on another feature’s guards.
+
+**Applied In**: `apps/api/src/chat/chat.module.ts` now imports `WorkspacesModule`, and `apps/api/src/chat/chat.module.spec.ts` locks that dependency path in place.
+
+### Lesson: Do Not Reuse Similar Enums Via Direct Casts
+
+**Context**: Extended the onboarding backend with explicit state DTOs that expose both persisted session status and a derived `not_started` state for legacy users.
+
+**Mistake/Risk Avoided**:
+- The first pass cast `OnboardingStatus` directly to `OnboardingStateStatus` because their string values overlap for `in_progress`, `completed`, and `skipped`.
+- TypeScript rejected the cast, and that kind of shortcut makes status mapping fragile as soon as either enum changes.
+
+**Root Cause**:
+- Two enums can represent related concepts without being type-compatible.
+- I treated “same runtime string today” as if it were “same contract,” which is not true under strict TypeScript.
+
+**Preventative Rule**:
+1. Map related enums through an explicit function instead of casting between them.
+2. Use the mapper as the single place where derived API state is translated from persistence state.
+3. Re-run focused TypeScript checks immediately after introducing derived DTO enums.
+
+**Applied In**: `apps/api/src/onboarding/onboarding.service.ts` now uses `mapSessionStatus()` instead of casting `OnboardingStatus` directly to `OnboardingStateStatus`.
+
 ### Lesson: Preserve Explicit Aggregate Filters When Adding Fallback Match Conditions
 
 **Context**: Extended the journal mood summary endpoint so analytics follow the same search, tag, and mood filters as the visible journal list.

@@ -1,3 +1,186 @@
+# Auth Success Workspace Cache Refresh Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the frontend auth success mutations and confirm which paths currently refresh cached auth state
+- [x] Confirm the workspace React Query key factory to use for targeted invalidation
+
+### 2. Fix
+- [x] Invalidate workspace queries when authentication succeeds so workspace-bound screens refetch the latest data
+- [x] Keep the change scoped to the shared auth query layer used by sign-in flows
+
+### 3. Verification
+- [x] Run targeted frontend lint and TypeScript checks on the touched auth query file
+- [x] Record results
+
+## Review / Results
+- Updated `apps/project-dashboard/lib/auth/auth-query.ts` so successful `useLoginMutation` and `useDevBootstrapMutation` paths now invalidate both `auth/me` and the workspace query namespace after persisting fresh auth tokens.
+- Centralized that behavior behind a small `invalidateAuthenticatedQueries()` helper so the sign-in flows stay consistent and the workspace cache refresh logic only lives in one place.
+- Verification:
+- `pnpm exec eslint lib/auth/auth-query.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "lib/auth/auth-query\\.ts" || true` in `apps/project-dashboard` returned no matches ✅
+- `pnpm exec tsc --noEmit` in `apps/project-dashboard` still fails due to pre-existing unrelated TypeScript errors in project/chat/task files; this change did not add any new reported errors for `lib/auth/auth-query.ts`.
+
+# Frontend Onboarding Integration Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect auth provider, auth guards, protected shell, and workspace route helpers
+- [x] Confirm the frontend currently assumes a workspace context exists once the user is authenticated
+- [x] Identify the new backend contract to consume: onboarding summary from `GET /auth/me` plus `GET /onboarding/me`, `POST /onboarding/start`, `PATCH /onboarding/steps/:step`, and `POST /onboarding/complete`
+
+### 2. Frontend integration
+- [x] Extend auth types and auth flow to carry onboarding summary state
+- [x] Redirect incomplete users into a dedicated onboarding page before workspace-bound routes render
+- [x] Add onboarding client/query hooks and a minimal onboarding setup page wired to the backend
+- [x] Keep the protected shell usable by bypassing workspace/sidebar assumptions while onboarding is incomplete
+
+### 3. Verification
+- [x] Run targeted frontend lint and TypeScript checks
+- [x] Verify the onboarding redirect and setup flow in Chrome DevTools
+- [x] Record results and remaining gaps
+
+## Review / Results
+- Extended `apps/project-dashboard/lib/auth/types.ts` so `AuthUser` now carries the backend onboarding summary from `GET /auth/me`.
+- Added a new onboarding frontend data layer in `apps/project-dashboard/lib/onboarding/*` with typed clients, query keys, mutations, and redirect helpers aligned to:
+- `GET /onboarding/me`
+- `POST /onboarding/start`
+- `PATCH /onboarding/steps/:step`
+- `POST /onboarding/complete`
+- Updated `apps/project-dashboard/components/auth/auth-guard.tsx` so authenticated users with `user.onboarding.requiresOnboarding` are redirected to `/onboarding?next=...` before protected workspace routes render, and users who already completed onboarding are redirected away from `/onboarding`.
+- Updated `apps/project-dashboard/components/auth/auth-shell.tsx` so onboarding uses a simplified protected shell without `WorkspaceRouteBoundary` or the sidebar while setup is incomplete.
+- Added a dedicated onboarding route in `apps/project-dashboard/app/(protected)/onboarding/page.tsx` and the setup UI in `apps/project-dashboard/components/onboarding/OnboardingPage.tsx`.
+- The onboarding page now:
+- auto-starts a missing onboarding session
+- persists profile, workspace, preferences, and invite-planning steps
+- applies the workspace-name step through backend completion
+- returns the user to the intended post-onboarding workspace route
+- Verification:
+- `pnpm exec eslint components/auth/auth-guard.tsx components/auth/auth-shell.tsx components/onboarding/OnboardingPage.tsx components/providers/auth-provider.tsx lib/auth/types.ts lib/onboarding/onboarding-client.ts lib/onboarding/onboarding-query.ts lib/onboarding/onboarding-utils.ts lib/onboarding/types.ts 'app/(protected)/onboarding/page.tsx'` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/(auth/auth-guard|auth/auth-shell|onboarding/OnboardingPage|providers/auth-provider)\\.tsx|lib/(auth/types|onboarding/)|app/\\(protected\\)/onboarding/page\\.tsx"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools:
+- opened `/login` and bootstrapped the local dev session
+- created a live onboarding session for the current user through `POST http://localhost:3001/api/v1/onboarding/start`
+- navigated to `/w/69c0b60618cdd085fd1e2aac/projects` and confirmed the frontend redirected to `/onboarding?next=...` before the projects page rendered
+- completed the onboarding steps in the UI, including changing the workspace name to `Launch Pad`
+- confirmed `Complete setup` redirected back to `/w/69c0b60618cdd085fd1e2aac/projects`
+- confirmed the sidebar workspace switcher now shows `Launch Pad`
+- confirmed revisiting `/onboarding` after completion redirects back into the workspace route
+- Remaining gaps:
+- Invite emails are stored in onboarding step answers only; the frontend does not yet send real workspace invitations from the onboarding flow.
+- Chrome still reports one generic form-field `id`/`name` issue in the page console, but it did not block the onboarding flow in this pass.
+
+# ChatModule Workspace Guard DI Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Trace the Nest DI error to `WorkspaceAccessGuard` being used inside `ChatController`
+- [x] Confirm `ChatModule` does not currently import the module that exports `WorkspacesService`
+
+### 2. Fix
+- [x] Import the correct workspace module into `ChatModule`
+- [x] Add or update a focused regression check for the chat module wiring if needed
+
+### 3. Verification
+- [x] Run targeted backend checks for the chat/workspace module slice
+- [x] Record results
+
+## Review / Results
+- Imported `WorkspacesModule` into `apps/api/src/chat/chat.module.ts`, which makes the exported `WorkspacesService`, `WorkspaceAccessGuard`, and related workspace guard dependencies available inside the `ChatModule` DI context.
+- Added `apps/api/src/chat/chat.module.spec.ts` to assert that `ChatModule` imports `WorkspacesModule`, so the workspace-guard dependency path is covered by a focused regression test.
+- Cleaned existing lint debt in `apps/api/src/chat/chat.controller.ts` and formatting in `apps/api/src/chat/chat.module.ts` while verifying the slice.
+- Verification:
+- `pnpm test -- chat.module.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/chat/chat.module.ts src/chat/chat.module.spec.ts src/chat/chat.controller.ts src/workspaces/workspaces.module.ts src/workspaces/guards/workspace-access.guard.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/(chat/chat.module|chat/chat.module.spec|chat/chat.controller|workspaces/workspaces.module|workspaces/guards/workspace-access.guard)"` in `apps/api` returned no matches ✅
+
+# Onboarding Backend Next Phase Plan
+
+## Status: COMPLETE
+
+### 1. Boundary cleanup
+- [x] Remove hidden workspace provisioning from auth session/profile reads
+- [x] Remove hidden workspace provisioning from workspace listing and access-resolution fallback paths
+- [x] Replace silent workspace creation with explicit onboarding state for incomplete users
+
+### 2. Onboarding APIs
+- [x] Add a read endpoint for current onboarding state
+- [x] Add step persistence for onboarding answers and completed steps
+- [x] Add onboarding completion that finalizes session state and applies workspace basics
+
+### 3. Verification
+- [x] Add targeted regression coverage for the new onboarding/auth/workspace behavior
+- [x] Run targeted backend lint, tests, and TypeScript checks
+- [x] Record results and follow-up gaps
+
+## Review / Results
+- Updated `apps/api/src/auth/auth.service.ts` and `apps/api/src/auth/auth.module.ts` so auth token issuance and `GET /auth/me` no longer silently provision a workspace. `GET /auth/me` now returns explicit onboarding summary state instead.
+- Extended `apps/api/src/onboarding/*` with:
+- `GET /onboarding/me`
+- `PATCH /onboarding/steps/:step`
+- `POST /onboarding/complete`
+- `OnboardingSummaryDto`
+- `OnboardingStateResponseDto`
+- `UpdateOnboardingStepDto`
+- `OnboardingService` now supports read state, step persistence, and completion. Completion applies saved workspace-name basics from onboarding answers before marking the session completed.
+- Updated `apps/api/src/workspaces/workspaces.service.ts` so workspace listing and access-context resolution no longer auto-create a default workspace. Incomplete users now get an explicit `Workspace setup is incomplete` failure instead of a hidden side effect.
+- Extended regression coverage in:
+- `apps/api/src/auth/auth.service.spec.ts`
+- `apps/api/src/onboarding/onboarding.service.spec.ts`
+- `apps/api/src/workspaces/workspaces.service.spec.ts`
+- `apps/api/src/workspaces/workspace-provisioning.service.spec.ts`
+- Verification:
+- `pnpm test -- auth.service.spec.ts onboarding.service.spec.ts workspaces.service.spec.ts workspace-provisioning.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/auth/auth.module.ts src/auth/auth.service.ts src/auth/auth.service.spec.ts src/workspaces/workspaces.service.ts src/workspaces/workspaces.service.spec.ts src/workspaces/workspace-provisioning.service.ts src/workspaces/workspace-provisioning.service.spec.ts src/onboarding/onboarding.module.ts src/onboarding/onboarding.controller.ts src/onboarding/onboarding.service.ts src/onboarding/onboarding.service.spec.ts src/onboarding/dto/onboarding-session-response.dto.ts src/onboarding/dto/onboarding-state-response.dto.ts src/onboarding/dto/onboarding-summary.dto.ts src/onboarding/dto/update-onboarding-step.dto.ts src/onboarding/schemas/onboarding-session.schema.ts src/users/dto/user-response.dto.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/(auth/auth.module|auth/auth.service|auth/auth.service.spec|workspaces/workspaces.service|workspaces/workspaces.service.spec|workspaces/workspace-provisioning.service|workspaces/workspace-provisioning.service.spec|onboarding/|users/dto/user-response.dto)"` in `apps/api` returned no matches ✅
+- Remaining gaps:
+- There is still no dedicated workspace settings model, so onboarding completion only applies workspace basics from saved answers instead of persisting richer setup preferences yet.
+- The frontend still needs to consume the new onboarding summary and onboarding endpoints so incomplete users are redirected into setup instead of falling into protected workspace routes.
+
+# Onboarding Backend Foundation Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the current registration flow and workspace provisioning path
+- [x] Confirm workspace creation currently happens during registration and is also repaired on later auth/workspace reads
+- [x] Identify the lowest-risk foundation change: extract provisioning, stop provisioning during registration, and add onboarding session start
+
+### 2. Backend foundation
+- [x] Extract a dedicated workspace provisioning service from the default-workspace creation path
+- [x] Remove workspace provisioning from user registration
+- [x] Add onboarding session persistence for backend-driven setup state
+- [x] Add a protected `POST /onboarding/start` endpoint that provisions/resumes onboarding explicitly
+
+### 3. Verification
+- [x] Add targeted regression coverage for the changed auth/onboarding behavior
+- [x] Run targeted backend lint, tests, and TypeScript checks
+- [x] Record results and follow-up gaps
+
+## Review / Results
+- Extracted workspace provisioning into `apps/api/src/workspaces/workspace-provisioning.service.ts` and wired `WorkspacesService` to delegate default-workspace provisioning through that dedicated service.
+- Updated `apps/api/src/auth/auth.service.ts` so registration no longer creates a workspace before verification. Workspace provisioning remains available through the dedicated provisioning service for the existing authenticated/session flows.
+- Added a new onboarding backend slice in `apps/api/src/onboarding/*` with:
+- `OnboardingSession` persistence
+- `OnboardingService`
+- `OnboardingController`
+- `POST /onboarding/start`
+- `POST /onboarding/start` now provisions or resolves the user’s initial workspace explicitly and creates or resumes a durable onboarding session linked to that workspace.
+- Added regression tests in `apps/api/src/auth/auth.service.spec.ts` and `apps/api/src/onboarding/onboarding.service.spec.ts` to cover:
+- registration no longer provisioning a workspace
+- onboarding start creating a session from a provisioned workspace
+- Added regression coverage in `apps/api/src/workspaces/workspace-provisioning.service.spec.ts` and updated `apps/api/src/workspaces/workspaces.service.spec.ts` so the extracted provisioning service and delegation path are both exercised.
+- Verification:
+- `pnpm test -- auth.service.spec.ts onboarding.service.spec.ts workspace-provisioning.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/auth/auth.service.ts src/auth/auth.service.spec.ts src/workspaces/workspaces.module.ts src/workspaces/workspaces.service.ts src/workspaces/workspaces.service.spec.ts src/workspaces/workspace-provisioning.service.ts src/workspaces/workspace-provisioning.service.spec.ts src/onboarding/onboarding.module.ts src/onboarding/onboarding.controller.ts src/onboarding/onboarding.service.ts src/onboarding/onboarding.service.spec.ts src/onboarding/dto/onboarding-session-response.dto.ts src/onboarding/schemas/onboarding-session.schema.ts src/app.module.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/(auth/auth.service|auth/auth.service.spec|workspaces/workspaces.module|workspaces/workspaces.service|workspaces/workspaces.service.spec|workspaces/workspace-provisioning.service|workspaces/workspace-provisioning.service.spec|onboarding/|app.module.ts)"` in `apps/api` returned no matches ✅
+- Remaining gaps:
+- Auth/session and workspace-read paths still perform default workspace provisioning for backward compatibility. The next onboarding phase should remove those hidden repair paths and shift frontend routing to explicit onboarding state.
+- There is only a `start` endpoint so far. Step persistence, completion, and workspace settings application still need to be added in later phases.
+
 # Journal Analytics Alignment Plan
 
 ## Status: COMPLETE
