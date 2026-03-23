@@ -8,6 +8,7 @@ import { Types } from 'mongoose';
 import { GoalsRepository } from './goals.repository';
 import { GoalDocument, GoalType } from './schemas/goal.schema';
 import { CreateGoalDto } from './dto/create-goal.dto';
+import { GoalResponseDto } from './dto/goal-response.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { QueryGoalDto } from './dto/query-goal.dto';
 import { LogProgressDto } from './dto/log-progress.dto';
@@ -28,7 +29,7 @@ export class GoalsService {
   async create(
     workspace: WorkspaceRequestContext,
     dto: CreateGoalDto,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     // Validate that linked tasks belong to the user
     if (dto.linkedTasks && dto.linkedTasks.length > 0) {
       await this.validateTasksOwnership(workspace, dto.linkedTasks);
@@ -46,16 +47,17 @@ export class GoalsService {
       dto.linkedHabits,
     );
 
-    return this.goalsRepo.create(
+    const goal = await this.goalsRepo.create(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dto,
     );
+    return this.toGoalResponse(goal);
   }
 
   async findByIdAndUser(
     id: string,
     workspace: WorkspaceRequestContext,
-  ): Promise<any> {
+  ): Promise<GoalResponseDto> {
     const goal = await this.goalsRepo.findByIdAndUser(id, {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -63,21 +65,26 @@ export class GoalsService {
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
-    return goal;
+    return this.toGoalResponse(goal);
   }
 
   async findMany(workspace: WorkspaceRequestContext, query: QueryGoalDto) {
-    return this.goalsRepo.findWithPaginationAndFilters(
+    const { items, total } = await this.goalsRepo.findWithPaginationAndFilters(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       query,
     );
+
+    return {
+      items: items.map((goal) => this.toGoalResponse(goal)),
+      total,
+    };
   }
 
   async update(
     id: string,
     workspace: WorkspaceRequestContext,
     dto: UpdateGoalDto,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -113,7 +120,7 @@ export class GoalsService {
     // Check if goal should be auto-completed
     await this.goalsRepo.checkAndCompleteGoal(id, scope);
 
-    return goal;
+    return this.toGoalResponse(goal);
   }
 
   async delete(id: string, workspace: WorkspaceRequestContext): Promise<void> {
@@ -133,7 +140,7 @@ export class GoalsService {
     id: string,
     workspace: WorkspaceRequestContext,
     dto: LogProgressDto,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -165,7 +172,7 @@ export class GoalsService {
     // Check if goal should be auto-completed
     await this.goalsRepo.checkAndCompleteGoal(id, scope);
 
-    return updatedGoal;
+    return this.toGoalResponse(updatedGoal);
   }
 
   /**
@@ -175,7 +182,7 @@ export class GoalsService {
     id: string,
     workspace: WorkspaceRequestContext,
     dto: LinkTasksDto,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -206,7 +213,7 @@ export class GoalsService {
       throw new NotFoundException('Goal not found');
     }
 
-    return updatedGoal;
+    return this.toGoalResponse(updatedGoal);
   }
 
   /**
@@ -216,7 +223,7 @@ export class GoalsService {
     id: string,
     workspace: WorkspaceRequestContext,
     dto: LinkHabitsDto,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -247,7 +254,7 @@ export class GoalsService {
       throw new NotFoundException('Goal not found');
     }
 
-    return updatedGoal;
+    return this.toGoalResponse(updatedGoal);
   }
 
   /**
@@ -257,7 +264,7 @@ export class GoalsService {
     id: string,
     workspace: WorkspaceRequestContext,
     taskId: string,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -279,7 +286,7 @@ export class GoalsService {
       throw new NotFoundException('Goal not found');
     }
 
-    return updatedGoal;
+    return this.toGoalResponse(updatedGoal);
   }
 
   /**
@@ -289,7 +296,7 @@ export class GoalsService {
     id: string,
     workspace: WorkspaceRequestContext,
     habitId: string,
-  ): Promise<GoalDocument> {
+  ): Promise<GoalResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -311,7 +318,7 @@ export class GoalsService {
       throw new NotFoundException('Goal not found');
     }
 
-    return updatedGoal;
+    return this.toGoalResponse(updatedGoal);
   }
 
   /**
@@ -398,5 +405,64 @@ export class GoalsService {
    */
   async handleHabitDeleted(habitId: string): Promise<void> {
     await this.goalsRepo.removeHabitFromAllGoals(habitId);
+  }
+
+  private toGoalResponse(
+    goal: GoalDocument | Record<string, any>,
+  ): GoalResponseDto {
+    const raw =
+      typeof (goal as GoalDocument).toObject === 'function'
+        ? ((goal as GoalDocument).toObject() as Record<string, any>)
+        : goal;
+
+    const targetValue = Number(raw.targetValue ?? 0);
+    const currentValue = Number(raw.currentValue ?? 0);
+    const progressPercent =
+      typeof raw.progressPercent === 'number'
+        ? raw.progressPercent
+        : targetValue > 0
+          ? Math.min(Math.round((currentValue / targetValue) * 100), 100)
+          : 0;
+
+    return new GoalResponseDto({
+      id: this.toIdString(raw._id ?? raw.id) ?? '',
+      workspaceId: this.toIdString(raw.workspaceId),
+      userId: this.toIdString(raw.userId) ?? '',
+      title: raw.title,
+      description: raw.description,
+      type: raw.type,
+      targetValue,
+      currentValue,
+      unit: raw.unit,
+      dueDate: raw.dueDate ?? null,
+      status: raw.status,
+      progressLogs: Array.isArray(raw.progressLogs)
+        ? raw.progressLogs.map((entry: Record<string, any>) => ({
+            value: Number(entry.value ?? 0),
+            note: entry.note,
+            loggedAt: entry.loggedAt,
+          }))
+        : [],
+      linkedTasks: Array.isArray(raw.linkedTasks)
+        ? raw.linkedTasks
+            .map((value: Types.ObjectId | string) => this.toIdString(value))
+            .filter((value): value is string => Boolean(value))
+        : [],
+      linkedHabits: Array.isArray(raw.linkedHabits)
+        ? raw.linkedHabits
+            .map((value: Types.ObjectId | string) => this.toIdString(value))
+            .filter((value): value is string => Boolean(value))
+        : [],
+      progressPercent,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
+  }
+
+  private toIdString(
+    value: Types.ObjectId | string | null | undefined,
+  ): string | null {
+    if (!value) return null;
+    return typeof value === 'string' ? value : value.toString();
   }
 }

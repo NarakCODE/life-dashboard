@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Types } from 'mongoose';
 import { HabitsRepository } from './habits.repository';
 import { HabitDocument } from './schemas/habit.schema';
 import { CreateHabitDto } from './dto/create-habit.dto';
+import { HabitResponseDto } from './dto/habit-response.dto';
 import { UpdateHabitDto } from './dto/update-habit.dto';
 import { QueryHabitDto } from './dto/query-habit.dto';
 import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
@@ -19,20 +21,21 @@ export class HabitsService {
   async create(
     workspace: WorkspaceRequestContext,
     dto: CreateHabitDto,
-  ): Promise<HabitDocument> {
+  ): Promise<HabitResponseDto> {
     if (!dto.startDate) {
       dto.startDate = new Date();
     }
-    return this.habitsRepo.create(
+    const habit = await this.habitsRepo.create(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dto,
     );
+    return this.toHabitResponse(habit);
   }
 
   async findByIdAndUser(
     id: string,
     workspace: WorkspaceRequestContext,
-  ): Promise<HabitDocument> {
+  ): Promise<HabitResponseDto> {
     const habit = await this.habitsRepo.findByIdAndUser(id, {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -40,21 +43,26 @@ export class HabitsService {
     if (!habit) {
       throw new NotFoundException('Habit not found');
     }
-    return habit;
+    return this.toHabitResponse(habit);
   }
 
   async findMany(workspace: WorkspaceRequestContext, query: QueryHabitDto) {
-    return this.habitsRepo.findWithPaginationAndFilters(
+    const { items, total } = await this.habitsRepo.findWithPaginationAndFilters(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       query,
     );
+
+    return {
+      items: items.map((habit) => this.toHabitResponse(habit)),
+      total,
+    };
   }
 
   async update(
     id: string,
     workspace: WorkspaceRequestContext,
     dto: UpdateHabitDto,
-  ): Promise<HabitDocument> {
+  ): Promise<HabitResponseDto> {
     const scope = {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -86,13 +94,13 @@ export class HabitsService {
       });
     }
 
-    return updatedHabit;
+    return this.toHabitResponse(updatedHabit);
   }
 
   async archive(
     id: string,
     workspace: WorkspaceRequestContext,
-  ): Promise<HabitDocument> {
+  ): Promise<HabitResponseDto> {
     const habit = await this.habitsRepo.archiveByIdAndUser(id, {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -100,7 +108,7 @@ export class HabitsService {
     if (!habit) {
       throw new NotFoundException('Habit not found');
     }
-    return habit;
+    return this.toHabitResponse(habit);
   }
 
   async delete(id: string, workspace: WorkspaceRequestContext): Promise<void> {
@@ -128,5 +136,37 @@ export class HabitsService {
     this.logger.log(
       `Habit ${id} deleted by user ${workspace.actorUserId} in workspace ${workspace.workspaceId}`,
     );
+  }
+
+  private toHabitResponse(habit: HabitDocument): HabitResponseDto {
+    const raw = habit.toObject() as HabitDocument & {
+      _id: Types.ObjectId;
+      workspaceId?: Types.ObjectId | null;
+      userId: Types.ObjectId;
+      createdBy: Types.ObjectId;
+      updatedBy?: Types.ObjectId | null;
+      archivedBy?: Types.ObjectId | null;
+    };
+
+    return new HabitResponseDto({
+      id: raw._id.toString(),
+      workspaceId: raw.workspaceId?.toString() ?? null,
+      userId: raw.userId.toString(),
+      name: raw.name,
+      description: raw.description,
+      frequency: raw.frequency,
+      customDays: raw.customDays ?? [],
+      targetCount: raw.targetCount,
+      color: raw.color,
+      status: raw.status,
+      startDate: raw.startDate,
+      endDate: raw.endDate ?? null,
+      archivedAt: raw.archivedAt ?? null,
+      currentStreak: raw.currentStreak,
+      longestStreak: raw.longestStreak,
+      isActive: raw.status === 'active',
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
   }
 }

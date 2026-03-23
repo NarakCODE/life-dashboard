@@ -10,6 +10,10 @@ export class HabitResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty()
   userId: string;
 
   @Expose()
@@ -35,6 +39,22 @@ export class HabitResponseDto {
   @Expose()
   @ApiProperty()
   color: string;
+
+  @Expose()
+  @ApiProperty()
+  status: string;
+
+  @Expose()
+  @ApiProperty()
+  startDate: Date;
+
+  @Expose()
+  @ApiProperty()
+  endDate?: Date | null;
+
+  @Expose()
+  @ApiProperty()
+  archivedAt?: Date | null;
 
   @Expose()
   @ApiProperty()

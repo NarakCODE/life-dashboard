@@ -3,12 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { HabitLogsRepository } from './habit-logs.repository';
 import { HabitLogDocument } from './schemas/habit-log.schema';
 import { CreateHabitLogDto } from './dto/create-habit-log.dto';
 import { HabitsService } from '../habits/habits.service';
 import { QueryHabitLogDto } from './dto/query-habit-log.dto';
 import { UpdateHabitLogDto } from './dto/update-habit-log.dto';
+import { HabitLogResponseDto } from './dto/habit-log-response.dto';
 import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 
 @Injectable()
@@ -21,17 +23,18 @@ export class HabitLogsService {
   async create(
     workspace: WorkspaceRequestContext,
     dto: CreateHabitLogDto,
-  ): Promise<HabitLogDocument> {
+  ): Promise<HabitLogResponseDto> {
     await this.habitsService.findByIdAndUser(dto.habitId, workspace);
 
     try {
-      return await this.habitLogsRepo.create(
+      const habitLog = await this.habitLogsRepo.create(
         { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
         {
           ...dto,
           loggedDate: this.normalizeLoggedDate(dto.loggedDate),
         },
       );
+      return this.toHabitLogResponse(habitLog);
     } catch (error) {
       this.handleDuplicateLogError(error);
       throw error;
@@ -41,7 +44,7 @@ export class HabitLogsService {
   async findByIdAndUser(
     id: string,
     workspace: WorkspaceRequestContext,
-  ): Promise<HabitLogDocument> {
+  ): Promise<HabitLogResponseDto> {
     const habitLog = await this.habitLogsRepo.findByIdAndUser(id, {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -50,7 +53,7 @@ export class HabitLogsService {
       throw new NotFoundException('Habit log not found');
     }
 
-    return habitLog;
+    return this.toHabitLogResponse(habitLog);
   }
 
   async findByHabitId(
@@ -59,11 +62,16 @@ export class HabitLogsService {
     query: QueryHabitLogDto,
   ) {
     await this.habitsService.findByIdAndUser(habitId, workspace);
-    return this.habitLogsRepo.findByHabitId(
+    const { items, total } = await this.habitLogsRepo.findByHabitId(
       habitId,
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       query,
     );
+
+    return {
+      items: items.map((item) => this.toHabitLogResponse(item)),
+      total,
+    };
   }
 
   async findByUserId(
@@ -74,17 +82,22 @@ export class HabitLogsService {
       await this.habitsService.findByIdAndUser(query.habitId, workspace);
     }
 
-    return this.habitLogsRepo.findByUserId(
+    const { items, total } = await this.habitLogsRepo.findByUserId(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       query,
     );
+
+    return {
+      items: items.map((item) => this.toHabitLogResponse(item)),
+      total,
+    };
   }
 
   async update(
     id: string,
     workspace: WorkspaceRequestContext,
     dto: UpdateHabitLogDto,
-  ): Promise<HabitLogDocument> {
+  ): Promise<HabitLogResponseDto> {
     await this.findByIdAndUser(id, workspace);
 
     const updateData: UpdateHabitLogDto = {
@@ -108,7 +121,7 @@ export class HabitLogsService {
         throw new NotFoundException('Habit log not found');
       }
 
-      return updatedHabitLog;
+      return this.toHabitLogResponse(updatedHabitLog);
     } catch (error) {
       this.handleDuplicateLogError(error);
       throw error;
@@ -142,5 +155,27 @@ export class HabitLogsService {
         'A habit log already exists for this habit on that date',
       );
     }
+  }
+
+  private toHabitLogResponse(habitLog: HabitLogDocument): HabitLogResponseDto {
+    const raw = habitLog.toObject() as HabitLogDocument & {
+      _id: Types.ObjectId;
+      workspaceId?: Types.ObjectId | null;
+      habitId: Types.ObjectId;
+      userId: Types.ObjectId;
+      actorUserId: Types.ObjectId;
+    };
+
+    return new HabitLogResponseDto({
+      id: raw._id.toString(),
+      workspaceId: raw.workspaceId?.toString() ?? null,
+      habitId: raw.habitId.toString(),
+      userId: raw.userId.toString(),
+      loggedDate: raw.loggedDate,
+      count: raw.count,
+      notes: raw.notes,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
   }
 }

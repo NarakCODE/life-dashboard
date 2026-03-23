@@ -121,7 +121,9 @@ export function MyTasksPage() {
   const [filters, setFilters] = useState<FilterChipType[]>([]);
   const [viewOptions, setViewOptions] =
     useState<ViewOptions>(DEFAULT_VIEW_OPTIONS);
-  const [viewMode, setViewMode] = useState<"my-tasks" | "all-tasks">("my-tasks");
+  const [viewMode, setViewMode] = useState<"my-tasks" | "all-tasks">(
+    "my-tasks",
+  );
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [createContext, setCreateContext] = useState<
@@ -154,12 +156,20 @@ export function MyTasksPage() {
     data: myTasks,
     isPending: isMyTasksPending,
     error: myTasksError,
-  } = useMyTasksQuery(workspaceId ?? "", taskQuery, isQueryEnabled && viewMode === "my-tasks");
+  } = useMyTasksQuery(
+    workspaceId ?? "",
+    taskQuery,
+    isQueryEnabled && viewMode === "my-tasks",
+  );
   const {
     data: allTasks,
     isPending: isAllTasksPending,
     error: allTasksError,
-  } = useAllTasksQuery(workspaceId ?? "", taskQuery, isQueryEnabled && viewMode === "all-tasks");
+  } = useAllTasksQuery(
+    workspaceId ?? "",
+    taskQuery,
+    isQueryEnabled && viewMode === "all-tasks",
+  );
   const { data: projects = [] } = useTaskProjectsQuery(
     workspaceId ?? "",
     isQueryEnabled,
@@ -179,10 +189,14 @@ export function MyTasksPage() {
   );
 
   const tasksData = viewMode === "my-tasks" ? myTasks : allTasks;
-  const isPending = viewMode === "my-tasks" ? isMyTasksPending : isAllTasksPending;
+  const isPending =
+    viewMode === "my-tasks" ? isMyTasksPending : isAllTasksPending;
   const error = viewMode === "my-tasks" ? myTasksError : allTasksError;
 
-  const tasks = useMemo(() => tasksData?.data.tasks ?? [], [tasksData?.data.tasks]);
+  const tasks = useMemo(
+    () => tasksData?.data.tasks ?? [],
+    [tasksData?.data.tasks],
+  );
   const filterCounts = useMemo(
     () => tasksData?.meta.filterCounts ?? {},
     [tasksData?.meta.filterCounts],
@@ -287,7 +301,8 @@ export function MyTasksPage() {
       await deleteTaskMutation.mutateAsync(taskId);
       toast.success("Task deleted successfully");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete task";
+      const message =
+        error instanceof Error ? error.message : "Failed to delete task";
       toast.error(message);
     } finally {
       setDeletingTaskId(null);
@@ -352,7 +367,7 @@ export function MyTasksPage() {
   const isEmpty = !isPending && groups.length === 0;
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+    <div className="flex flex-1 flex-col min-h-0 bg-background rounded-lg min-w-0">
       <PageHeader
         title="Tasks"
         actions={

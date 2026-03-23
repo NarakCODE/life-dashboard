@@ -32,6 +32,7 @@ import {
   CheckSquareIcon,
   FolderIcon,
   UsersIcon,
+  CurrencyDollarIcon,
   ChartBarIcon,
   GearIcon,
   LayoutIcon,
@@ -40,6 +41,7 @@ import {
   CaretRightIcon,
   HouseIcon,
   TargetIcon,
+  FlagIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   activeProjects,
@@ -72,8 +74,11 @@ const navItemIcons: Record<
   "my-tasks": CheckSquareIcon,
   projects: FolderIcon,
   clients: UsersIcon,
+  budgets: CurrencyDollarIcon,
   performance: ChartBarIcon,
   habits: TargetIcon,
+  "habit-logs": TargetIcon,
+  goals: FlagIcon,
 };
 
 const footerItemIcons: Record<
@@ -165,10 +170,16 @@ export function AppSidebar() {
     if (id === "inbox") return buildWorkspacePath(currentWorkspaceId, "/inbox");
     if (id === "clients")
       return buildWorkspacePath(currentWorkspaceId, "/clients");
+    if (id === "budgets")
+      return buildWorkspacePath(currentWorkspaceId, "/budgets");
     if (id === "performance")
       return buildWorkspacePath(currentWorkspaceId, "/performance");
     if (id === "habits")
       return buildWorkspacePath(currentWorkspaceId, "/habits");
+    if (id === "habit-logs")
+      return buildWorkspacePath(currentWorkspaceId, "/habit-logs");
+    if (id === "goals")
+      return buildWorkspacePath(currentWorkspaceId, "/goals");
     return "#";
   };
 
@@ -188,11 +199,20 @@ export function AppSidebar() {
     if (id === "clients") {
       return scopedPathname.startsWith("/clients");
     }
+    if (id === "budgets") {
+      return scopedPathname.startsWith("/budgets");
+    }
     if (id === "performance") {
       return scopedPathname.startsWith("/performance");
     }
     if (id === "habits") {
       return scopedPathname.startsWith("/habits");
+    }
+    if (id === "habit-logs") {
+      return scopedPathname.startsWith("/habit-logs");
+    }
+    if (id === "goals") {
+      return scopedPathname.startsWith("/goals");
     }
     return false;
   };

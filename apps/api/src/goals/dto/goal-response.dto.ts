@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { GoalStatus } from '../schemas/goal.schema';
+import { GoalStatus, GoalType } from '../schemas/goal.schema';
 
 @Exclude()
 export class ProgressLogResponseDto {
@@ -25,6 +25,10 @@ export class GoalResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty()
   userId: string;
 
   @Expose()
@@ -34,6 +38,10 @@ export class GoalResponseDto {
   @Expose()
   @ApiProperty()
   description?: string;
+
+  @Expose()
+  @ApiProperty({ enum: GoalType })
+  type: GoalType;
 
   @Expose()
   @ApiProperty()
@@ -58,6 +66,14 @@ export class GoalResponseDto {
   @Expose()
   @ApiProperty({ type: [ProgressLogResponseDto] })
   progressLogs: ProgressLogResponseDto[];
+
+  @Expose()
+  @ApiProperty({ type: [String] })
+  linkedTasks: string[];
+
+  @Expose()
+  @ApiProperty({ type: [String] })
+  linkedHabits: string[];
 
   @Expose()
   @ApiProperty()

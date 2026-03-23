@@ -108,6 +108,7 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Public()
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)

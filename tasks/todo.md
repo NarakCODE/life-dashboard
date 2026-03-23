@@ -1,3 +1,195 @@
+# Habit Logs Page Integration Plan
+
+# Budget Management Frontend Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `apps/api/src/budgets/*` to confirm list, summary, create, update, and delete requirements
+- [x] Review existing dashboard route, sidebar, and TanStack Query patterns to mirror for the new budget page
+
+### 2. Frontend integration
+- [x] Add budget frontend types, API helpers, and TanStack Query hooks aligned to the backend contract
+- [x] Add workspace route and sidebar wiring for the new budget page
+- [x] Build a budget management page with summary metrics, filters, and create/edit/delete flows
+
+### 3. Backend support
+- [x] Fix any budget response-path issues that would block the frontend from working end to end
+
+### 4. Verification
+- [x] Run targeted frontend and backend checks on the touched budget files
+- [x] Review the rendered budget page in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added a dedicated budget frontend data layer in `apps/project-dashboard/lib/budgets/*` with:
+- typed budget and budget-summary models
+- API client helpers for list/detail/summary/create/update/delete
+- TanStack Query hooks using hierarchical query keys, query placeholder retention, and targeted invalidation for list/summary/detail caches
+- Added full routing and navigation support for budgets:
+- `app/(protected)/budgets/page.tsx` redirect
+- `app/(protected)/w/[workspaceId]/budgets/page.tsx`
+- sidebar navigation entry and route activation wiring
+- Built a new budget management page in `components/budgets/BudgetsPage.tsx` with:
+- summary cards for planned, spent, remaining, and over-budget counts
+- search plus status / period / category filters
+- create and edit dialog
+- activate / deactivate action
+- delete confirmation
+- responsive budget cards showing planned spend, actual spend, remaining amount, utilization, date window, and category/period badges
+- The budgets backend also needed the same response normalization fix previously seen in habits/goals. Updated `apps/api/src/budgets/budgets.service.ts` and `apps/api/src/budgets/dto/budget-response.dto.ts` so create/read/list/update/summary return stable serialized payloads with string ids and summary metrics. Added controller-level ObjectId validation in `apps/api/src/budgets/budgets.controller.ts` and a regression spec in `apps/api/src/budgets/budgets.service.spec.ts`.
+- Verification:
+- `pnpm exec eslint components/budgets/BudgetsPage.tsx lib/budgets/budgets-client.ts lib/budgets/budgets-query.ts lib/budgets/types.ts components/app-sidebar.tsx lib/data/sidebar.ts app/'(protected)'/budgets/page.tsx app/'(protected)'/w/'[workspaceId]'/budgets/page.tsx` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/budgets/BudgetsPage.tsx|lib/budgets/|components/app-sidebar.tsx|lib/data/sidebar.ts|app/\\(protected\\)/budgets/page.tsx|app/\\(protected\\)/w/\\[workspaceId\\]/budgets/page.tsx"` in `apps/project-dashboard` returned no matches ✅
+- `pnpm test -- budgets.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/budgets/budgets.controller.ts src/budgets/budgets.service.ts src/budgets/budgets.service.spec.ts src/budgets/dto/budget-response.dto.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/budgets/(budgets.controller|budgets.service|budgets.service.spec|dto/budget-response.dto)"` in `apps/api` returned no matches ✅
+- Chrome DevTools:
+- confirmed the new `/w/[workspaceId]/budgets` route resolves in the running app build
+- could not complete an authenticated in-browser budget CRUD pass because the current browser session redirected to `/login` and the repository does not include a working dev credential for that live session
+- Remaining risks:
+- The browser-level budget page interactions were not fully exercised in an authenticated session, so the code and API contracts are verified, but a live CRUD walkthrough still depends on restoring a valid local login.
+- Budget summary totals currently aggregate visible budgets even if multiple currencies are present. The UI flags mixed-currency cases, but it does not perform currency conversion.
+
+# Goals Page Completion Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Review `apps/project-dashboard/components/goals/GoalsPage.tsx` and the goals query/client layer
+- [x] Confirm missing feature coverage versus backend capabilities and identify page-level state bugs
+
+### 2. Frontend completion
+- [x] Fix stale dialog/form state for create, edit, and log-progress flows
+- [x] Add UI for linking and unlinking tasks/habits on goals
+- [x] Improve page summaries and empty/error states around the completed feature set
+
+### 3. Verification
+- [x] Run targeted frontend lint/type checks on the touched goals files
+- [x] Review the rendered goals page in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Fixed stale dialog state in `components/goals/GoalsPage.tsx` so the create/edit form and log-progress dialog reset correctly when reopening or switching between goals.
+- Added a new `Manage Goal Links` dialog in `components/goals/GoalsPage.tsx` backed by the existing goals/task/habit query layer, including:
+- task selection and linking
+- habit selection and linking
+- unlink by deselection
+- goal-type gating for unsupported task/habit combinations
+- Added visible summary cards and richer card badges for overdue state and linked task/habit counts, and improved error messaging to surface the actual request failure text when goals loading fails.
+- During Chrome DevTools verification, `POST /api/v1/goals` initially still returned `500 Internal Server Error` for a valid create payload. Root cause was the backend goals module still returning raw Mongoose documents/aggregate objects rather than stable DTOs.
+- Updated `apps/api/src/goals/goals.service.ts` and `apps/api/src/goals/dto/goal-response.dto.ts` to normalize create/read/list/update/log/link/unlink responses, including `type`, `workspaceId`, `linkedTasks`, `linkedHabits`, and computed `progressPercent`. Added a regression spec in `apps/api/src/goals/goals.service.spec.ts`.
+- Chrome DevTools verification on `http://localhost:3000/w/69bf9af23810b45fcb4d7caa/goals`:
+- confirmed the new summary cards render
+- created a goal successfully after the backend fix
+- opened the card menu and verified the new `Manage Links` action
+- linked a task successfully and confirmed the card/summary counts updated
+- Verification:
+- `pnpm exec eslint components/goals/GoalsPage.tsx lib/goals/goals-client.ts lib/goals/goals-query.ts lib/goals/types.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/goals/GoalsPage.tsx|lib/goals/"` in `apps/project-dashboard` returned no matches ✅
+- `pnpm test -- goals.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/goals/goals.service.ts src/goals/goals.service.spec.ts src/goals/dto/goal-response.dto.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/goals/(goals.service|goals.service.spec|dto/goal-response.dto)"` in `apps/api` returned no matches ✅
+- Remaining risks:
+- The goals page currently loads only the first 100 tasks and first 100 active habits into the link dialog. If a workspace exceeds that, the linking UI will need search and pagination rather than a single-page selector.
+- Chrome still reports a generic accessibility/dev warning that some form field is missing an `id` or `name`. The new goals flows worked despite that warning, but I did not trace that warning to a specific existing field in this pass.
+
+# Goals Request Exception Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `apps/api/src/goals/goals.controller.ts` and the downstream service/repository path
+- [x] Confirm the request exception comes from unvalidated Mongo ObjectId route params reaching Mongoose
+
+### 2. Backend fix
+- [x] Validate `goals` route params at the controller boundary with the shared ObjectId pipe
+- [x] Keep the change minimal and localized to the failing request paths
+
+### 3. Verification
+- [x] Run targeted backend checks on the touched controller
+- [x] Record results and remaining risks
+
+## Review / Results
+- Root cause: `GoalsController` forwarded raw `id`, `taskId`, and `habitId` params into repository methods that immediately construct `new Types.ObjectId(...)`. Invalid route params therefore surfaced as request-time Mongoose exceptions instead of a clean `400 Bad Request`.
+- Updated `apps/api/src/goals/goals.controller.ts` to apply the shared `ParseObjectIdPipe` to every goal route param that becomes a Mongo ObjectId downstream: goal lookup, update, delete, progress logging, task linking/unlinking, and habit linking/unlinking.
+- This keeps the fix localized to the request boundary and aligns the goals module with the existing shared validation pattern in `apps/api/src/common/pipes/parse-object-id.pipe.ts`.
+- Verification:
+- `pnpm exec eslint src/goals/goals.controller.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit` in `apps/api` ✅
+- Remaining risks:
+- Request body arrays such as `linkedTasks`, `linkedHabits`, `taskIds`, and `habitIds` are still validated by downstream logic rather than controller-level ObjectId pipes. That is outside this controller fix, but invalid IDs there can still fail later in the request path if DTO validation does not already constrain them.
+
+# Habit Logs Page Integration Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `apps/api/src/habit-logs/habit-logs.controller.ts` and DTOs
+- [x] Review existing `project-dashboard` habits/tasks patterns for workspace-scoped data pages
+
+### 2. Frontend integration
+- [x] Add habit log frontend types, API client helpers, and React Query hooks
+- [x] Replace the placeholder workspace habit logs page with a full client page wired to the API
+- [x] Support list, filter, create, update, and delete flows matching the available backend routes
+
+### 3. Verification
+- [x] Run targeted frontend lint or type checks on the touched files
+- [x] Validate the rendered page in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added a dedicated habit-log frontend data layer in `apps/project-dashboard/lib/habit-logs/*` with typed list/detail/create/update/delete helpers and React Query hooks aligned to the backend controller routes.
+- Replaced the placeholder workspace route with a full client page in `components/habit-logs/HabitLogsPage.tsx`, including:
+  - workspace-scoped list loading
+  - habit filter, date range filter, and note search
+  - summary cards
+  - empty states
+  - create/edit dialog
+  - delete confirmation
+- Kept the page visually aligned with the existing dashboard shell and habits module rather than introducing a separate design system.
+- Normalized backend habit-log responses in `apps/api/src/habit-logs/habit-logs.service.ts` so the frontend receives plain serialized objects instead of raw Mongoose documents. Added a regression spec for create serialization.
+- Chrome DevTools verification:
+  - Opened the authenticated route at `http://localhost:3000/w/69bf9af23810b45fcb4d7caa/habit-logs`
+  - Confirmed the page renders inside the protected app shell
+  - Confirmed the empty-state layout is shown cleanly when the API returns no logs
+  - Opened and inspected the `New log` dialog successfully
+  - Checked console/network: the current route loads `auth/me`, workspace context, habits, and habit logs successfully with 200 responses
+- Verification:
+  - `pnpm exec eslint components/habit-logs/HabitLogsPage.tsx app/'(protected)'/w/'[workspaceId]'/habit-logs/page.tsx lib/habit-logs/habit-logs-client.ts lib/habit-logs/habit-logs-query.ts lib/habit-logs/types.ts` in `apps/project-dashboard` ✅
+  - `pnpm exec tsc --noEmit 2>&1 | rg 'components/habit-logs/HabitLogsPage.tsx|lib/habit-logs/|app/\\(protected\\)/w/\\[workspaceId\\]/habit-logs/page.tsx'` in `apps/project-dashboard` returned no matches ✅
+  - `pnpm test -- habit-logs.service.spec.ts` in `apps/api` ✅
+  - `pnpm exec eslint src/habit-logs/habit-logs.service.ts src/habit-logs/habit-logs.service.spec.ts src/habit-logs/dto/habit-log-response.dto.ts` in `apps/api` ✅
+- Remaining risks:
+  - The live workspace currently returned no habit logs during browser verification, so I validated the empty state and dialog on real data, but not a full create/edit/delete round-trip against the live API from the browser.
+
+# Habit Create Exception Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the habits create flow in `apps/api`
+- [x] Confirm why the request can fail after the document has already been saved
+
+### 2. Backend fix
+- [x] Normalize habit create/read/list/update/archive responses into plain DTOs
+- [x] Add a regression test for the create response shape
+
+### 3. Verification
+- [x] Run targeted backend tests
+- [x] Record results and remaining risks
+
+## Review / Results
+- Root cause: the habits module returned raw Mongoose documents from create/read/update/archive/list flows. The database write succeeded, but the response path could still fail when NestJS interceptors and serialization handled the hydrated document.
+- Updated `HabitsService` to serialize habits into `HabitResponseDto` before returning them. This converts `_id`, `workspaceId`, and `userId` into plain strings and returns stable plain-object payloads instead of hydrated Mongoose documents.
+- Expanded `HabitResponseDto` so the normalized payload still includes the key persisted fields the client expects, including `status`, `startDate`, `endDate`, and `archivedAt`.
+- Added a regression spec covering `HabitsService.create()` to ensure a successful save returns a serialized habit response with string ids.
+- Verification:
+  - `pnpm test -- habits.service.spec.ts` in `apps/api` ✅
+  - `pnpm exec eslint src/habits/habits.service.ts src/habits/habits.service.spec.ts src/habits/dto/habit-response.dto.ts` in `apps/api` ✅
+- Remaining risks:
+  - I validated the backend response path directly. The current habits frontend route is still a placeholder, so I did not verify an end-to-end browser create flow in the UI.
+
 # Settings Dialog Panel Extraction Plan
 
 ## Status: COMPLETE

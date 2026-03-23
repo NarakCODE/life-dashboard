@@ -9,6 +9,10 @@ export class HabitLogResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty()
   habitId: string;
 
   @Expose()

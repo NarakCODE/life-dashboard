@@ -28,6 +28,7 @@ import { LogProgressDto } from './dto/log-progress.dto';
 import { LinkTasksDto } from './dto/link-tasks.dto';
 import { LinkHabitsDto } from './dto/link-habits.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
 import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
 import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
@@ -79,7 +80,7 @@ export class GoalsController {
   })
   @ApiOkResponse({ description: 'The requested goal' })
   findOne(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.goalsService.findByIdAndUser(id, workspace);
@@ -90,7 +91,7 @@ export class GoalsController {
   @ApiOperation({ summary: 'Update a goal' })
   @ApiOkResponse({ description: 'The updated goal' })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() updateGoalDto: UpdateGoalDto,
   ) {
@@ -103,7 +104,7 @@ export class GoalsController {
   @ApiOperation({ summary: 'Delete a goal permanently' })
   @ApiOkResponse({ description: 'Goal successfully deleted' })
   remove(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.goalsService.delete(id, workspace);
@@ -123,7 +124,7 @@ export class GoalsController {
   @ApiParam({ name: 'id', description: 'Goal ID' })
   @ApiCreatedResponse({ description: 'Progress logged successfully' })
   logProgress(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LogProgressDto,
   ) {
@@ -144,7 +145,7 @@ export class GoalsController {
   @ApiParam({ name: 'id', description: 'Goal ID' })
   @ApiCreatedResponse({ description: 'Tasks linked successfully' })
   linkTasks(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LinkTasksDto,
   ) {
@@ -162,8 +163,8 @@ export class GoalsController {
   @ApiParam({ name: 'taskId', description: 'Task ID to unlink' })
   @ApiOkResponse({ description: 'Task unlinked successfully' })
   unlinkTask(
-    @Param('id') id: string,
-    @Param('taskId') taskId: string,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('taskId', ParseObjectIdPipe) taskId: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.goalsService.unlinkTask(id, workspace, taskId);
@@ -183,7 +184,7 @@ export class GoalsController {
   @ApiParam({ name: 'id', description: 'Goal ID' })
   @ApiCreatedResponse({ description: 'Habits linked successfully' })
   linkHabits(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: LinkHabitsDto,
   ) {
@@ -201,8 +202,8 @@ export class GoalsController {
   @ApiParam({ name: 'habitId', description: 'Habit ID to unlink' })
   @ApiOkResponse({ description: 'Habit unlinked successfully' })
   unlinkHabit(
-    @Param('id') id: string,
-    @Param('habitId') habitId: string,
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('habitId', ParseObjectIdPipe) habitId: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.goalsService.unlinkHabit(id, workspace, habitId);

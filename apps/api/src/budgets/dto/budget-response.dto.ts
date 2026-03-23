@@ -10,6 +10,10 @@ export class BudgetResponseDto {
 
   @Expose()
   @ApiProperty()
+  workspaceId?: string | null;
+
+  @Expose()
+  @ApiProperty()
   userId: string;
 
   @Expose()
@@ -43,6 +47,22 @@ export class BudgetResponseDto {
   @Expose()
   @ApiProperty()
   isActive: boolean;
+
+  @Expose()
+  @ApiProperty()
+  actualSpending?: number;
+
+  @Expose()
+  @ApiProperty()
+  remainingAmount?: number;
+
+  @Expose()
+  @ApiProperty()
+  percentUsed?: number;
+
+  @Expose()
+  @ApiProperty()
+  isOverBudget?: boolean;
 
   @Expose()
   @ApiProperty()

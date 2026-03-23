@@ -24,6 +24,7 @@ import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { QueryBudgetDto } from './dto/query-budget.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
 import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
 import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
@@ -83,7 +84,7 @@ export class BudgetsController {
   @ApiOperation({ summary: 'Get a specific budget by ID' })
   @ApiOkResponse({ description: 'The requested budget' })
   findOne(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.budgetsService.findByIdAndUser(id, workspace);
@@ -94,7 +95,7 @@ export class BudgetsController {
   @ApiOperation({ summary: 'Update a budget' })
   @ApiOkResponse({ description: 'The updated budget' })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() updateBudgetDto: UpdateBudgetDto,
   ) {
@@ -107,7 +108,7 @@ export class BudgetsController {
   @ApiOperation({ summary: 'Delete a budget permanently' })
   @ApiOkResponse({ description: 'Budget successfully deleted' })
   remove(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
     return this.budgetsService.delete(id, workspace);
