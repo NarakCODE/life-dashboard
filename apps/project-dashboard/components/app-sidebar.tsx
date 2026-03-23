@@ -58,6 +58,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { WorkspaceCombobox } from "@/components/workspaces/workspace-combobox";
+import { ManageWorkspaceDialog } from "@/components/workspaces/ManageWorkspaceDialog";
+import type { SettingsItemId } from "@/components/settings/settings-config";
 import { useUnreadNotificationCountQuery } from "@/lib/notifications/notifications-query";
 import {
   useWorkspacesQuery,
@@ -106,7 +108,11 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsItemId>("account");
   const [isLoggingOut, startLogout] = useTransition();
+  
+  // Quick create workspace dialog state (for sidebar shortcut)
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
 
   const { workspaceId: currentWorkspaceId, routeWorkspaceId } =
     useWorkspaceScope();
@@ -182,14 +188,14 @@ export function AppSidebar() {
   );
 
   const handleCreateWorkspace = useCallback(() => {
-    // TODO: Open create workspace modal
-    toast.info("Create workspace coming soon");
+    setIsCreateWorkspaceOpen(true);
   }, []);
 
   const handleManageWorkspaces = useCallback(() => {
-    // TODO: Navigate to workspace management page
-    router.push("/workspaces");
-  }, [router]);
+    // Open Settings dialog on Preferences tab
+    setSettingsInitialTab("preferences");
+    setIsSettingsOpen(true);
+  }, []);
 
   const getHrefForNavItem = (id: NavItemId): string => {
     if (!currentWorkspaceId) return "#";
@@ -276,6 +282,15 @@ export function AppSidebar() {
           onManageWorkspaces={handleManageWorkspaces}
           isLoading={isLoadingWorkspaces}
           disabled={switchWorkspace.isPending}
+        />
+        
+        <ManageWorkspaceDialog
+          open={isCreateWorkspaceOpen}
+          onOpenChange={setIsCreateWorkspaceOpen}
+          onCreateSuccess={(workspace) => {
+            toast.success(`Created workspace "${workspace.name}"`);
+            void handleWorkspaceSelect(workspace);
+          }}
         />
       </SidebarHeader>
 
@@ -457,7 +472,11 @@ export function AppSidebar() {
         </DropdownMenu>
       </SidebarFooter>
 
-      <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      <SettingsDialog 
+        open={isSettingsOpen} 
+        onOpenChange={setIsSettingsOpen}
+        initialItemId={settingsInitialTab}
+      />
     </Sidebar>
   );
 }

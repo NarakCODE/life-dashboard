@@ -25,7 +25,7 @@ export function ProtectedAppShell({ children }: ProtectedAppShellProps) {
   return (
     <AuthGuard>
       {shouldUseOnboardingShell ? (
-        <div className="min-h-svh bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_48%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="min-h-svh bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </div>
       ) : (
@@ -57,7 +57,7 @@ export function GuestShell({ children }: GuestShellProps) {
 
         {/* The Grid Pattern & Gradients (Kept from your original design) */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(30,64,175,0.15),transparent_50%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:44px_44px]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-size-[44px_44px]" />
 
         {/* Login Form Container */}
         <div className="relative z-10 w-full">{children}</div>

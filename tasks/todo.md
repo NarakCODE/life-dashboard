@@ -1,3 +1,57 @@
+# Settings Sidebar Layout Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the current settings dialog shell and sidebar rail layout
+- [x] Confirm the muted background is only partially applied and does not fully read as a dedicated left column
+
+### 2. Fix
+- [x] Restructure the settings dialog/sidebar layout so the left rail owns the full muted column
+- [x] Tune the sidebar spacing and active-item treatment to feel closer to a ChatGPT-style settings layout
+
+### 3. Verification
+- [x] Run targeted frontend verification for the touched settings files
+- [x] Verify the updated layout in the live settings UI
+- [x] Record results and remaining gaps
+
+## Review / Results
+- Updated `apps/project-dashboard/components/settings/shared/SettingsSidebarNav.tsx` so the sidebar is now a full-height muted rail with internal padding, tighter section labels, softer hover states, and a more inset active item treatment.
+- Updated `apps/project-dashboard/components/settings/SettingsDialog.tsx` so the dialog shell supports the rail visually with a cleaner outer surface, dedicated background separation, and roomier content spacing.
+- Verification:
+- `pnpm exec eslint components/settings/SettingsDialog.tsx components/settings/shared/SettingsSidebarNav.tsx` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/settings/(SettingsDialog|shared/SettingsSidebarNav)\\.tsx" || true` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools verification:
+- opened the live settings dialog from `http://localhost:3000/w/69c0b60618cdd085fd1e2aac`
+- confirmed the left rail now reads as a dedicated muted settings column instead of a narrow bordered list
+- confirmed the active item and teammates badge still render correctly within the updated rail ✅
+
+# Task Quick Edit Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `TaskQuickCreateModal` and compare its edit payload with the working task update callers
+- [x] Confirm the modal edit flow always resends project/workstream fields instead of only sending changed values
+
+### 2. Fix
+- [x] Build a minimal task update payload in the modal so unchanged project/workstream fields are not revalidated unnecessarily
+- [x] Surface the real update error message in the modal toast instead of a generic fallback
+
+### 3. Verification
+- [x] Run targeted frontend verification for the touched task files
+- [x] Record results and remaining follow-up
+
+## Review / Results
+- Updated `apps/project-dashboard/components/tasks/TaskQuickCreateModal.tsx` so the edit flow now builds a minimal `UpdateTaskInput` instead of always resending `projectId` and `workstreamId`.
+- This avoids unnecessary backend project/workstream revalidation for unchanged tasks, which was the main difference between the failing modal edit path and the working inline task updates elsewhere in the app.
+- The modal now also shows the real backend error message through `getErrorMessage(...)` instead of always collapsing to `Failed to update task`.
+- Verification:
+- `pnpm exec eslint components/tasks/TaskQuickCreateModal.tsx` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/tasks/TaskQuickCreateModal\\.tsx" || true` in `apps/project-dashboard` returned no matches ✅
+- Remaining follow-up:
+- I could not live-reproduce the exact edit failure in the current local workspace because `/tasks` has no available task projects or tasks to edit here. The fix is based on the concrete payload mismatch between this modal and the other working task update callers.
+
 # Transaction Create Response Fix Plan
 
 ## Status: COMPLETE

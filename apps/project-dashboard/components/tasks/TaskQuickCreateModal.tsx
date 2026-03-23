@@ -1,136 +1,267 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
-import { CalendarBlank, ChartBar, Paperclip, Tag, Microphone, UserCircle, X, Folder, Rows } from '@phosphor-icons/react/dist/ssr'
+import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
+import {
+  CalendarBlank,
+  ChartBar,
+  Paperclip,
+  Tag,
+  Microphone,
+  UserCircle,
+  X,
+  Folder,
+  Rows,
+} from "@phosphor-icons/react/dist/ssr";
 
-import type { ProjectTask } from '@/lib/data/project-details'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { GenericPicker, DatePicker } from '@/components/project-wizard/steps/StepQuickCreate'
-import { ProjectDescriptionEditor } from '@/components/project-wizard/ProjectDescriptionEditor'
-import { QuickCreateModalLayout } from '@/components/QuickCreateModalLayout'
-import { toast } from 'sonner'
-import { useAuth } from '@/hooks/use-auth'
-import { useTaskProjectsQuery } from '@/lib/projects/projects-query'
+import type { ProjectTask } from "@/lib/data/project-details";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  GenericPicker,
+  DatePicker,
+} from "@/components/project-wizard/steps/StepQuickCreate";
+import { ProjectDescriptionEditor } from "@/components/project-wizard/ProjectDescriptionEditor";
+import { QuickCreateModalLayout } from "@/components/QuickCreateModalLayout";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { useTaskProjectsQuery } from "@/lib/projects/projects-query";
+import { getErrorMessage } from "@/components/auth/auth-error";
 import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
-} from '@/lib/tasks/tasks-query'
-import { useWorkspaceScope } from '@/lib/workspaces/use-workspace-scope'
+} from "@/lib/tasks/tasks-query";
+import type { UpdateTaskInput } from "@/lib/tasks/types";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 
 export type CreateTaskContext = {
-  projectId?: string
-  workstreamId?: string
-  workstreamName?: string
-}
+  projectId?: string;
+  workstreamId?: string;
+  workstreamName?: string;
+};
 
 interface TaskQuickCreateModalProps {
-  open: boolean
-  onClose: () => void
-  context?: CreateTaskContext
-  editingTask?: ProjectTask
+  open: boolean;
+  onClose: () => void;
+  context?: CreateTaskContext;
+  editingTask?: ProjectTask;
 }
 
-type TaskStatusId = 'todo' | 'in-progress' | 'done'
+type TaskStatusId = "todo" | "in-progress" | "done";
 
 type StatusOption = {
-  id: TaskStatusId
-  label: string
-}
+  id: TaskStatusId;
+  label: string;
+};
 
 type AssigneeOption = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 type PriorityOption = {
-  id: "no-priority" | "low" | "medium" | "high" | "urgent"
-  label: string
-}
+  id: "no-priority" | "low" | "medium" | "high" | "urgent";
+  label: string;
+};
 
 export type TagOption = {
-  id: string
-  label: string
-}
+  id: string;
+  label: string;
+};
 
 interface PickerOption {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 const STATUS_OPTIONS: StatusOption[] = [
-  { id: 'todo', label: 'To do' },
-  { id: 'in-progress', label: 'In progress' },
-  { id: 'done', label: 'Done' },
-]
-const DEFAULT_STATUS_OPTION = STATUS_OPTIONS[0]!
+  { id: "todo", label: "To do" },
+  { id: "in-progress", label: "In progress" },
+  { id: "done", label: "Done" },
+];
+const DEFAULT_STATUS_OPTION = STATUS_OPTIONS[0]!;
 
 const PRIORITY_OPTIONS: PriorityOption[] = [
-  { id: 'no-priority', label: 'No priority' },
-  { id: 'low', label: 'Low' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'high', label: 'High' },
-]
-const DEFAULT_PRIORITY_OPTION = PRIORITY_OPTIONS[0]!
+  { id: "no-priority", label: "No priority" },
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+];
+const DEFAULT_PRIORITY_OPTION = PRIORITY_OPTIONS[0]!;
 
 export const TAG_OPTIONS: TagOption[] = [
-  { id: 'feature', label: 'Feature' },
-  { id: 'bug', label: 'Bug' },
-  { id: 'internal', label: 'Internal' },
-]
+  { id: "feature", label: "Feature" },
+  { id: "bug", label: "Bug" },
+  { id: "internal", label: "Internal" },
+];
 
 function resolveCreateDefaults(
   projectOptions: PickerOption[],
   projects: Array<{ id: string; workstreams: PickerOption[] }>,
   context?: CreateTaskContext,
 ) {
-  const resolvedProjectId = context?.projectId ?? projectOptions[0]?.id
-  const resolvedProject = projects.find((project) => project.id === resolvedProjectId)
-  const workstreamOptions = resolvedProject?.workstreams ?? []
+  const resolvedProjectId = context?.projectId ?? projectOptions[0]?.id;
+  const resolvedProject = projects.find(
+    (project) => project.id === resolvedProjectId,
+  );
+  const workstreamOptions = resolvedProject?.workstreams ?? [];
   const resolvedWorkstream =
-    workstreamOptions.find((workstream) => workstream.id === context?.workstreamId) ??
-    workstreamOptions[0]
+    workstreamOptions.find(
+      (workstream) => workstream.id === context?.workstreamId,
+    ) ?? workstreamOptions[0];
 
   return {
     projectId: resolvedProjectId,
     workstreamId: resolvedWorkstream?.id,
     workstreamName: context?.workstreamName ?? resolvedWorkstream?.label,
-  }
+  };
 }
 
-export function TaskQuickCreateModal({ open, onClose, context, editingTask }: TaskQuickCreateModalProps) {
-  const auth = useAuth()
-  const { workspaceId } = useWorkspaceScope()
-  const { data: projects = [] } = useTaskProjectsQuery(workspaceId ?? "", open)
-  const createTaskMutation = useCreateTaskMutation(workspaceId ?? "")
-  const updateTaskMutation = useUpdateTaskMutation(workspaceId ?? "")
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState<string | undefined>(undefined)
-  const [createMore, setCreateMore] = useState(false)
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+function toIsoString(date?: Date | string) {
+  if (!date) return undefined;
 
-  const [projectId, setProjectId] = useState<string | undefined>(undefined)
-  const [workstreamId, setWorkstreamId] = useState<string | undefined>(undefined)
-  const [workstreamName, setWorkstreamName] = useState<string | undefined>(undefined)
+  if (date instanceof Date) {
+    return date.toISOString();
+  }
+
+  const parsedDate = new Date(date);
+  return Number.isNaN(parsedDate.getTime())
+    ? undefined
+    : parsedDate.toISOString();
+}
+
+function buildUpdateTaskInput(args: {
+  editingTask: ProjectTask;
+  title: string;
+  description?: string;
+  projectId: string;
+  workstreamId?: string;
+  assigneeId?: string;
+  status: TaskStatusId;
+  priorityId: PriorityOption["id"];
+  tag?: string;
+  startDate?: Date;
+  dueDate?: Date;
+}): UpdateTaskInput {
+  const {
+    editingTask,
+    title,
+    description,
+    projectId,
+    workstreamId,
+    assigneeId,
+    status,
+    priorityId,
+    tag,
+    startDate,
+    dueDate,
+  } = args;
+
+  const input: UpdateTaskInput = {};
+  const trimmedTitle = title.trim() || "Untitled task";
+  const normalizedDescription = description?.trim() || "";
+  const normalizedTag = tag ?? "";
+  const existingProjectId = editingTask.projectId;
+  const existingWorkstreamId = editingTask.workstreamId || "";
+  const existingAssigneeId = editingTask.assignee?.id;
+  const existingPriorityId = editingTask.priority ?? DEFAULT_PRIORITY_OPTION.id;
+  const existingStartDateIso = toIsoString(editingTask.startDate);
+  const existingDueDateIso = toIsoString(editingTask.dueDate);
+  const nextStartDateIso = toIsoString(startDate);
+  const nextDueDateIso = toIsoString(dueDate);
+  const projectChanged = projectId !== existingProjectId;
+  const workstreamChanged = (workstreamId || "") !== existingWorkstreamId;
+
+  if (trimmedTitle !== editingTask.name) {
+    input.name = trimmedTitle;
+  }
+
+  if (normalizedDescription !== (editingTask.description ?? "")) {
+    input.description = normalizedDescription;
+  }
+
+  if (status !== editingTask.status) {
+    input.status = status;
+  }
+
+  if (priorityId !== existingPriorityId) {
+    input.priority = priorityId;
+  }
+
+  if (normalizedTag !== (editingTask.tag ?? "")) {
+    input.tag = normalizedTag;
+  }
+
+  if (nextStartDateIso !== existingStartDateIso) {
+    input.startDate = nextStartDateIso;
+  }
+
+  if (nextDueDateIso !== existingDueDateIso) {
+    input.dueDate = nextDueDateIso;
+  }
+
+  if (assigneeId !== existingAssigneeId && assigneeId) {
+    input.assigneeId = assigneeId;
+  }
+
+  if (projectChanged) {
+    input.projectId = projectId;
+  }
+
+  if (projectChanged || workstreamChanged) {
+    input.workstreamId = workstreamId || "";
+  }
+
+  return input;
+}
+
+export function TaskQuickCreateModal({
+  open,
+  onClose,
+  context,
+  editingTask,
+}: TaskQuickCreateModalProps) {
+  const auth = useAuth();
+  const { workspaceId } = useWorkspaceScope();
+  const { data: projects = [] } = useTaskProjectsQuery(workspaceId ?? "", open);
+  const createTaskMutation = useCreateTaskMutation(workspaceId ?? "");
+  const updateTaskMutation = useUpdateTaskMutation(workspaceId ?? "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState<string | undefined>(undefined);
+  const [createMore, setCreateMore] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [workstreamId, setWorkstreamId] = useState<string | undefined>(
+    undefined,
+  );
+  const [workstreamName, setWorkstreamName] = useState<string | undefined>(
+    undefined,
+  );
 
   const assigneeOptions = useMemo<AssigneeOption[]>(() => {
-    if (!auth.user) return []
+    if (!auth.user) return [];
 
-    return [{ id: auth.user.id, name: auth.user.displayName }]
-  }, [auth.user])
+    return [{ id: auth.user.id, name: auth.user.displayName }];
+  }, [auth.user]);
 
-  const [assignee, setAssignee] = useState<AssigneeOption | undefined>(undefined)
-  const [status, setStatus] = useState<StatusOption>(DEFAULT_STATUS_OPTION)
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date())
-  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined)
-  const [priority, setPriority] = useState<PriorityOption | undefined>(DEFAULT_PRIORITY_OPTION)
-  const [selectedTag, setSelectedTag] = useState<TagOption | undefined>(undefined)
+  const [assignee, setAssignee] = useState<AssigneeOption | undefined>(
+    undefined,
+  );
+  const [status, setStatus] = useState<StatusOption>(DEFAULT_STATUS_OPTION);
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
+  const [priority, setPriority] = useState<PriorityOption | undefined>(
+    DEFAULT_PRIORITY_OPTION,
+  );
+  const [selectedTag, setSelectedTag] = useState<TagOption | undefined>(
+    undefined,
+  );
 
   const projectOptions = useMemo(
     () => projects.map((p) => ({ id: p.id, label: p.name })),
     [projects],
-  )
+  );
 
   const projectWorkstreams = useMemo(
     () =>
@@ -142,62 +273,70 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
         })),
       })),
     [projects],
-  )
+  );
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
     if (editingTask) {
-      setProjectId(editingTask.projectId)
-      setWorkstreamId(editingTask.workstreamId)
-      setWorkstreamName(editingTask.workstreamName)
+      setProjectId(editingTask.projectId);
+      setWorkstreamId(editingTask.workstreamId);
+      setWorkstreamName(editingTask.workstreamName);
 
-      setTitle(editingTask.name)
-      setDescription(editingTask.description)
-      setCreateMore(false)
-      setIsDescriptionExpanded(false)
+      setTitle(editingTask.name);
+      setDescription(editingTask.description);
+      setCreateMore(false);
+      setIsDescriptionExpanded(false);
 
       if (editingTask.assignee) {
-        const assigneeOption = assigneeOptions.find((a) => a.id === editingTask.assignee?.id)
-        setAssignee(assigneeOption)
+        const assigneeOption = assigneeOptions.find(
+          (a) => a.id === editingTask.assignee?.id,
+        );
+        setAssignee(assigneeOption);
       } else {
-        setAssignee(undefined)
+        setAssignee(undefined);
       }
 
-      const statusOption = STATUS_OPTIONS.find((s) => s.id === editingTask.status)
-      setStatus(statusOption ?? DEFAULT_STATUS_OPTION)
+      const statusOption = STATUS_OPTIONS.find(
+        (s) => s.id === editingTask.status,
+      );
+      setStatus(statusOption ?? DEFAULT_STATUS_OPTION);
 
-      setStartDate(editingTask.startDate ?? new Date())
-      setTargetDate(editingTask.dueDate)
+      setStartDate(editingTask.startDate ?? new Date());
+      setTargetDate(editingTask.dueDate);
 
       const priorityOption = editingTask.priority
         ? PRIORITY_OPTIONS.find((p) => p.id === editingTask.priority)
-        : undefined
-      setPriority(priorityOption ?? DEFAULT_PRIORITY_OPTION)
+        : undefined;
+      setPriority(priorityOption ?? DEFAULT_PRIORITY_OPTION);
 
       const tagOption = editingTask.tag
         ? TAG_OPTIONS.find((t) => t.label === editingTask.tag)
-        : undefined
-      setSelectedTag(tagOption)
+        : undefined;
+      setSelectedTag(tagOption);
 
-      return
+      return;
     }
 
-    const defaults = resolveCreateDefaults(projectOptions, projectWorkstreams, context)
+    const defaults = resolveCreateDefaults(
+      projectOptions,
+      projectWorkstreams,
+      context,
+    );
 
-    setProjectId(defaults.projectId)
-    setWorkstreamId(defaults.workstreamId)
-    setWorkstreamName(defaults.workstreamName)
-    setTitle('')
-    setDescription(undefined)
-    setCreateMore(false)
-    setIsDescriptionExpanded(false)
-    setAssignee(assigneeOptions[0])
-    setStatus(DEFAULT_STATUS_OPTION)
-    setStartDate(new Date())
-    setTargetDate(undefined)
-    setPriority(DEFAULT_PRIORITY_OPTION)
-    setSelectedTag(undefined)
+    setProjectId(defaults.projectId);
+    setWorkstreamId(defaults.workstreamId);
+    setWorkstreamName(defaults.workstreamName);
+    setTitle("");
+    setDescription(undefined);
+    setCreateMore(false);
+    setIsDescriptionExpanded(false);
+    setAssignee(assigneeOptions[0]);
+    setStatus(DEFAULT_STATUS_OPTION);
+    setStartDate(new Date());
+    setTargetDate(undefined);
+    setPriority(DEFAULT_PRIORITY_OPTION);
+    setSelectedTag(undefined);
   }, [
     open,
     context,
@@ -205,86 +344,91 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
     assigneeOptions,
     projectOptions,
     projectWorkstreams,
-  ])
+  ]);
 
-  const workstreamOptions = useMemo(
-    () => {
-      const project = projects.find((item) => item.id === projectId)
-      return (project?.workstreams ?? []).map((workstream) => ({
-        id: workstream.id,
-        label: workstream.name,
-      }))
-    },
-    [projectId, projects],
-  )
+  const workstreamOptions = useMemo(() => {
+    const project = projects.find((item) => item.id === projectId);
+    return (project?.workstreams ?? []).map((workstream) => ({
+      id: workstream.id,
+      label: workstream.name,
+    }));
+  }, [projectId, projects]);
 
   useEffect(() => {
     if (!projectId) {
-      setWorkstreamId(undefined)
-      setWorkstreamName(undefined)
-      return
+      setWorkstreamId(undefined);
+      setWorkstreamName(undefined);
+      return;
     }
 
     if (!workstreamOptions.length) {
-      setWorkstreamId(undefined)
-      setWorkstreamName(undefined)
-      return
+      setWorkstreamId(undefined);
+      setWorkstreamName(undefined);
+      return;
     }
 
-    const existing = workstreamOptions.find((ws) => ws.id === workstreamId)
-    const fallback = workstreamOptions[0]
-    const next = existing ?? fallback
-    setWorkstreamId(next?.id)
-    setWorkstreamName(next?.label)
-  }, [projectId, workstreamOptions, workstreamId])
+    const existing = workstreamOptions.find((ws) => ws.id === workstreamId);
+    const fallback = workstreamOptions[0];
+    const next = existing ?? fallback;
+    setWorkstreamId(next?.id);
+    setWorkstreamName(next?.label);
+  }, [projectId, workstreamOptions, workstreamId]);
 
   const resetCreateForm = () => {
-    setTitle('')
-    setDescription(undefined)
-    setStatus(DEFAULT_STATUS_OPTION)
-    setTargetDate(undefined)
-    setSelectedTag(undefined)
-  }
+    setTitle("");
+    setDescription(undefined);
+    setStatus(DEFAULT_STATUS_OPTION);
+    setTargetDate(undefined);
+    setSelectedTag(undefined);
+  };
 
   const handleSubmit = async () => {
     if (!workspaceId) {
-      toast.error('Workspace context is unavailable')
-      return
+      toast.error("Workspace context is unavailable");
+      return;
     }
 
     if (!projectId) {
-      toast.error('Please choose a project first')
-      return
+      toast.error("Please choose a project first");
+      return;
     }
 
     if (editingTask) {
       try {
+        const input = buildUpdateTaskInput({
+          editingTask,
+          title,
+          description,
+          projectId,
+          workstreamId,
+          assigneeId: assignee?.id,
+          status: status.id,
+          priorityId: priority?.id ?? DEFAULT_PRIORITY_OPTION.id,
+          tag: selectedTag?.label,
+          startDate,
+          dueDate: targetDate,
+        });
+
+        if (Object.keys(input).length === 0) {
+          onClose();
+          return;
+        }
+
         await updateTaskMutation.mutateAsync({
           taskId: editingTask.id,
-          input: {
-            name: title.trim() || 'Untitled task',
-            projectId,
-            workstreamId,
-            assigneeId: assignee?.id,
-            description,
-            status: status.id,
-            priority: priority?.id,
-            tag: selectedTag?.label,
-            startDate: startDate?.toISOString(),
-            dueDate: targetDate?.toISOString(),
-          },
-        })
-        toast.success('Task updated successfully')
-        onClose()
-      } catch {
-        toast.error('Failed to update task')
+          input,
+        });
+        toast.success("Task updated successfully");
+        onClose();
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Failed to update task"));
       }
-      return
+      return;
     }
 
     try {
       await createTaskMutation.mutateAsync({
-        name: title.trim() || 'Untitled task',
+        name: title.trim() || "Untitled task",
         projectId,
         workstreamId,
         assigneeId: assignee?.id,
@@ -294,25 +438,25 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
         tag: selectedTag?.label,
         startDate: startDate?.toISOString(),
         dueDate: targetDate?.toISOString(),
-      })
+      });
 
       if (createMore) {
-        toast.success('Task created! Ready for another.')
-        resetCreateForm()
-        return
+        toast.success("Task created! Ready for another.");
+        resetCreateForm();
+        return;
       }
 
-      toast.success('Task created successfully')
-      onClose()
+      toast.success("Task created successfully");
+      onClose();
     } catch {
-      toast.error('Failed to create task')
+      toast.error("Failed to create task");
     }
-  }
+  };
 
-  const projectLabel = projectOptions.find((p) => p.id === projectId)?.label
+  const projectLabel = projectOptions.find((p) => p.id === projectId)?.label;
 
   const isSubmitting =
-    createTaskMutation.isPending || updateTaskMutation.isPending
+    createTaskMutation.isPending || updateTaskMutation.isPending;
 
   return (
     <QuickCreateModalLayout
@@ -328,9 +472,9 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
             items={projectOptions}
             selectedId={projectId}
             onSelect={(item) => {
-              setProjectId(item.id)
-              setWorkstreamId(undefined)
-              setWorkstreamName(undefined)
+              setProjectId(item.id);
+              setWorkstreamId(undefined);
+              setWorkstreamName(undefined);
             }}
             placeholder="Choose project..."
             renderItem={(item) => (
@@ -345,7 +489,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
               >
                 <Folder className="size-4 text-muted-foreground" />
                 <span className="truncate max-w-40 font-medium text-foreground">
-                  {projectLabel ?? 'Choose project'}
+                  {projectLabel ?? "Choose project"}
                 </span>
               </button>
             }
@@ -357,8 +501,8 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
                 items={workstreamOptions}
                 selectedId={workstreamId}
                 onSelect={(item) => {
-                  setWorkstreamId(item.id)
-                  setWorkstreamName(item.label)
+                  setWorkstreamId(item.id);
+                  setWorkstreamName(item.label);
                 }}
                 placeholder="Choose workstream..."
                 renderItem={(item) => (
@@ -372,8 +516,8 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
                     className="bg-background flex gap-2 h-7 items-center px-2 py-1 rounded-lg border border-background hover:border-primary/50 transition-colors text-xs disabled:opacity-60"
                   >
                     <Rows className="size-4 text-muted-foreground" />
-                    <span className="truncate max-w-[160px] font-medium text-foreground">
-                      {workstreamName ?? 'Choose workstream'}
+                    <span className="truncate max-w-40 font-medium text-foreground">
+                      {workstreamName ?? "Choose workstream"}
                     </span>
                   </button>
                 }
@@ -436,10 +580,10 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
           trigger={
             <button className="bg-muted flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors">
               <div className="size-4 rounded-full bg-background flex items-center justify-center text-[10px] font-medium">
-                {assignee?.name.charAt(0) ?? '?'}
+                {assignee?.name.charAt(0) ?? "?"}
               </div>
               <span className="font-medium text-foreground text-sm leading-5">
-                {assignee?.name ?? 'Assignee'}
+                {assignee?.name ?? "Assignee"}
               </span>
             </button>
           }
@@ -453,7 +597,9 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
             <button className="bg-muted flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors">
               <CalendarBlank className="size-4 text-muted-foreground" />
               <span className="font-medium text-foreground text-sm leading-5">
-                {startDate ? `Start: ${format(startDate, 'dd/MM/yyyy')}` : 'Start date'}
+                {startDate
+                  ? `Start: ${format(startDate, "dd/MM/yyyy")}`
+                  : "Start date"}
               </span>
             </button>
           }
@@ -488,7 +634,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
             <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
               <CalendarBlank className="size-4 text-muted-foreground" />
               <span className="font-medium text-foreground text-sm leading-5">
-                {targetDate ? format(targetDate, 'dd/MM/yyyy') : 'Target'}
+                {targetDate ? format(targetDate, "dd/MM/yyyy") : "Target"}
               </span>
             </button>
           }
@@ -509,7 +655,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
             <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
               <ChartBar className="size-4 text-muted-foreground" />
               <span className="font-medium text-foreground text-sm leading-5">
-                {priority?.label ?? 'Priority'}
+                {priority?.label ?? "Priority"}
               </span>
             </button>
           }
@@ -530,7 +676,7 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
             <button className="bg-background flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:bg-black/5 transition-colors">
               <Tag className="size-4 text-muted-foreground" />
               <span className="font-medium text-foreground text-sm leading-5">
-                {selectedTag?.label ?? 'Tag'}
+                {selectedTag?.label ?? "Tag"}
               </span>
             </button>
           }
@@ -555,15 +701,22 @@ export function TaskQuickCreateModal({ open, onClose, context, editingTask }: Ta
                 checked={createMore}
                 onCheckedChange={(value) => setCreateMore(Boolean(value))}
               />
-              <span className="text-sm font-medium text-foreground">Create more</span>
+              <span className="text-sm font-medium text-foreground">
+                Create more
+              </span>
             </div>
           )}
 
-          <Button type="button" onClick={handleSubmit} className="h-10 px-4 rounded-xl" disabled={isSubmitting}>
-            {editingTask ? 'Save changes' : 'Create Task'}
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            className="h-10 px-4 rounded-xl"
+            disabled={isSubmitting}
+          >
+            {editingTask ? "Save changes" : "Create Task"}
           </Button>
         </div>
       </div>
     </QuickCreateModalLayout>
-  )
+  );
 }

@@ -2,6 +2,25 @@
 
 ## Date: 2026-03-23
 
+### Lesson: Edit Flows Should Not Resend Unchanged Relational Fields
+
+**Context**: Fixed the task quick-edit modal after it was failing updates while simpler task mutations elsewhere in the UI continued to work.
+
+**Mistake/Risk Avoided**:
+- The modal edit flow always resent `projectId` and `workstreamId`, even when the user only changed a title, status, or date.
+- That forced the backend to re-run project/workstream validation on every edit and made the modal more fragile than the inline task updates that only send changed fields.
+
+**Root Cause**:
+- The frontend reused the create-style payload shape for edits instead of building an update-specific payload.
+- Relational identifiers behave differently from simple fields because resending them can trigger access/context validation that is unrelated to the user’s actual change.
+
+**Preventative Rule**:
+1. Build edit payloads from diffs against the existing record whenever the backend supports partial updates.
+2. Avoid resending unchanged relational fields like project, workspace, or foreign-key references from modal edit forms.
+3. If an update still fails, surface the real backend message in the toast first before falling back to a generic string.
+
+**Applied In**: `apps/project-dashboard/components/tasks/TaskQuickCreateModal.tsx` now sends a minimal `UpdateTaskInput` and uses `getErrorMessage(...)` for update failures.
+
 ### Lesson: Do Not Return Raw Mongoose Documents From API Services
 
 **Context**: Fixed the transactions create flow after the API started returning raw Mongoose documents that leaked `$__` and `_doc` internals into the JSON response.

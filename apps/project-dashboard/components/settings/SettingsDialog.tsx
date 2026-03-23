@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { SettingsSidebarNav } from "@/components/settings/shared/SettingsSidebarNav";
 import { SettingsItemId } from "@/components/settings/settings-config";
@@ -25,10 +25,18 @@ import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 type SettingsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialItemId?: SettingsItemId;
 };
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [activeItemId, setActiveItemId] = useState<SettingsItemId>("account");
+export function SettingsDialog({ open, onOpenChange, initialItemId = "account" }: SettingsDialogProps) {
+  const [activeItemId, setActiveItemId] = useState<SettingsItemId>(initialItemId);
+  
+  // Update active item when initialItemId changes and dialog opens
+  useEffect(() => {
+    if (open) {
+      setActiveItemId(initialItemId);
+    }
+  }, [open, initialItemId]);
   const { workspaceContext, workspaceId } = useWorkspaceScope();
   const canManageInvitations =
     workspaceContext?.role === "OWNER" || workspaceContext?.role === "ADMIN";
@@ -58,16 +66,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="h-[85vh] w-full overflow-hidden rounded-3xl p-0 sm:max-h-[85vh] sm:max-w-5xl"
+        className="h-[85vh] w-full overflow-hidden rounded-[28px] border border-border/70 bg-background p-0 shadow-2xl sm:max-h-[85vh] sm:max-w-5xl"
       >
-        <div className="flex h-full flex-col sm:flex-row sm:min-h-0">
+        <div className="flex h-full flex-col bg-background sm:min-h-0 sm:flex-row">
           <SettingsSidebarNav
             activeItemId={activeItemId}
             badgeCounts={{ teammates: teammatesBadgeCount }}
             onSelect={setActiveItemId}
           />
 
-          <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:min-h-0">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-background px-6 py-6 sm:min-h-0 sm:px-8 sm:py-7">
             {activeItemId === "account" && <AccountSettingsPane />}
             {activeItemId === "notifications" && <NotificationsSettingsPane />}
             {activeItemId === "preferences" && <PreferencesSettingsPane />}
