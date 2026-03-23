@@ -38,7 +38,7 @@ type WorkstreamTabProps = {
 export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
   const [state, setState] = useState<WorkstreamGroup[]>(() => workstreams ?? [])
   const [openValues, setOpenValues] = useState<string[]>(() =>
-    workstreams && workstreams.length ? [workstreams[0].id] : [],
+    workstreams?.[0] ? [workstreams[0].id] : [],
   )
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [overTaskId, setOverTaskId] = useState<string | null>(null)
@@ -134,8 +134,9 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
       if (targetGroupIndex === -1 && overId.startsWith("group:")) {
         const groupId = overId.slice("group:".length)
         targetGroupIndex = prev.findIndex((group) => group.id === groupId)
-        if (targetGroupIndex !== -1) {
-          targetTaskIndex = prev[targetGroupIndex].tasks.length
+        const targetGroup = targetGroupIndex === -1 ? undefined : prev[targetGroupIndex]
+        if (targetGroup) {
+          targetTaskIndex = targetGroup.tasks.length
         }
       }
 
@@ -144,10 +145,14 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
       const next = [...prev]
       const sourceGroup = next[sourceGroupIndex]
       const targetGroup = next[targetGroupIndex]
+      if (!sourceGroup || !targetGroup) return prev
+
+      const insertionIndex =
+        targetTaskIndex === -1 ? targetGroup.tasks.length : targetTaskIndex
 
       // Reorder within the same workstream
       if (sourceGroupIndex === targetGroupIndex) {
-        const reordered = arrayMove(sourceGroup.tasks, sourceTaskIndex, targetTaskIndex)
+        const reordered = arrayMove(sourceGroup.tasks, sourceTaskIndex, insertionIndex)
         next[sourceGroupIndex] = { ...sourceGroup, tasks: reordered }
         return next
       }
@@ -158,7 +163,7 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
       if (!moved) return prev
 
       const targetTasks = [...targetGroup.tasks]
-      targetTasks.splice(targetTaskIndex, 0, moved)
+      targetTasks.splice(insertionIndex, 0, moved)
 
       next[sourceGroupIndex] = { ...sourceGroup, tasks: sourceTasks }
       next[targetGroupIndex] = { ...targetGroup, tasks: targetTasks }
@@ -266,7 +271,6 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
 
                 <WorkstreamTasks
                   group={group}
-                  activeTaskId={activeTaskId}
                   overTaskId={overTaskId}
                   onToggleTask={(taskId) => toggleTask(group.id, taskId)}
                 />
@@ -316,12 +320,11 @@ function getWorkstreamProgressColor(percent: number): string {
 
 type WorkstreamTasksProps = {
   group: WorkstreamGroup
-  activeTaskId: string | null
   overTaskId: string | null
   onToggleTask: (taskId: string) => void
 }
 
-function WorkstreamTasks({ group, activeTaskId, overTaskId, onToggleTask }: WorkstreamTasksProps) {
+function WorkstreamTasks({ group, overTaskId, onToggleTask }: WorkstreamTasksProps) {
   const { setNodeRef } = useDroppable({ id: `group:${group.id}` })
 
   return (
@@ -333,7 +336,6 @@ function WorkstreamTasks({ group, activeTaskId, overTaskId, onToggleTask }: Work
               key={task.id}
               task={task}
               onToggle={() => onToggleTask(task.id)}
-              activeTaskId={activeTaskId}
               overTaskId={overTaskId}
             />
           ))}
@@ -346,11 +348,10 @@ function WorkstreamTasks({ group, activeTaskId, overTaskId, onToggleTask }: Work
 type TaskRowProps = {
   task: WorkstreamTask
   onToggle: () => void
-  activeTaskId: string | null
   overTaskId: string | null
 }
 
-function TaskRow({ task, onToggle, activeTaskId, overTaskId }: TaskRowProps) {
+function TaskRow({ task, onToggle, overTaskId }: TaskRowProps) {
   const isDone = task.status === "done"
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({

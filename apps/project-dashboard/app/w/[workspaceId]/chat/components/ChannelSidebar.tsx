@@ -6,10 +6,8 @@ import {
   Hash,
   Lock,
   MessageCircle,
-  MoreVertical,
   Plus,
   Search,
-  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,8 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import type { Channel } from "@/lib/chat/types";
+import { ChannelType, type Channel } from "@/lib/chat/types";
 
 interface ChannelSidebarProps {
   channels: Channel[];
@@ -46,17 +43,23 @@ export function ChannelSidebar({
     return name.includes(searchLower);
   });
 
-  const publicChannels = filteredChannels.filter((c) => c.type === "PUBLIC");
-  const privateChannels = filteredChannels.filter((c) => c.type === "PRIVATE");
-  const dmChannels = filteredChannels.filter((c) => c.type === "DM");
+  const publicChannels = filteredChannels.filter(
+    (channel) => channel.type === ChannelType.PUBLIC,
+  );
+  const privateChannels = filteredChannels.filter(
+    (channel) => channel.type === ChannelType.PRIVATE,
+  );
+  const dmChannels = filteredChannels.filter(
+    (channel) => channel.type === ChannelType.DM,
+  );
 
-  const getChannelIcon = (type: string) => {
+  const getChannelIcon = (type: Channel["type"]) => {
     switch (type) {
-      case "PUBLIC":
+      case ChannelType.PUBLIC:
         return <Hash className="h-4 w-4" />;
-      case "PRIVATE":
+      case ChannelType.PRIVATE:
         return <Lock className="h-4 w-4" />;
-      case "DM":
+      case ChannelType.DM:
         return <MessageCircle className="h-4 w-4" />;
       default:
         return <Hash className="h-4 w-4" />;
@@ -70,7 +73,7 @@ export function ChannelSidebar({
 
   const ChannelItem = ({ channel }: { channel: Channel }) => {
     const isSelected = selectedChannelId === channel.id;
-    const unreadCount = channel.unreadCount;
+    const unreadCount = channel.unreadCount ?? 0;
 
     return (
       <button

@@ -11,6 +11,7 @@ export interface Channel {
   name?: string;
   description?: string;
   memberIds: string[];
+  unreadCount?: number;
   lastMessageId?: string;
   lastMessageAt?: string;
   createdBy: string;
@@ -46,6 +47,12 @@ export interface ChatUser {
   displayName: string;
   avatarUrl?: string;
   status?: "online" | "away" | "offline";
+}
+
+export interface MessageAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
 }
 
 export interface CreateChannelInput {

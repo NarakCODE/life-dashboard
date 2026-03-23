@@ -28,8 +28,16 @@ export function TimelineGantt({ tasks }: TimelineGanttProps) {
     )
   }
 
-  const minDate = tasks.reduce((acc, t) => (t.startDate < acc ? t.startDate : acc), tasks[0].startDate)
-  const maxDate = tasks.reduce((acc, t) => (t.endDate > acc ? t.endDate : acc), tasks[0].endDate)
+  const firstTask = tasks[0]!
+  const restTasks = tasks.slice(1)
+  const minDate = restTasks.reduce(
+    (acc, task) => (task.startDate < acc ? task.startDate : acc),
+    firstTask.startDate,
+  )
+  const maxDate = restTasks.reduce(
+    (acc, task) => (task.endDate > acc ? task.endDate : acc),
+    firstTask.endDate,
+  )
   const minWeekStart = startOfWeek(minDate, { weekStartsOn: 1 })
   const maxWeekStart = startOfWeek(maxDate, { weekStartsOn: 1 })
 
@@ -47,12 +55,13 @@ export function TimelineGantt({ tasks }: TimelineGanttProps) {
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i))
   })()
 
-  const monthLabel = format(days[0], "MMMM yyyy")
+  const rangeStartDate = startOfWeek(effectiveRangeStart, { weekStartsOn: 1 })
+  const rangeEndDate = addDays(rangeStartDate, 7)
 
   const today = new Date()
-  const todayInRange = isWithinInterval(today, { start: days[0], end: addDays(days[days.length - 1], 1) })
+  const todayInRange = isWithinInterval(today, { start: rangeStartDate, end: rangeEndDate })
   const todayIndex = todayInRange
-    ? clamp(differenceInDays(today, days[0]), 0, days.length - 1)
+    ? clamp(differenceInDays(today, rangeStartDate), 0, days.length - 1)
     : Math.floor(days.length / 2)
 
   const handlePrevious = () => {
@@ -76,9 +85,6 @@ export function TimelineGantt({ tasks }: TimelineGanttProps) {
     setRangeStart(base)
   }
 
-  const rangeStartDate = days[0]
-  const rangeEndDate = addDays(days[days.length - 1], 1)
-
   const hasTasksInRange = tasks.some((t) => t.startDate < rangeEndDate && t.endDate >= rangeStartDate)
 
   const canGoPrevious = currentWeekStart.getTime() > minWeekStart.getTime()
@@ -98,7 +104,7 @@ export function TimelineGantt({ tasks }: TimelineGanttProps) {
             </div>
             <div className="px-4 py-2 border-b border-border bg-background">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-muted-foreground">{monthLabel}</div>
+                <div className="text-xs text-muted-foreground">{format(rangeStartDate, "MMMM yyyy")}</div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
@@ -178,8 +184,8 @@ export function TimelineGantt({ tasks }: TimelineGanttProps) {
             )}
 
             {tasks.map((t, rowIdx) => {
-              const startOffset = differenceInDays(t.startDate, days[0])
-              const endOffset = differenceInDays(t.endDate, days[0])
+              const startOffset = differenceInDays(t.startDate, rangeStartDate)
+              const endOffset = differenceInDays(t.endDate, rangeStartDate)
 
               const totalDays = days.length
               const leftPct = clamp((startOffset / totalDays) * 100, 0, 100)

@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "../../ui/calendar";
@@ -17,7 +16,7 @@ import {
   CommandItem,
   CommandList,
 } from "../../ui/command";
-import { Check, X, CornersOut, Star, CalendarBlank, UserCircle, Spinner, List, Paperclip, Microphone, Rows, ChartBar, Tag } from "@phosphor-icons/react/dist/ssr";
+import { Check, X, CalendarBlank, UserCircle, Spinner, List, Paperclip, Microphone, Rows, ChartBar, Tag } from "@phosphor-icons/react/dist/ssr";
 import { ProjectDescriptionEditor } from "../ProjectDescriptionEditor";
 import { clients, type Client } from "@/lib/data/clients";
 
@@ -64,6 +63,16 @@ const TAGS = [
   { id: "enhancement", label: "Enhancement", color: "var(--chart-4)" },
   { id: "docs", label: "Documentation", color: "var(--chart-3)" },
 ];
+
+function getRequiredItem<T>(items: readonly T[], label: string): T {
+  const item = items[0];
+
+  if (!item) {
+    throw new Error(`Missing default ${label}`);
+  }
+
+  return item;
+}
 
 // --- Helper Components ---
 
@@ -185,15 +194,17 @@ export function StepQuickCreate({
   onCreate,
   onExpandChange,
 }: StepQuickCreateProps) {
+  const defaultAssignee = getRequiredItem(USERS, "assignee");
+  const defaultStatus = getRequiredItem(STATUSES.slice(1), "status");
   const [title, setTitle] = useState("");
   // Description is now managed by Tiptap editor
 
   // Data State
-  const [assignee, setAssignee] = useState(USERS[0]);
+  const [assignee, setAssignee] = useState(defaultAssignee);
   const [startDate, setStartDate] = useState<Date | undefined>(
     new Date(),
   );
-  const [status, setStatus] = useState(STATUSES[1]); // Todo default
+  const [status, setStatus] = useState(defaultStatus);
   const [sprintType, setSprintType] = useState<
     (typeof SPRINT_TYPES)[0] | null
   >(null);
@@ -396,7 +407,7 @@ export function StepQuickCreate({
                   </defs>
                 </Wrapper>
                 {status.id !== "backlog" && (
-                  <div className={cn("size-2 rounded-full", (status as any).dotClass)} />
+                  <div className={cn("size-2 rounded-full", status.dotClass)} />
                 )}
                 <span className="font-medium text-foreground text-sm leading-5">
                   {status.label}

@@ -94,7 +94,7 @@ export class UsersRepository {
     },
   ): Promise<void> {
     const updateData: Record<string, unknown> = {};
-    
+
     if (update.displayName !== undefined) {
       updateData.displayName = update.displayName;
     }

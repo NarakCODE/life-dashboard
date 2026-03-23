@@ -1,3 +1,70 @@
+# Onboarding Invitation Delivery Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the onboarding invite step, workspace invitation flow, and notifications layer
+- [x] Confirm invite emails are currently only persisted in onboarding answers and never delivered
+- [x] Identify the lowest-risk integration point: process onboarding invitees during onboarding completion
+
+### 2. Fix
+- [x] Create real workspace invitations from saved onboarding invitees when onboarding completes
+- [x] Send in-app notifications to invited users that already exist in the system
+- [x] Update the onboarding invite step copy so the UX reflects real delivery behavior
+
+### 3. Verification
+- [x] Run targeted backend/frontend checks for the touched files
+- [x] Verify the onboarding invite UX and recipient notification behavior in Chrome DevTools
+- [x] Record results and remaining gaps
+
+## Review / Results
+- Updated onboarding completion in `apps/api/src/onboarding/onboarding.service.ts` so saved invitee emails are converted into real workspace invitations as part of the existing setup-complete path.
+- Added recipient-targeted notification creation in `apps/api/src/notifications/notifications.service.ts` and `apps/api/src/notifications/notifications.repository.ts`, then used that path from onboarding so existing users receive an in-app invite notification even before they are members of the target workspace.
+- Kept onboarding invite notifications user-scoped and global (`workspaceId: null`) so invited users can see the invite from their current workspace instead of depending on access to the destination workspace first.
+- Updated `apps/project-dashboard/components/onboarding/OnboardingPage.tsx` copy so the pending invite step and review state clearly explain that setup completion will deliver invitations and notifications.
+- Added/updated backend regression coverage in `apps/api/src/onboarding/onboarding.service.spec.ts` for invite creation plus notification delivery to existing users.
+- Verification:
+- `pnpm exec eslint src/notifications/notifications.repository.ts src/notifications/notifications.service.ts src/onboarding/onboarding.service.ts src/onboarding/onboarding.service.spec.ts` in `apps/api` ✅
+- `pnpm test -- onboarding.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint components/onboarding/OnboardingPage.tsx` in `apps/project-dashboard` ✅
+- Chrome DevTools verification:
+- inviter onboarding sessions completed without showing a self-notification badge afterward
+- invited local dev user `dev@life-dashboard.local` saw `Workspace invitation: Dev Invite E2E's Workspace` in `/w/69c0b60618cdd085fd1e2aac/notifications` with unread count `1` ✅
+- Remaining gaps:
+- Users who do not already have an account still only receive the stored workspace invitation record; email delivery is still a separate follow-up if external invite emails are required.
+
+# Frontend Typecheck Recovery Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Re-run repo verification to capture the current failing typecheck and lint surfaces
+- [x] Confirm the main blockers are concentrated in frontend chat, task client contracts, and strict null-safety errors
+
+### 2. Fix
+- [x] Align chat UI components with the shared chat types and add any missing UI/dependency pieces needed for compilation
+- [x] Fix the task client response-shape mismatch and any related query contract issues
+- [x] Resolve strict TypeScript failures in project wizard, gantt, workstream, and combobox components
+
+### 3. Verification
+- [x] Run targeted frontend typecheck/lint on the touched files
+- [x] Run repo-level `pnpm check-types`
+- [x] Record results and any remaining gaps
+
+## Review / Results
+- Added a shared `ScrollArea` implementation at `apps/project-dashboard/components/ui/scroll-area.tsx` so the chat components compile against the local UI library again.
+- Aligned the chat frontend types and components in `apps/project-dashboard/lib/chat/*` and `apps/project-dashboard/app/w/[workspaceId]/chat/components/*` with the currently available backend contract: lowercase channel types, optional unread counts, message rendering without a nested author object, and a typed fallback declaration for the currently uninstalled `socket.io-client` module.
+- Fixed the task detail client in `apps/project-dashboard/lib/tasks/tasks-client.ts` to return the unwrapped task payload instead of the full API envelope.
+- Removed the strict TypeScript failures in `StepOwnership`, `StepQuickCreate`, `TimelineGantt`, `UploadAudioModal`, `WorkstreamTab`, `timeline-bar`, and `combobox` by replacing unsafe indexed access and optional reads with explicit guarded values.
+- Verification:
+- `pnpm exec tsc --noEmit 2>&1 | rg "app/w/\\[workspaceId\\]/chat/components/ChannelSidebar|app/w/\\[workspaceId\\]/chat/components/MessageList|lib/chat/(chat-query|types|use-chat-socket)|lib/tasks/tasks-client|components/project-wizard/steps/StepOwnership|components/project-wizard/steps/StepQuickCreate|components/projects/(TimelineGantt|UploadAudioModal|WorkstreamTab)|components/timeline-bar|components/ui/combobox|components/ui/scroll-area|types/socket.io-client"` in `apps/project-dashboard` returned no matches ✅
+- `pnpm exec eslint 'app/w/[workspaceId]/chat/components/ChannelSidebar.tsx' 'app/w/[workspaceId]/chat/components/MessageList.tsx' lib/chat/chat-client.ts lib/chat/chat-query.ts lib/chat/types.ts lib/tasks/tasks-client.ts components/project-wizard/steps/StepOwnership.tsx components/project-wizard/steps/StepQuickCreate.tsx components/projects/TimelineGantt.tsx components/projects/UploadAudioModal.tsx components/projects/WorkstreamTab.tsx components/timeline-bar.tsx components/ui/combobox.tsx components/ui/scroll-area.tsx types/socket.io-client.d.ts` in `apps/project-dashboard` completed with warnings only ✅
+- `pnpm check-types` at repo root ✅
+- `pnpm lint` at repo root completed with existing warnings only ✅
+- Remaining gaps:
+- The repo still has lint-warning debt, especially React `prop-types` warnings in TypeScript files, unused imports/variables, and some `no-img-element` warnings in the project wizard and auth dialog flows.
+- `apps/project-dashboard/lib/chat/use-chat-socket.ts` now typechecks via a local declaration file, but the package is still not installed; if the chat socket hook becomes part of an active route, add the real `socket.io-client` dependency instead of relying on the shim.
+
 # Auth Success Workspace Cache Refresh Plan
 
 ## Status: COMPLETE

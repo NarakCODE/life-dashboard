@@ -246,12 +246,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private extractToken(client: Socket): string | null {
     const auth = client.handshake.auth;
     if (auth?.token) return auth.token;
-    
+
     const header = client.handshake.headers.authorization;
     if (header?.startsWith('Bearer ')) {
       return header.substring(7);
     }
-    
+
     return null;
   }
 
@@ -264,7 +264,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private removeOnlineUser(userId: string, socketId: string): void {
     const sockets = this.onlineUsers.get(userId) || [];
     const filtered = sockets.filter(id => id !== socketId);
-    
+
     if (filtered.length === 0) {
       this.onlineUsers.delete(userId);
     } else {

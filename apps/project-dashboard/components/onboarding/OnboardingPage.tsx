@@ -431,7 +431,7 @@ export function OnboardingPage() {
       })
 
       toast.success(
-        invitees.length > 0 ? "Invite list saved for later" : "Invite step saved",
+        invitees.length > 0 ? "Invitations queued for workspace launch" : "Invite step saved",
       )
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to save collaborator planning"))
@@ -571,7 +571,7 @@ export function OnboardingPage() {
               placeholder={"alex@example.com\nsam@example.com"}
             />
             <p className="text-sm text-muted-foreground">
-              These emails are stored with your onboarding answers for follow-up. Invitation sending can be connected next.
+              These collaborators will receive workspace invitations when you complete setup. Existing users will also see the invite in their notifications.
             </p>
           </div>
         </div>
@@ -617,7 +617,7 @@ export function OnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             <p className="font-medium text-foreground">
-              {invitees.length > 0 ? `${invitees.length} planned invite${invitees.length > 1 ? "s" : ""}` : "No invitees yet"}
+              {invitees.length > 0 ? `${invitees.length} invite${invitees.length > 1 ? "s" : ""} ready to send` : "No invitees yet"}
             </p>
             <p className="text-muted-foreground">
               {invitees.length > 0 ? invitees.join(", ") : "You can add collaborators later."}

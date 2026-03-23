@@ -97,7 +97,7 @@ export async function getTask(
   workspaceId: string,
   taskId: string,
 ): Promise<ProjectTask> {
-  return apiRequestEnvelope<ProjectTask>({
+  return apiRequest<ProjectTask>({
     path: `/tasks/${taskId}`,
     auth: "required",
     workspaceId,

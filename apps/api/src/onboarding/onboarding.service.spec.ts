@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
 import { OnboardingService } from './onboarding.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
+import { WorkspaceRole } from '../workspaces/schemas/workspace.schema';
 import {
   OnboardingStatus,
   OnboardingStep,
@@ -39,6 +41,9 @@ describe('OnboardingService', () => {
     const workspacesService = {
       update: jest.fn(),
     };
+    const notificationsService = {
+      createForRecipient: jest.fn(),
+    };
     const workspaceProvisioningService = {
       ensureDefaultWorkspaceForUser: jest.fn().mockResolvedValue({
         _id: workspaceId,
@@ -48,6 +53,7 @@ describe('OnboardingService', () => {
     const service = new OnboardingService(
       onboardingSessionModel as never,
       usersService as never,
+      notificationsService as never,
       workspacesService as never,
       workspaceProvisioningService as never,
     );
@@ -99,6 +105,7 @@ describe('OnboardingService', () => {
     const service = new OnboardingService(
       onboardingSessionModel as never,
       usersService as never,
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -163,6 +170,7 @@ describe('OnboardingService', () => {
       onboardingSessionModel as never,
       {} as never,
       {} as never,
+      {} as never,
       workspaceProvisioningService as never,
     );
 
@@ -206,6 +214,9 @@ describe('OnboardingService', () => {
       currentStep: OnboardingStep.REVIEW,
       completedSteps: [OnboardingStep.PROFILE, OnboardingStep.WORKSPACE],
       answers: {
+        [OnboardingStep.INVITES]: {
+          invitees: ['invitee@example.com', 'missing@example.com'],
+        },
         [OnboardingStep.WORKSPACE]: {
           name: 'Personal HQ',
         },
@@ -240,6 +251,32 @@ describe('OnboardingService', () => {
     };
     const workspacesService = {
       update: jest.fn().mockResolvedValue(undefined),
+      inviteMember: jest
+        .fn()
+        .mockResolvedValueOnce({ id: new Types.ObjectId().toString() })
+        .mockResolvedValueOnce({ id: new Types.ObjectId().toString() }),
+      findOne: jest.fn().mockResolvedValue({
+        id: workspaceId.toString(),
+        name: 'Personal HQ',
+      }),
+    };
+    const usersService = {
+      findById: jest.fn().mockResolvedValue({
+        _id: new Types.ObjectId(userId),
+        email: 'owner@example.com',
+        displayName: 'Narak',
+      }),
+      findByEmail: jest
+        .fn()
+        .mockResolvedValueOnce({
+          _id: new Types.ObjectId(),
+          email: 'invitee@example.com',
+          displayName: 'Invitee',
+        })
+        .mockResolvedValueOnce(null),
+    };
+    const notificationsService = {
+      createForRecipient: jest.fn().mockResolvedValue(undefined),
     };
     const workspaceProvisioningService = {
       ensureDefaultWorkspaceForUser: jest.fn().mockResolvedValue({
@@ -249,7 +286,8 @@ describe('OnboardingService', () => {
 
     const service = new OnboardingService(
       onboardingSessionModel as never,
-      {} as never,
+      usersService as never,
+      notificationsService as never,
       workspacesService as never,
       workspaceProvisioningService as never,
     );
@@ -266,6 +304,9 @@ describe('OnboardingService', () => {
         OnboardingStep.REVIEW,
       ],
       answers: {
+        [OnboardingStep.INVITES]: {
+          invitees: ['invitee@example.com', 'missing@example.com'],
+        },
         [OnboardingStep.WORKSPACE]: {
           name: 'Personal HQ',
         },
@@ -280,6 +321,43 @@ describe('OnboardingService', () => {
     expect(workspacesService.update).toHaveBeenCalledWith(
       workspaceId.toString(),
       { name: 'Personal HQ' },
+    );
+    expect(workspacesService.inviteMember).toHaveBeenNthCalledWith(
+      1,
+      workspaceId.toString(),
+      userId,
+      {
+        email: 'invitee@example.com',
+        role: WorkspaceRole.MEMBER,
+      },
+    );
+    expect(workspacesService.inviteMember).toHaveBeenNthCalledWith(
+      2,
+      workspaceId.toString(),
+      userId,
+      {
+        email: 'missing@example.com',
+        role: WorkspaceRole.MEMBER,
+      },
+    );
+    expect(notificationsService.createForRecipient).toHaveBeenCalledTimes(1);
+    expect(notificationsService.createForRecipient).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        type: NotificationType.SYSTEM,
+        title: 'Workspace invitation: Personal HQ',
+        body: 'Narak invited you to join Personal HQ.',
+        data: expect.objectContaining({
+          workspaceId: workspaceId.toString(),
+          workspaceName: 'Personal HQ',
+          inviteeEmail: 'invitee@example.com',
+          invitedBy: 'Narak',
+        }),
+      }),
+      {
+        workspaceId: null,
+        createdByUserId: userId,
+      },
     );
   });
 });

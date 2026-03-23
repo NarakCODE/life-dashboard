@@ -15,8 +15,13 @@ interface TimelineBarProps {
 }
 
 export function TimelineBar({ startDate, endDate, dates, cellWidth, label, progress, variant, status }: TimelineBarProps) {
-  const firstDate = dates[0]
-  const lastDate = dates[dates.length - 1]
+  const firstDate = dates.at(0)
+  const lastDate = dates.at(-1)
+
+  if (!firstDate || !lastDate) {
+    return null
+  }
+
   const totalDays = differenceInCalendarDays(lastDate, firstDate) + 1
 
   const startOffset = differenceInCalendarDays(startDate, firstDate)

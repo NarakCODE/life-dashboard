@@ -1,4 +1,4 @@
-import { apiRequest, apiRequestEnvelope } from "@/lib/api/api-client";
+import { apiRequest } from "@/lib/api/api-client";
 import type {
   Channel,
   CreateChannelInput,

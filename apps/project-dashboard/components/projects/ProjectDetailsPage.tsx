@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react"
 import { LinkSimple, SquareHalf } from "@phosphor-icons/react/dist/ssr"
 import { toast } from "sonner"
 import { AnimatePresence, motion } from "motion/react"
+import { cn } from "@/lib/utils"
 
 import { buildProjectDetailsFromSummary } from "@/lib/data/project-details"
 import { Breadcrumbs } from "@/components/projects/Breadcrumbs"
@@ -99,7 +100,7 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
 
   return (
     <div className="flex flex-1 flex-col min-w-0">
-      <div className="flex items-center justify-between gap-4 px-4 py-4">
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-4 px-4 py-4 bg-background/80 backdrop-blur-md border-b">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
           <div className="hidden sm:block">
@@ -124,19 +125,19 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col bg-background px-2 my-0 rounded-b-lg min-w-0 border-t">
-        <div className="px-4">
+      <div className="flex flex-1 flex-col bg-background px-2 my-0 min-w-0">
+        <div className="px-4 py-6">
           <div className="mx-auto w-full max-w-7xl">
 
             <div
-              className={
-                "mt-0 grid grid-cols-1 gap-15 " +
-                (showMeta
+              className={cn(
+                "mt-0 grid grid-cols-1 items-start gap-8 lg:gap-16",
+                showMeta
                   ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,320px)]"
-                  : "lg:grid-cols-[minmax(0,1fr)_minmax(0,0px)]")
-              }
+                  : "lg:grid-cols-[minmax(0,1fr)_minmax(0,0px)]"
+              )}
             >
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6">
                 <ProjectHeader
                   project={project}
                   onEditProject={canManageProjects ? openWizard : undefined}
@@ -187,7 +188,7 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 80, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 26 }}
-                    className="lg:border-l lg:border-border lg:pl-6"
+                    className="lg:border-l lg:border-border lg:pl-6 lg:sticky lg:top-24 max-h-[calc(100vh-var(--spacing-24))] overflow-y-auto pb-10"
                   >
                     <RightMetaPanel project={project} />
                   </motion.div>

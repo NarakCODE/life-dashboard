@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { OnboardingController } from './onboarding.controller';
 import { OnboardingService } from './onboarding.service';
@@ -15,6 +16,7 @@ import {
       { name: OnboardingSession.name, schema: OnboardingSessionSchema },
     ]),
     UsersModule,
+    NotificationsModule,
     WorkspacesModule,
   ],
   controllers: [OnboardingController],

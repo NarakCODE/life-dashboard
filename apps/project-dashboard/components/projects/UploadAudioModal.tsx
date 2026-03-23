@@ -27,8 +27,9 @@ export function UploadAudioModal({
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault()
         const files = e.dataTransfer.files
-        if (files.length > 0) {
-            onFileSelect(files[0].name)
+        const file = files.item(0)
+        if (file) {
+            onFileSelect(file.name)
             onOpenChange(false)
         }
     }
@@ -39,8 +40,9 @@ export function UploadAudioModal({
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
-        if (files && files.length > 0) {
-            onFileSelect(files[0].name)
+        const file = files?.item(0)
+        if (file) {
+            onFileSelect(file.name)
             onOpenChange(false)
         }
     }

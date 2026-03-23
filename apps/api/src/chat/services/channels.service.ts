@@ -19,7 +19,7 @@ export class ChannelsService {
   ): Promise<Channel> {
     // Build member list
     const memberIds = [...new Set(dto.memberIds || [])];
-    
+
     // DM requires exactly 2 members
     if (dto.type === ChannelType.DM && memberIds.length !== 2) {
       throw new ForbiddenException('DM channels require exactly 2 members');

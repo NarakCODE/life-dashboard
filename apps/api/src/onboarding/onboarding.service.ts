@@ -1,13 +1,17 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceProvisioningService } from '../workspaces/workspace-provisioning.service';
+import { WorkspaceRole } from '../workspaces/schemas/workspace.schema';
 import { OnboardingSessionResponseDto } from './dto/onboarding-session-response.dto';
 import { OnboardingStateResponseDto } from './dto/onboarding-state-response.dto';
 import {
@@ -24,10 +28,13 @@ import {
 
 @Injectable()
 export class OnboardingService {
+  private readonly logger = new Logger(OnboardingService.name);
+
   constructor(
     @InjectModel(OnboardingSession.name)
     private readonly onboardingSessionModel: Model<OnboardingSessionDocument>,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
     private readonly workspacesService: WorkspacesService,
     private readonly workspaceProvisioningService: WorkspaceProvisioningService,
   ) {}
@@ -115,6 +122,13 @@ export class OnboardingService {
     if (workspaceUpdate) {
       await this.workspacesService.update(workspaceId, workspaceUpdate);
     }
+
+    await this.processInviteDeliveries(
+      userId,
+      workspaceId,
+      session.answers,
+      workspaceUpdate?.name,
+    );
 
     const completedSession = await this.onboardingSessionModel
       .findByIdAndUpdate(
@@ -289,6 +303,98 @@ export class OnboardingService {
     }
 
     return { name };
+  }
+
+  private async processInviteDeliveries(
+    inviterUserId: string,
+    workspaceId: string,
+    answers: Record<string, unknown> | undefined,
+    workspaceNameOverride?: string,
+  ): Promise<void> {
+    const invitees = this.extractInvitees(answers);
+
+    if (!invitees.length) {
+      return;
+    }
+
+    const inviter = await this.usersService.findById(inviterUserId);
+    const workspaceName =
+      workspaceNameOverride?.trim() ||
+      (await this.workspacesService.findOne(workspaceId)).name;
+    for (const email of invitees) {
+      if (email === inviter.email.toLowerCase()) {
+        continue;
+      }
+
+      try {
+        const invitee = await this.usersService.findByEmail(email);
+        const invitation = await this.workspacesService.inviteMember(
+          workspaceId,
+          inviterUserId,
+          {
+            email,
+            role: WorkspaceRole.MEMBER,
+          },
+        );
+
+        if (!invitee) {
+          continue;
+        }
+
+        await this.notificationsService.createForRecipient(
+          invitee._id.toString(),
+          {
+            type: NotificationType.SYSTEM,
+            title: `Workspace invitation: ${workspaceName}`,
+            body: `${inviter.displayName} invited you to join ${workspaceName}.`,
+            data: {
+              invitationId: invitation.id,
+              workspaceId,
+              workspaceName,
+              inviteeEmail: email,
+              invitedBy: inviter.displayName,
+              entityLabel: workspaceName,
+            },
+          },
+          {
+            workspaceId: null,
+            createdByUserId: inviterUserId,
+          },
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Skipping onboarding invite delivery for ${email} in workspace ${workspaceId}: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+        );
+      }
+    }
+  }
+
+  private extractInvitees(
+    answers: Record<string, unknown> | undefined,
+  ): string[] {
+    const invitesAnswers = this.isRecord(answers?.[OnboardingStep.INVITES])
+      ? answers?.[OnboardingStep.INVITES]
+      : null;
+
+    if (!this.isRecord(invitesAnswers)) {
+      return [];
+    }
+
+    const rawInvitees = invitesAnswers.invitees;
+    if (!Array.isArray(rawInvitees)) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        rawInvitees
+          .filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
   }
 
   private mapSessionStatus(status: OnboardingStatus): OnboardingStateStatus {

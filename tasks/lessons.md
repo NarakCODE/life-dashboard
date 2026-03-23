@@ -2,6 +2,44 @@
 
 ## Date: 2026-03-23
 
+### Lesson: Notification Visibility Must Be Scoped To The Recipient, Not Just The Workspace
+
+**Context**: Added onboarding invite delivery so completing setup creates real workspace invitations and in-app notifications for existing users who were invited during onboarding.
+
+**Mistake/Risk Avoided**:
+- The first pass created the invite notification successfully, but repository reads still used a workspace-scoped filter that could expose a notification to the inviter or other members of the same workspace.
+- That would have turned a UX improvement into a privacy bug because notifications are inherently recipient-specific even when they reference a shared workspace.
+
+**Root Cause**:
+- `NotificationsRepository` reused a workspace-centric filter shape for list, count, read, update, and delete operations.
+- One branch of that filter matched workspace-wide records without enforcing the recipient user id, which was too broad for notification delivery semantics.
+
+**Preventative Rule**:
+1. Treat notifications as recipient-owned data first, with workspace scope as optional metadata.
+2. Require the recipient user id in every repository query branch that returns or mutates notifications.
+3. Live-verify both the sender and recipient UI states after changing notification delivery so visibility bugs are caught before closeout.
+
+**Applied In**: `apps/api/src/notifications/notifications.repository.ts` now uses a recipient-scoped filter, and onboarding invite notifications are created through `createForRecipient(...)` with global scope when the recipient is not yet a workspace member.
+
+### Lesson: Avoid Root Lint Runs That Auto-Fix Unrelated Packages Mid-Task
+
+**Context**: Cleared the frontend typecheck backlog from the monorepo root and ran `pnpm lint` to verify the repo after the fixes.
+
+**Mistake/Risk Avoided**:
+- The root lint pipeline runs the API package with `eslint --fix`, which rewrote unrelated backend chat and user files even though the task only targeted frontend issues.
+- That kind of incidental churn makes it harder to review the real change set and increases the risk of mixing unrelated edits into one task.
+
+**Root Cause**:
+- I treated the root lint command as a read-only verification step.
+- In this repo, package-level lint scripts are not symmetrical: the frontend lints without fixes, but the backend lints with auto-fix enabled.
+
+**Preventative Rule**:
+1. Check whether repo or package lint scripts include `--fix` before using them as a verification step.
+2. Prefer targeted lint commands for the touched package when a root pipeline would auto-edit unrelated files.
+3. If root verification is still needed, inspect the worktree immediately after running it and remove incidental churn before closing the task.
+
+**Applied In**: Reverted the unrelated API formatting churn after the root lint run and kept the actual task scoped to frontend typecheck fixes.
+
 ### Lesson: Redirect Incomplete Users Before Workspace Queries Mount
 
 **Context**: Integrated the new onboarding backend state into the Next.js frontend so authenticated users without completed setup are redirected into `/onboarding`.

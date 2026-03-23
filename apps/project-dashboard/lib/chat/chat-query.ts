@@ -138,7 +138,7 @@ export function useMarkAsReadMutation(workspaceId: string) {
       messageId: string;
     }) => {
       if (!workspaceId) throw new Error("Workspace not available");
-      return markAsRead(workspaceId, channelId, { messageId });
+      return markAsRead(workspaceId, channelId, { channelId, messageId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

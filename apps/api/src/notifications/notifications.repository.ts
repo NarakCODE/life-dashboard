@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
-  buildWorkspaceScopedFilter,
   toObjectId,
+  toObjectIdOrNull,
   WorkspaceScope,
 } from '../common/utils/workspace-scope.util';
 import {
@@ -30,16 +30,75 @@ export class NotificationsRepository {
     scope: WorkspaceScope,
     dto: CreateNotificationDto,
   ): Promise<NotificationDocument> {
+    return this.createForRecipient(
+      scope.userId,
+      dto,
+      scope.workspaceId,
+      scope.userId,
+    );
+  }
+
+  async createForRecipient(
+    recipientUserId: string | Types.ObjectId,
+    dto: CreateNotificationDto,
+    workspaceId?: string | Types.ObjectId | null,
+    createdByUserId?: string | Types.ObjectId | null,
+  ): Promise<NotificationDocument> {
     const notification = new this.notificationModel({
       ...dto,
-      workspaceId: toObjectId(scope.workspaceId),
-      userId: toObjectId(scope.userId),
-      recipientUserId: toObjectId(scope.userId),
-      createdBy: toObjectId(scope.userId),
+      workspaceId: workspaceId ? toObjectId(workspaceId) : null,
+      userId: toObjectId(recipientUserId),
+      recipientUserId: toObjectId(recipientUserId),
+      createdBy: createdByUserId ? toObjectId(createdByUserId) : null,
       isRead: false,
       readAt: null,
     });
     return notification.save();
+  }
+
+  private buildRecipientScopedFilter(
+    scope: WorkspaceScope,
+    extraFilter: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    const workspaceObjectId = toObjectIdOrNull(scope.workspaceId);
+    const userObjectId = toObjectId(scope.userId);
+    const baseFilter = {
+      userId: userObjectId,
+      recipientUserId: userObjectId,
+      ...extraFilter,
+    };
+
+    if (!workspaceObjectId) {
+      return {
+        $or: [
+          {
+            workspaceId: { $exists: false },
+            ...baseFilter,
+          },
+          {
+            workspaceId: null,
+            ...baseFilter,
+          },
+        ],
+      };
+    }
+
+    return {
+      $or: [
+        {
+          workspaceId: workspaceObjectId,
+          ...baseFilter,
+        },
+        {
+          workspaceId: { $exists: false },
+          ...baseFilter,
+        },
+        {
+          workspaceId: null,
+          ...baseFilter,
+        },
+      ],
+    };
   }
 
   /**
@@ -52,9 +111,7 @@ export class NotificationsRepository {
     return this.notificationModel
       .findOne({
         _id: new Types.ObjectId(id.toString()),
-        ...buildWorkspaceScopedFilter(scope, {
-          userId: toObjectId(scope.userId),
-        }),
+        ...this.buildRecipientScopedFilter(scope),
       })
       .exec();
   }
@@ -66,11 +123,8 @@ export class NotificationsRepository {
     scope: WorkspaceScope,
     query: QueryNotificationDto,
   ): Promise<{ items: NotificationDocument[]; total: number }> {
-    const filter: Record<string, unknown> = {
-      ...buildWorkspaceScopedFilter(scope, {
-        userId: toObjectId(scope.userId),
-      }),
-    };
+    const filter: Record<string, unknown> =
+      this.buildRecipientScopedFilter(scope);
 
     // Filter by notification type
     if (query.type) {
@@ -113,9 +167,7 @@ export class NotificationsRepository {
   async countUnread(scope: WorkspaceScope): Promise<number> {
     return this.notificationModel
       .countDocuments({
-        ...buildWorkspaceScopedFilter(scope, {
-          userId: toObjectId(scope.userId),
-        }),
+        ...this.buildRecipientScopedFilter(scope),
         isRead: false,
       })
       .exec();
@@ -138,9 +190,7 @@ export class NotificationsRepository {
       .findOneAndUpdate(
         {
           _id: new Types.ObjectId(id.toString()),
-          ...buildWorkspaceScopedFilter(scope, {
-            userId: toObjectId(scope.userId),
-          }),
+          ...this.buildRecipientScopedFilter(scope),
         },
         { $set: updateData },
         { new: true },
@@ -155,9 +205,7 @@ export class NotificationsRepository {
     const result = await this.notificationModel
       .updateMany(
         {
-          ...buildWorkspaceScopedFilter(scope, {
-            userId: toObjectId(scope.userId),
-          }),
+          ...this.buildRecipientScopedFilter(scope),
           isRead: false,
         },
         {
@@ -182,9 +230,7 @@ export class NotificationsRepository {
     const result = await this.notificationModel
       .deleteOne({
         _id: new Types.ObjectId(id.toString()),
-        ...buildWorkspaceScopedFilter(scope, {
-          userId: toObjectId(scope.userId),
-        }),
+        ...this.buildRecipientScopedFilter(scope),
       })
       .exec();
 

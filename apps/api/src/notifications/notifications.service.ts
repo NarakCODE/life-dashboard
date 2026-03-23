@@ -31,6 +31,28 @@ export class NotificationsService {
     return this.mapToResponseDto(notification);
   }
 
+  async createForRecipient(
+    recipientUserId: string,
+    dto: CreateNotificationDto,
+    options?: {
+      workspaceId?: string | null;
+      createdByUserId?: string | null;
+    },
+  ): Promise<NotificationResponseDto> {
+    const notification = await this.notificationsRepo.createForRecipient(
+      recipientUserId,
+      dto,
+      options?.workspaceId ?? null,
+      options?.createdByUserId ?? null,
+    );
+    this.logger.log(
+      `Notification created for recipient ${recipientUserId} in workspace ${
+        options?.workspaceId ?? 'global'
+      }: ${dto.type}`,
+    );
+    return this.mapToResponseDto(notification);
+  }
+
   /**
    * Find a notification by ID, scoped to the user.
    * Throws NotFoundException if not found or doesn't belong to user.

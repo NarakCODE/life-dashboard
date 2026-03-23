@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   Hash,
   Lock,
@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Trash2,
   Pencil,
-  Smile,
   Loader2,
 } from "lucide-react";
 
@@ -22,12 +21,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Channel, Message, User } from "@/lib/chat/types";
+import { ChannelType, type Channel, type ChatUser, type Message } from "@/lib/chat/types";
 
 interface MessageListProps {
   channel?: Channel;
   messages: Message[];
-  currentUser?: User;
+  currentUser?: ChatUser;
   isLoading?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
@@ -42,12 +41,22 @@ function MessageItem({
   onDelete,
 }: {
   message: Message;
-  currentUser?: User;
+  currentUser?: ChatUser;
   showHeader: boolean;
   onDelete?: (messageId: string) => void;
 }) {
   const isOwnMessage = message.authorId === currentUser?.id;
   const isTemp = message.id.startsWith("temp-");
+  const authorName = isOwnMessage
+    ? currentUser?.displayName ?? "You"
+    : `User ${message.authorId.slice(0, 6)}`;
+  const authorInitials =
+    authorName
+      .split(" ")
+      .map((part) => part.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
 
   return (
     <div
@@ -58,7 +67,7 @@ function MessageItem({
       {showHeader ? (
         <Avatar className="h-8 w-8 shrink-0">
           <AvatarFallback className="bg-primary/10 text-xs">
-            {message.author?.name?.slice(0, 2).toUpperCase() || "U"}
+            {authorInitials}
           </AvatarFallback>
         </Avatar>
       ) : (
@@ -68,9 +77,7 @@ function MessageItem({
       <div className="min-w-0 flex-1">
         {showHeader && (
           <div className="mb-0.5 flex items-center gap-2">
-            <span className="font-medium text-sm">
-              {message.author?.name || "Unknown User"}
-            </span>
+            <span className="font-medium text-sm">{authorName}</span>
             <span className="text-muted-foreground text-xs">
               {format(new Date(message.createdAt), "MMM d, h:mm a")}
             </span>
@@ -127,9 +134,7 @@ export function MessageList({
   hasMore,
   onLoadMore,
   onDeleteMessage,
-  onEditMessage,
 }: MessageListProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -139,28 +144,24 @@ export function MessageList({
     }
   }, [messages.length]);
 
-  const getChannelIcon = (type: string) => {
+  const getChannelIcon = (type: Channel["type"]) => {
     switch (type) {
-      case "PUBLIC":
+      case ChannelType.PUBLIC:
         return <Hash className="h-5 w-5" />;
-      case "PRIVATE":
+      case ChannelType.PRIVATE:
         return <Lock className="h-5 w-5" />;
-      case "DM":
+      case ChannelType.DM:
         return <MessageCircle className="h-5 w-5" />;
       default:
         return <Hash className="h-5 w-5" />;
     }
   };
 
-  const formatTimestamp = (date?: string) => {
-    if (!date) return "";
-    return formatDistanceToNow(new Date(date), { addSuffix: true });
-  };
-
   // Group messages by author to show/hide headers
   const shouldShowHeader = (message: Message, index: number): boolean => {
     if (index === 0) return true;
     const prevMessage = messages[index - 1];
+    if (!prevMessage) return true;
     const timeDiff =
       new Date(message.createdAt).getTime() -
       new Date(prevMessage.createdAt).getTime();
@@ -192,7 +193,7 @@ export function MessageList({
             {getChannelIcon(channel.type)}
           </span>
           <h2 className="font-semibold">{channel.name}</h2>
-          {channel.type !== "DM" && (
+          {channel.type !== ChannelType.DM && (
             <span className="text-muted-foreground text-sm">
               {channel.memberIds?.length || 0} members
             </span>
@@ -201,7 +202,7 @@ export function MessageList({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <ScrollArea className="flex-1">
         <div className="flex min-h-full flex-col justify-end">
           {hasMore && (
             <div className="flex justify-center p-4">
