@@ -1,5 +1,47 @@
 # Habit Logs Page Integration Plan
 
+# Dev Auth Bootstrap Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect backend auth/user services and current login form flow
+- [x] Confirm the browser verification blocker is the lack of a reliable local dev account/bootstrap path
+
+### 2. Backend
+- [x] Add a development-only auth bootstrap endpoint that returns usable session tokens
+- [x] Add targeted backend regression coverage for the dev bootstrap flow
+
+### 3. Frontend
+- [x] Add auth client/query support for the dev bootstrap endpoint
+- [x] Add a login-page helper UI using existing shadcn components to trigger the bootstrap flow
+
+### 4. Verification
+- [x] Run targeted frontend/backend checks
+- [x] Validate the bootstrap flow in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added a development-only `POST /auth/dev-bootstrap` endpoint in `apps/api/src/auth/auth.controller.ts` and `apps/api/src/auth/auth.service.ts`. In development, it creates or reuses `dev@life-dashboard.local`, verifies the account if needed, ensures a default workspace exists, and returns live access/refresh tokens. Outside development it returns `404` to avoid exposing the helper in non-local environments.
+- Added backend regression coverage in `apps/api/src/auth/auth.service.spec.ts` for both the happy path and the non-development rejection path.
+- Added frontend auth integration in `apps/project-dashboard/lib/auth/auth-client.ts` and `apps/project-dashboard/lib/auth/auth-query.ts`, including token persistence and `auth/me` invalidation after the bootstrap mutation succeeds.
+- Updated `apps/project-dashboard/components/auth/LoginForm.tsx` to expose a localhost-only `Local Dev Access` helper card using existing local shadcn primitives. The form layout was also aligned with the project’s shadcn spacing/icon guidance by using `gap-*` layout and a button icon with `data-icon`.
+- Verification:
+- `pnpm test -- auth.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/auth/auth.controller.ts src/auth/auth.service.ts src/auth/auth.service.spec.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/auth/(auth.controller|auth.service|auth.service.spec)"` in `apps/api` returned no matches ✅
+- `pnpm exec eslint components/auth/LoginForm.tsx lib/auth/auth-client.ts lib/auth/auth-query.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/auth/LoginForm.tsx|lib/auth/auth-client.ts|lib/auth/auth-query.ts"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools:
+- opened `http://localhost:3000/login?next=%2Fw%2F69bf9af23810b45fcb4d7caa%2Fbudgets`
+- triggered `Use local development account`
+- confirmed `POST http://localhost:3001/api/v1/auth/dev-bootstrap` returned `200`
+- confirmed redirect into a newly created local workspace at `/w/69c0b60618cdd085fd1e2aac/budgets`
+- created a budget successfully via `POST /api/v1/budgets` with a `201` response
+- toggled that budget inactive via `PATCH /api/v1/budgets/69c0b61318cdd085fd1e2adf` with a `200` response and confirmed it disappeared from the default `Active` filter
+- Remaining risks:
+- The helper is intentionally limited to `localhost` on the frontend and `development` on the backend. If the local app is served from a different host alias later, the frontend hostname gate will need to be widened deliberately.
+
 # Budget Management Frontend Plan
 
 ## Status: COMPLETE

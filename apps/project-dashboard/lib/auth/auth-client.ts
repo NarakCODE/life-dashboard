@@ -18,6 +18,14 @@ export function login(input: LoginInput) {
   })
 }
 
+export function devBootstrapSession() {
+  return apiRequest<AuthTokens>({
+    path: "/auth/dev-bootstrap",
+    method: "POST",
+    auth: "none",
+  })
+}
+
 export function register(input: RegisterInput) {
   return apiRequest<AuthMessageResponse>({
     path: "/auth/register",

@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -20,6 +21,9 @@ import { UserResponseDto } from '../users/dto/user-response.dto';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 
 const BCRYPT_ROUNDS = 10;
+const DEV_BOOTSTRAP_EMAIL = 'dev@life-dashboard.local';
+const DEV_BOOTSTRAP_PASSWORD = 'dev-bootstrap-password';
+const DEV_BOOTSTRAP_NAME = 'Local Dev User';
 
 @Injectable()
 export class AuthService {
@@ -85,6 +89,44 @@ export class AuthService {
       throw new UnauthorizedException(
         'Email not verified. Please check your inbox for the verification code.',
       );
+    }
+
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Development-only helper to create or reuse a verified local user and
+   * return a live session without going through email verification manually.
+   */
+  async devBootstrap(): Promise<AuthTokensDto> {
+    const nodeEnv = this.config.get<string>(
+      'app.nodeEnv',
+      process.env.NODE_ENV ?? 'development',
+    );
+
+    if (nodeEnv !== 'development') {
+      throw new NotFoundException('Not found');
+    }
+
+    let user = await this.usersService.findByEmail(DEV_BOOTSTRAP_EMAIL);
+
+    if (!user) {
+      const passwordHash = await bcrypt.hash(
+        DEV_BOOTSTRAP_PASSWORD,
+        BCRYPT_ROUNDS,
+      );
+
+      user = await this.usersService.create({
+        email: DEV_BOOTSTRAP_EMAIL,
+        password: DEV_BOOTSTRAP_PASSWORD,
+        displayName: DEV_BOOTSTRAP_NAME,
+        passwordHash,
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      await this.usersService.markEmailVerified(user._id.toString());
+      user = await this.usersService.findById(user._id.toString());
     }
 
     return this.issueTokens(user);

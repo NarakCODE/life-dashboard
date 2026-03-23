@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { ApiError } from "@/lib/api/api-client"
 import {
+  devBootstrapSession,
   getCurrentUser,
   login,
   refreshSession,
@@ -42,6 +43,18 @@ export function useLoginMutation() {
 
   return useMutation({
     mutationFn: (input: LoginInput) => login(input),
+    onSuccess: async (tokens) => {
+      setAuthTokens(tokens)
+      await queryClient.invalidateQueries({ queryKey: authKeys.me() })
+    },
+  })
+}
+
+export function useDevBootstrapMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => devBootstrapSession(),
     onSuccess: async (tokens) => {
       setAuthTokens(tokens)
       await queryClient.invalidateQueries({ queryKey: authKeys.me() })

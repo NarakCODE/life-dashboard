@@ -109,6 +109,19 @@ export class AuthController {
   }
 
   @Public()
+  @Post('dev-bootstrap')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Development-only local session bootstrap',
+    description:
+      'Creates or reuses a verified local development account and returns session tokens. Intended for local development only.',
+  })
+  @ApiOkResponse({ type: AuthTokensDto })
+  devBootstrap(): Promise<AuthTokensDto> {
+    return this.authService.devBootstrap();
+  }
+
+  @Public()
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)

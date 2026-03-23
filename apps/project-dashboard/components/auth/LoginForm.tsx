@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { FlaskConical, Rocket } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { getErrorMessage } from "@/components/auth/auth-error"
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper"
@@ -14,10 +16,24 @@ import { VerificationStatus } from "@/components/auth/verification-status"
 import {
   useLoginMutation,
   useResendVerificationMutation,
+  useDevBootstrapMutation,
 } from "@/lib/auth/auth-query"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 const loginSchema = z.object({
   email: z.email("Enter a valid email address"),
@@ -31,7 +47,9 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const loginMutation = useLoginMutation()
   const resendMutation = useResendVerificationMutation()
+  const devBootstrapMutation = useDevBootstrapMutation()
   const nextTarget = searchParams.get("next") || "/"
+  const [isDevelopment, setIsDevelopment] = useState(false)
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -39,6 +57,10 @@ export function LoginForm() {
       password: "",
     },
   })
+
+  useEffect(() => {
+    setIsDevelopment(window.location.hostname === "localhost")
+  }, [])
 
   async function handleResendVerification() {
     try {
@@ -61,6 +83,17 @@ export function LoginForm() {
     }
   })
 
+  async function handleDevBootstrap() {
+    try {
+      await devBootstrapMutation.mutateAsync()
+      router.replace(nextTarget)
+    } catch (error) {
+      form.setError("root", {
+        message: getErrorMessage(error, "Unable to bootstrap a local dev session"),
+      })
+    }
+  }
+
   const emailValue = form.watch("email")
   const hasUnverifiedEmailError = form.formState.errors.root?.message?.toLowerCase().includes("not verified")
 
@@ -77,7 +110,7 @@ export function LoginForm() {
         </p>
       }
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -138,6 +171,37 @@ export function LoginForm() {
         >
           Sign in
         </LoadingButton>
+
+        {isDevelopment ? (
+          <>
+            <FieldSeparator>Development</FieldSeparator>
+
+            <Card className="border-dashed border-border/70 bg-muted/20 shadow-none">
+              <CardHeader className="gap-2 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FlaskConical className="text-muted-foreground" />
+                  Local Dev Access
+                </CardTitle>
+                <CardDescription>
+                  Bootstrap a verified local session instantly for protected route testing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <LoadingButton
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  isLoading={devBootstrapMutation.isPending}
+                  loadingLabel="Bootstrapping..."
+                  onClick={() => void handleDevBootstrap()}
+                >
+                  <Rocket data-icon="inline-start" />
+                  Use local development account
+                </LoadingButton>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
       </form>
     </AuthFormWrapper>
   )
