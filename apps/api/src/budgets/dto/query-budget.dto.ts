@@ -17,7 +17,13 @@ export class QueryBudgetDto extends PaginationQueryDto {
 
   @ApiPropertyOptional()
   @IsBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    return value === 'true' || value === true;
+  })
   @IsOptional()
   isActive?: boolean;
 }

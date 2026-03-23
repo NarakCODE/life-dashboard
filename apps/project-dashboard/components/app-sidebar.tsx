@@ -47,9 +47,10 @@ import {
   FlagIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
-  activeProjects,
   footerItems,
   navItems,
+  getProjectColor,
+  calculateProjectProgress,
   type NavItemId,
   type SidebarFooterItemId,
 } from "@/lib/data/sidebar";
@@ -62,6 +63,7 @@ import {
   useWorkspacesQuery,
   useSwitchWorkspaceMutation,
 } from "@/lib/workspaces/workspace-query";
+import { useProjectsQuery } from "@/lib/projects/projects-query";
 import {
   buildWorkspacePath,
   getWorkspaceChildPath,
@@ -106,14 +108,32 @@ export function AppSidebar() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoggingOut, startLogout] = useTransition();
 
+  const { workspaceId: currentWorkspaceId, routeWorkspaceId } =
+    useWorkspaceScope();
+  const activeWorkspaceId = currentWorkspaceId;
+
   // Workspace data fetching
   const { data: workspaces = [], isLoading: isLoadingWorkspaces } =
     useWorkspacesQuery();
-  const { workspaceId: currentWorkspaceId, routeWorkspaceId } =
-    useWorkspaceScope();
-  const switchWorkspace = useSwitchWorkspaceMutation();
 
-  const activeWorkspaceId = currentWorkspaceId;
+  // Active projects data fetching
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjectsQuery(
+    activeWorkspaceId ?? "",
+    Boolean(activeWorkspaceId)
+  );
+
+  // Filter active projects and map to sidebar format
+  const activeProjects = projects
+    .filter((p) => p.status === "active")
+    .slice(0, 5) // Limit to 5 most active projects
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: getProjectColor(p.id),
+      progress: calculateProjectProgress(p.id),
+    }));
+
+  const switchWorkspace = useSwitchWorkspaceMutation();
   const unreadNotificationsQuery = useUnreadNotificationCountQuery(
     activeWorkspaceId ?? "",
     Boolean(activeWorkspaceId),
@@ -317,23 +337,50 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {activeProjects.map((project) => (
-                <SidebarMenuItem key={project.name}>
-                  <SidebarMenuButton className="h-9 rounded-lg px-3 group">
-                    <ProgressCircle
-                      progress={project.progress}
-                      color={project.color}
-                      size={18}
-                    />
-                    <span className="flex-1 truncate text-sm">
-                      {project.name}
-                    </span>
-                    <span className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-accent">
-                      <span className="text-muted-foreground text-lg">···</span>
-                    </span>
-                  </SidebarMenuButton>
+              {isLoadingProjects ? (
+                // Loading skeleton
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <SidebarMenuItem key={i}>
+                      <div className="flex h-9 items-center gap-3 px-3">
+                        <div className="h-4.5 w-4.5 rounded-full bg-muted animate-pulse" />
+                        <div className="h-4 flex-1 bg-muted animate-pulse rounded" />
+                      </div>
+                    </SidebarMenuItem>
+                  ))}
+                </>
+              ) : activeProjects.length === 0 ? (
+                <SidebarMenuItem>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    No active projects
+                  </div>
                 </SidebarMenuItem>
-              ))}
+              ) : (
+                activeProjects.map((project) => (
+                  <SidebarMenuItem key={project.id}>
+                    <SidebarMenuButton
+                      asChild
+                      className="h-9 rounded-lg px-3 group"
+                    >
+                      <Link
+                        href={buildWorkspacePath(
+                          currentWorkspaceId ?? "",
+                          `/projects/${project.id}`
+                        )}
+                      >
+                        <ProgressCircle
+                          progress={project.progress}
+                          color={project.color}
+                          size={18}
+                        />
+                        <span className="flex-1 truncate text-sm">
+                          {project.name}
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

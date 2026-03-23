@@ -2,6 +2,25 @@
 
 ## Date: 2026-03-23
 
+### Lesson: Boolean Query Transforms Must Preserve Omitted Values
+
+**Context**: Fixed the budgets list API so marking a budget inactive does not disappear it from the unfiltered response due to controller-level query parsing.
+
+**Mistake/Risk Avoided**:
+- `QueryBudgetDto` transformed `isActive` with `value === 'true' || value === true`, which silently converted an omitted query parameter into `false`.
+- That caused the controller/service path to apply an inactive-only filter even when the client did not request any activity filter at all.
+
+**Root Cause**:
+- The DTO transform treated “missing” and “explicit false” as the same input.
+- For optional boolean query params, Nest/class-transformer runs the transform before the repository filter logic, so a lossy transform changes endpoint semantics globally.
+
+**Preventative Rule**:
+1. For optional boolean query fields, return `undefined` from `@Transform(...)` when the raw value is missing or empty.
+2. Add a focused DTO regression test for both omitted and explicit `false` inputs whenever query transforms affect filtering.
+3. Fix optional-filter behavior at the DTO boundary instead of compensating in controllers or repositories downstream.
+
+**Applied In**: `apps/api/src/budgets/dto/query-budget.dto.ts` now preserves omitted `isActive`, and `apps/api/src/budgets/dto/query-budget.dto.spec.ts` covers the regression.
+
 ### Lesson: Notification Visibility Must Be Scoped To The Recipient, Not Just The Workspace
 
 **Context**: Added onboarding invite delivery so completing setup creates real workspace invitations and in-app notifications for existing users who were invited during onboarding.

@@ -22,13 +22,6 @@ export type NavItem = {
     isActive?: boolean
 }
 
-export type ActiveProjectSummary = {
-    id: string
-    name: string
-    color: string
-    progress: number
-}
-
 export type SidebarFooterItem = {
     id: SidebarFooterItemId
     label: string
@@ -50,15 +43,44 @@ export const navItems: NavItem[] = [
     { id: "goals", label: "Goals" },
 ]
 
-export const activeProjects: ActiveProjectSummary[] = [
-    { id: "ai-learning", name: "AI Learning Platform", color: "var(--chart-5)", progress: 25 },
-    { id: "fintech-app", name: "Fintech Mobile App", color: "var(--chart-3)", progress: 80 },
-    { id: "ecommerce-admin", name: "E-commerce Admin", color: "var(--chart-3)", progress: 65 },
-    { id: "healthcare-app", name: "Healthcare Booking App", color: "var(--chart-2)", progress: 10 },
-]
-
 export const footerItems: SidebarFooterItem[] = [
     { id: "settings", label: "Settings" },
     { id: "templates", label: "Templates" },
     { id: "help", label: "Help" },
 ]
+
+// Color palette for project indicators (CSS variable names)
+const PROJECT_COLORS = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+] as const
+
+/**
+ * Generate a consistent color for a project based on its ID
+ */
+export function getProjectColor(projectId: string): string {
+    // Simple hash function to get consistent color for same project ID
+    let hash = 0
+    for (let i = 0; i < projectId.length; i++) {
+        hash = projectId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const index = Math.abs(hash % PROJECT_COLORS.length)
+    return PROJECT_COLORS[index] ?? "var(--chart-1)"
+}
+
+/**
+ * Calculate project progress from tasks (placeholder - should come from backend)
+ * For now, returns a deterministic value based on project ID
+ */
+export function calculateProjectProgress(projectId: string): number {
+    // This should be replaced with actual progress calculation from tasks
+    // For now, generate a deterministic progress based on project ID
+    let hash = 0
+    for (let i = 0; i < projectId.length; i++) {
+        hash = projectId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return Math.abs(hash) % 101 // 0-100
+}

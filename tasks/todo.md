@@ -1,3 +1,58 @@
+# Budget Inactive List Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the budgets controller path, query DTO, and repository filtering logic
+- [x] Confirm the activity filter is applied through `QueryBudgetDto` before the controller delegates to the service
+
+### 2. Fix
+- [x] Preserve `isActive` as `undefined` when the client does not send the query param
+- [x] Add a focused regression test for the budget query parsing behavior
+
+### 3. Verification
+- [x] Run targeted backend verification for the touched budget files
+- [x] Record results and any remaining follow-up
+
+## Review / Results
+- Fixed `apps/api/src/budgets/dto/query-budget.dto.ts` so omitting `isActive` no longer transforms into `false` at the controller boundary. The budget list now only applies the active/inactive filter when the client explicitly sends that query parameter.
+- Added `apps/api/src/budgets/dto/query-budget.dto.spec.ts` to lock in the expected behavior for both omitted and explicit `false` values.
+- Verification:
+- `pnpm test -- query-budget.dto.spec.ts budgets.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/budgets/dto/query-budget.dto.ts src/budgets/dto/query-budget.dto.spec.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/budgets/dto/query-budget\\.dto(\\.spec)?\\.ts" || true` in `apps/api` returned no matches ✅
+- Remaining follow-up:
+- The frontend budgets page still defaults its status filter to `"active"` in `apps/project-dashboard/components/budgets/BudgetsPage.tsx`, so inactive budgets will remain hidden there until that UX default is changed. This backend fix ensures the API itself no longer hides inactive budgets unless asked to.
+
+# Settings Menu Badge Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `SettingsDialog`, the settings sidebar nav, and the existing invitation query hooks
+- [x] Confirm the teammate settings surface already exposes pending invitation state that can drive a menu badge
+
+### 2. Fix
+- [x] Add badge-count support to the settings sidebar nav
+- [x] Surface a live teammates badge count in `SettingsDialog` from the existing invitation queries
+
+### 3. Verification
+- [x] Run targeted frontend verification for the touched settings files
+- [x] Verify the badge appears in the settings UI with real pending invitation data
+- [x] Record results and remaining gaps
+
+## Review / Results
+- Updated `apps/project-dashboard/components/settings/SettingsDialog.tsx` to fetch invitation counts only while the dialog is open, then compute a single teammates badge count from inbound invitations plus workspace pending invitations when the current user can manage them.
+- Updated `apps/project-dashboard/components/settings/shared/SettingsSidebarNav.tsx` to support per-item badge counts and render a compact badge on the corresponding menu item.
+- Kept the change scoped to the settings menu so the existing teammates pane remains the source of truth for invitation details while the nav now exposes that state earlier.
+- Verification:
+- `pnpm exec eslint components/settings/SettingsDialog.tsx components/settings/shared/SettingsSidebarNav.tsx` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/settings/(SettingsDialog|shared/SettingsSidebarNav)\\.tsx" || true` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools verification:
+- opened the settings dialog from `http://localhost:3000/w/69c0b60618cdd085fd1e2aac`
+- confirmed the sidebar shows `Teammates 1`
+- confirmed the teammates pane shows `Pending Invitations` count `1`, matching the menu badge ✅
+
 # Onboarding Invitation Delivery Plan
 
 ## Status: COMPLETE

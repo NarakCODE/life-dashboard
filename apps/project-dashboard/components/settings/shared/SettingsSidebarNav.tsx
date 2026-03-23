@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   settingsItemIcons,
@@ -7,13 +8,17 @@ import {
   type SettingsItemId,
 } from "@/components/settings/settings-config";
 
+interface SettingsSidebarNavProps {
+  activeItemId: SettingsItemId;
+  badgeCounts?: Partial<Record<SettingsItemId, number>>;
+  onSelect: (itemId: SettingsItemId) => void;
+}
+
 export function SettingsSidebarNav({
   activeItemId,
   onSelect,
-}: {
-  activeItemId: SettingsItemId;
-  onSelect: (itemId: SettingsItemId) => void;
-}) {
+  badgeCounts,
+}: SettingsSidebarNavProps) {
   return (
     <aside className="w-full border-b border-border/60 bg-muted/40 px-4 py-4 sm:w-64 sm:border-b-0 sm:border-r">
       <div className="space-y-4 text-sm">
@@ -26,6 +31,7 @@ export function SettingsSidebarNav({
               {section.items.map((item) => {
                 const isActive = item.id === activeItemId;
                 const Icon = settingsItemIcons[item.id];
+                const badgeCount = badgeCounts?.[item.id] ?? 0;
 
                 return (
                   <button
@@ -41,6 +47,17 @@ export function SettingsSidebarNav({
                       <Icon className="h-4 w-4" />
                       {item.label}
                     </span>
+                    {badgeCount > 0 ? (
+                      <Badge
+                        variant={isActive ? "default" : "muted"}
+                        className={cn(
+                          "min-w-6 justify-center px-1.5 py-0 text-[11px]",
+                          isActive && "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                      </Badge>
+                    ) : null}
                   </button>
                 );
               })}
