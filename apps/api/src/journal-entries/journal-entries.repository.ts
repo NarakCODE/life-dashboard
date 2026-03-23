@@ -12,6 +12,13 @@ import {
   MoodLevel,
 } from './schemas/journal-entry.schema';
 import { CreateJournalEntryDto } from './dto/create-journal-entry.dto';
+import { QueryJournalEntryDto } from './dto/query-journal-entry.dto';
+import { MoodSummaryQueryDto } from './dto/mood-summary.dto';
+
+type JournalEntryFilterQuery = Pick<
+  QueryJournalEntryDto,
+  'mood' | 'dateFrom' | 'dateTo' | 'tag' | 'search'
+>;
 
 /**
  * Encapsulates all Mongoose queries for JournalEntries (arch-use-repository-pattern).
@@ -63,39 +70,9 @@ export class JournalEntriesRepository {
    */
   async findWithPaginationAndFilters(
     scope: WorkspaceScope,
-    query: any,
+    query: QueryJournalEntryDto,
   ): Promise<{ items: JournalEntryDocument[]; total: number }> {
-    const filter: any = {
-      ...buildWorkspaceScopedFilter(scope, {
-        userId: toObjectId(scope.userId),
-      }),
-    };
-
-    // Filter by mood
-    if (query.mood !== undefined) {
-      filter.mood = query.mood;
-    }
-
-    // Filter by date range
-    if (query.dateFrom || query.dateTo) {
-      filter.entryDate = {};
-      if (query.dateFrom) {
-        filter.entryDate.$gte = new Date(query.dateFrom);
-      }
-      if (query.dateTo) {
-        filter.entryDate.$lte = new Date(query.dateTo);
-      }
-    }
-
-    // Filter by tag
-    if (query.tag) {
-      filter.tags = query.tag;
-    }
-
-    // Text search
-    if (query.search) {
-      filter.$text = { $search: query.search };
-    }
+    const filter = this.buildEntryFilter(scope, query);
 
     // Sorting
     const sortObj: any = {};
@@ -179,26 +156,14 @@ export class JournalEntriesRepository {
    */
   async getMoodSummary(
     scope: WorkspaceScope,
-    dateFrom?: Date,
-    dateTo?: Date,
+    query: MoodSummaryQueryDto,
   ): Promise<{
     totalEntries: number;
     entriesWithMood: number;
     averageMood: number | null;
     moodDistribution: Array<{ mood: MoodLevel; count: number }>;
   }> {
-    const matchStage: any = {
-      ...buildWorkspaceScopedFilter(scope, {
-        userId: toObjectId(scope.userId),
-      }),
-    };
-
-    // Date range filter
-    if (dateFrom || dateTo) {
-      matchStage.entryDate = {};
-      if (dateFrom) matchStage.entryDate.$gte = dateFrom;
-      if (dateTo) matchStage.entryDate.$lte = dateTo;
-    }
+    const matchStage = this.buildEntryFilter(scope, query);
 
     const result = await this.journalEntryModel
       .aggregate([
@@ -253,8 +218,7 @@ export class JournalEntriesRepository {
    */
   async getMoodTrend(
     scope: WorkspaceScope,
-    dateFrom?: Date,
-    dateTo?: Date,
+    query: MoodSummaryQueryDto,
   ): Promise<
     Array<{
       date: string;
@@ -262,18 +226,10 @@ export class JournalEntriesRepository {
       entryCount: number;
     }>
   > {
-    const matchStage: any = {
-      ...buildWorkspaceScopedFilter(scope, {
-        userId: toObjectId(scope.userId),
-      }),
-      mood: { $exists: true, $ne: null },
-    };
+    const matchStage = this.buildEntryFilter(scope, query);
 
-    // Date range filter
-    if (dateFrom || dateTo) {
-      matchStage.entryDate = {};
-      if (dateFrom) matchStage.entryDate.$gte = dateFrom;
-      if (dateTo) matchStage.entryDate.$lte = dateTo;
+    if (matchStage.mood === undefined) {
+      matchStage.mood = { $exists: true, $ne: null };
     }
 
     const results = await this.journalEntryModel
@@ -301,5 +257,40 @@ export class JournalEntriesRepository {
       .exec();
 
     return results;
+  }
+
+  private buildEntryFilter(
+    scope: WorkspaceScope,
+    query: JournalEntryFilterQuery | MoodSummaryQueryDto,
+  ) {
+    const filter: Record<string, any> = {
+      ...buildWorkspaceScopedFilter(scope, {
+        userId: toObjectId(scope.userId),
+      }),
+    };
+
+    if (query.mood !== undefined) {
+      filter.mood = query.mood;
+    }
+
+    if (query.dateFrom || query.dateTo) {
+      filter.entryDate = {};
+      if (query.dateFrom) {
+        filter.entryDate.$gte = new Date(query.dateFrom);
+      }
+      if (query.dateTo) {
+        filter.entryDate.$lte = new Date(query.dateTo);
+      }
+    }
+
+    if (query.tag) {
+      filter.tags = query.tag;
+    }
+
+    if (query.search) {
+      filter.$text = { $search: query.search };
+    }
+
+    return filter;
   }
 }

@@ -1,4 +1,172 @@
-# Habit Logs Page Integration Plan
+# Journal Analytics Alignment Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Confirm the current journal mood summary endpoint only follows the analytics date window
+- [x] Review the journal page query state to identify the active search, tag, and mood filters that should also drive analytics
+
+### 2. Backend
+- [x] Extend the mood summary query DTO and repository methods to support mood, tag, and search filters
+- [x] Keep the analytics aggregation scoped to the same filtered journal entry set as the list view
+
+### 3. Frontend
+- [x] Pass the active journal filters into the mood summary query
+- [x] Keep the empty, loading, and analytics states stable while filtered analytics refresh
+
+### 4. Verification
+- [x] Run targeted backend/frontend checks for the touched journal files
+- [x] Verify in Chrome DevTools that analytics change when search/tag/mood filters change
+- [x] Record results and remaining risks
+
+## Review / Results
+- Extended `apps/api/src/journal-entries/dto/mood-summary.dto.ts` so the mood summary endpoint accepts the same `mood`, `tag`, and `search` filters as the journal list query, in addition to the existing date window.
+- Refactored `apps/api/src/journal-entries/journal-entries.repository.ts` to share one journal-entry filter builder across list, summary, and trend queries so analytics and visible entries are scoped the same way.
+- Updated `apps/api/src/journal-entries/journal-entries.service.ts` to forward the full mood summary query object to the repository, and added a regression test in `apps/api/src/journal-entries/journal-entries.service.spec.ts` covering filter forwarding.
+- Updated `apps/project-dashboard/components/journal/JournalEntriesPage.tsx` and `apps/project-dashboard/lib/journal-entries/types.ts` so the mood summary React Query request now includes the active search, tag, and mood filters along with the selected analytics window.
+- During browser verification, found and fixed a repository bug where the mood trend aggregation overwrote an explicit mood filter with `mood exists`, which caused the cards to update but not the trend. The fix now preserves explicit mood filters and only applies the existence condition when no mood filter is set.
+- Verification:
+- `pnpm test -- journal-entries.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/journal-entries/dto/mood-summary.dto.ts src/journal-entries/journal-entries.repository.ts src/journal-entries/journal-entries.service.ts src/journal-entries/journal-entries.service.spec.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/journal-entries/(dto/mood-summary|journal-entries.repository|journal-entries.service|journal-entries.service.spec)"` in `apps/api` returned no matches ✅
+- `pnpm exec eslint components/journal/JournalEntriesPage.tsx lib/journal-entries/types.ts lib/journal-entries/journal-entries-client.ts lib/journal-entries/journal-entries-query.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/journal/JournalEntriesPage.tsx|lib/journal-entries/"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools on `http://localhost:3000/w/69bf9af23810b45fcb4d7caa/journal`:
+- confirmed the default analytics still show both entries
+- applied the `Good` mood filter and confirmed the summary cards and trend update to the single matching entry (`4.0 / 5`, `1` entry, `Good`, trend `4.0`)
+- applied a `hello` text search and confirmed the analytics shift to the single matching entry (`1.0 / 5`, `1` entry, `Very Bad`, trend `1.0`)
+- Remaining risks:
+- The page now keeps analytics aligned to search, tag, mood, and analytics-window filters, but it still intentionally does not couple analytics to pagination because the summary endpoint aggregates over the full filtered dataset.
+
+# Journal Entries Wellness Feature Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `apps/api/src/journal-entries/*` to confirm create/list/update/delete and mood summary requirements
+- [x] Review current dashboard routing, sidebar, and page patterns for a wellness feature entry point
+- [x] Confirm live browser blocker after implementation and trace it to the notifications dropdown response shape
+
+### 2. Backend support
+- [x] Normalize journal entry service responses into stable DTO payloads for create/read/list/update paths
+- [x] Add controller-level ObjectId validation for journal entry detail/update/delete routes
+- [x] Add targeted backend regression coverage for serialized journal entry responses
+
+### 3. Frontend integration
+- [x] Add journal entry frontend types, API helpers, and TanStack Query hooks aligned to the backend contract
+- [x] Add workspace route and sidebar wiring for the journal page
+- [x] Build the journal entries page with daily entry CRUD, mood selection, analytics cards, and tag-based organization
+- [x] Fix the notifications dropdown pagination-shape bug blocking the live journal route
+
+### 4. Verification
+- [x] Run targeted backend checks on touched journal files
+- [x] Run targeted frontend checks on touched journal and notification files
+- [x] Validate journal entry creation, analytics, and tag filtering in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added stable backend serialization for journal entry create/read/list/update responses in `apps/api/src/journal-entries/journal-entries.service.ts` and controller-level ObjectId validation in `apps/api/src/journal-entries/journal-entries.controller.ts`.
+- Added regression coverage in `apps/api/src/journal-entries/journal-entries.service.spec.ts` to lock the serialized journal DTO shape.
+- Added a dedicated frontend journal data layer in `apps/project-dashboard/lib/journal-entries/*` with typed API helpers and TanStack Query hooks for list, detail, mood summary, create, update, and delete operations.
+- Added the workspace journal routes and sidebar navigation wiring, then built `apps/project-dashboard/components/journal/JournalEntriesPage.tsx` with:
+- daily journal entry create, edit, and delete flows
+- five-level mood selection
+- mood analytics summary cards, distribution, and day-by-day trend
+- tag chips and tag filter organization
+- search, mood filtering, and analytics time-window controls
+- While validating the live page, found an unrelated runtime blocker in the notifications dropdown. Fixed `apps/project-dashboard/lib/notifications/notifications-client.ts` to normalize paginated notification responses before UI components consume them, which unblocked the journal route and protected the inbox/dropdown surfaces from the same shape mismatch.
+- Tightened the journal empty state so filtered-empty results now show `No entries match these filters` with a `Reset filters` action instead of the misleading first-run empty state.
+- Verification:
+- `pnpm test -- journal-entries.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/journal-entries/journal-entries.controller.ts src/journal-entries/journal-entries.service.ts src/journal-entries/journal-entries.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint components/journal/JournalEntriesPage.tsx lib/journal-entries/journal-entries-client.ts lib/journal-entries/journal-entries-query.ts lib/journal-entries/types.ts lib/notifications/notifications-client.ts components/notifications/NotificationsDropdown.tsx components/app-sidebar.tsx lib/data/sidebar.ts 'app/(protected)/journal/page.tsx' 'app/(protected)/w/[workspaceId]/journal/page.tsx'` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/journal/JournalEntriesPage.tsx|lib/journal-entries/|lib/notifications/notifications-client.ts|components/notifications/NotificationsDropdown.tsx|components/app-sidebar.tsx|lib/data/sidebar.ts|app/\\(protected\\)/journal/page.tsx|app/\\(protected\\)/w/\\[workspaceId\\]/journal/page.tsx"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools on `http://localhost:3000/w/69bf9af23810b45fcb4d7caa/journal`:
+- confirmed the page renders without the previous notifications runtime exception
+- created journal entries with different moods and tags, confirming summary cards, distribution, and mood trend updates
+- verified tag-based filtering and the filtered-empty `Reset filters` recovery path
+- edited an entry successfully and deleted a filtered entry successfully
+- Remaining risks:
+- Mood analytics currently follow the selected analytics window but not the current search/tag/mood list filters. That is consistent with the current page design, but if product expectations shift toward filter-coupled analytics, the summary query will need to incorporate those controls.
+
+# Notifications UX Improvement Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the existing sidebar inbox badge and workspace inbox page
+- [x] Confirm the backend notifications module already supports list, unread count, mark read, and mark all read
+- [x] Identify the frontend gaps as missing notification query/client wiring and mock inbox state
+
+### 2. Frontend integration
+- [x] Add a notifications frontend data layer with unread count and read-state mutations
+- [x] Replace the hardcoded sidebar inbox badge with the real unread count
+- [x] Add a notifications dropdown and refactor the inbox page to use the real notifications API
+- [x] Support mark-all-as-read from both the dropdown and inbox page
+
+### 3. Verification
+- [x] Run targeted frontend checks on the touched notification files
+- [x] Validate notification creation, unread counts, and mark-all-read behavior in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Added a dedicated notifications frontend data layer in `apps/project-dashboard/lib/notifications/*` with typed list and unread-count queries plus mutations for single-notification read state and mark-all-read.
+- Replaced the hardcoded `Inbox` badge in `apps/project-dashboard/lib/data/sidebar.ts` and `apps/project-dashboard/components/app-sidebar.tsx` with the real unread count from the notifications API.
+- Added a new sidebar notifications dropdown in `apps/project-dashboard/components/notifications/NotificationsDropdown.tsx` that shows recent notifications, the live unread count, a direct link into the inbox page, and a mark-all-read action.
+- Rebuilt `apps/project-dashboard/components/inbox/InboxPage.tsx` to use the real notifications API instead of the old mock inbox state. The page now supports:
+- live unread count
+- live notifications list
+- type filtering
+- read/unread state changes on selection and detail actions
+- page-level mark-all-as-read
+- related-work links when notification payloads include a path or href
+- Simplified `apps/project-dashboard/components/inbox/InboxFilterPopover.tsx` to focus on real notification type filters instead of the old mock client/type filter model.
+- Verification:
+- `pnpm exec eslint components/app-sidebar.tsx components/inbox/InboxPage.tsx components/inbox/InboxFilterPopover.tsx components/notifications/NotificationsDropdown.tsx lib/data/sidebar.ts lib/notifications/notification-utils.tsx lib/notifications/notifications-client.ts lib/notifications/notifications-query.ts lib/notifications/types.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/(app-sidebar|inbox/InboxPage|inbox/InboxFilterPopover|notifications/NotificationsDropdown)\\.tsx|lib/(data/sidebar|notifications/)"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools on `http://localhost:3000/w/69bf9af23810b45fcb4d7caa/inbox`:
+- created three real notifications through `POST /api/v1/notifications` in the authenticated browser session to seed verification data
+- confirmed the sidebar `Inbox` badge updated from the real unread count to `3`
+- confirmed the new notifications dropdown showed the three recent notifications and its own mark-all-read action
+- confirmed the inbox page listed the seeded notifications with `3 unread`
+- toggled one notification unread via `PATCH /api/v1/notifications/:id/read` and confirmed both the sidebar count and page count updated to `1`
+- used the page-level `Mark all as read` action and confirmed `POST /api/v1/notifications/mark-all-read` returned `200`, the unread count dropped back to `0`, and the `Inbox` badge disappeared
+- Remaining risks:
+- The inbox page currently fetches the first 100 notifications and applies type filters client-side. If notification volume grows beyond that, the page should move to server-side filtering and pagination controls rather than a single-page list.
+
+# Verify Email OTP Refactor Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the current verify-email form and existing auth flow wiring
+- [x] Confirm a local shadcn `InputOTP` component already exists in the project
+- [x] Attempt to fetch shadcn docs for `input-otp` and fall back to local component patterns when the CLI is blocked
+
+### 2. Frontend refactor
+- [x] Replace the raw verification code input with the shadcn OTP input composition
+- [x] Keep React Hook Form and validation behavior intact for verify and resend actions
+- [x] Align the form layout with the repo’s shadcn spacing and field conventions
+
+### 3. Verification
+- [x] Run targeted frontend lint/type checks on the touched auth files
+- [x] Validate the updated verify-email UI in Chrome DevTools
+- [x] Record results and remaining risks
+
+## Review / Results
+- Refactored `apps/project-dashboard/components/auth/VerifyEmailForm.tsx` to use the local shadcn `InputOTP` composition instead of a plain text input for the six-digit verification code.
+- Kept the existing auth flow intact by wiring the OTP input through `react-hook-form` `Controller`, preserving the current verify mutation, resend mutation, validation schema, and form reset behavior after successful verification.
+- Added numeric-only OTP input constraints with `REGEXP_ONLY_DIGITS`, kept `autoComplete="one-time-code"`, and cleared stale root-level verification errors as soon as the code changes.
+- Aligned the form layout with the repo’s current shadcn conventions by replacing `space-y-*` with `flex flex-col gap-*` and using the existing `Field`, `FieldDescription`, and OTP slot primitives already installed in the project.
+- Verification:
+- `pnpm exec eslint components/auth/VerifyEmailForm.tsx` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "components/auth/VerifyEmailForm.tsx"` in `apps/project-dashboard` returned no matches ✅
+- Chrome DevTools:
+- opened `http://localhost:3000/verify-email?email=dev%40life-dashboard.local`
+- confirmed the OTP field renders with six visual slots plus the existing email and action buttons
+- filled `123456` into the OTP field and confirmed the slot UI updated to display all six digits
+- Remaining risks:
+- The shadcn CLI docs fetch for `input-otp` could not complete because npm registry DNS resolution is blocked locally (`ENOTFOUND`), so this refactor used the repo’s installed `components/ui/input-otp.tsx` implementation and the local `input-otp` package docs instead of remote registry metadata.
 
 # Dev Auth Bootstrap Plan
 

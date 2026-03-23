@@ -1,5 +1,44 @@
 # Lessons Learned
 
+## Date: 2026-03-23
+
+### Lesson: Preserve Explicit Aggregate Filters When Adding Fallback Match Conditions
+
+**Context**: Extended the journal mood summary endpoint so analytics follow the same search, tag, and mood filters as the visible journal list.
+
+**Mistake/Risk Avoided**:
+- The first backend pass fixed the summary counts but left the mood trend wrong under an active mood filter.
+- `getMoodTrend` spread the shared filter object and then overwrote `matchStage.mood` with `{ $exists: true, $ne: null }`, which silently discarded the explicit selected mood.
+
+**Root Cause**:
+- The aggregation needed a fallback “only entries with mood” condition, but I applied it after building the shared filter object without checking whether `mood` was already set intentionally.
+
+**Preventative Rule**:
+1. When reusing shared match objects, treat explicit filter fields as authoritative.
+2. Only add fallback aggregate conditions when the corresponding explicit filter is absent.
+3. Re-verify both aggregate summaries and aggregate trends in the browser after backend filtering changes, because one can be correct while the other is still wrong.
+
+**Applied In**: `apps/api/src/journal-entries/journal-entries.repository.ts` now only adds the `mood exists` constraint in `getMoodTrend` when no explicit mood filter was provided.
+
+### Lesson: Normalize Paginated API Shapes in the Client Layer
+
+**Context**: Verified the new journal page in Chrome after wiring the frontend to `apps/api/src/journal-entries/*`.
+
+**Mistake/Risk Avoided**:
+- The journal route initially crashed before its own UI could render because `NotificationsDropdown.tsx` tried to call `.map()` on a paginated notifications payload object.
+- The notifications endpoint returned an envelope whose `data` field contained a paginated DTO, but the client helper exposed that nested object directly instead of flattening it into the array shape the UI expected.
+
+**Root Cause**:
+- The notification client assumed every successful list endpoint returned `payload.data` as the final item array.
+- This codebase mixes simple list responses and paginated DTOs inside the same outer API envelope, so the client boundary must normalize before React components consume the result.
+
+**Preventative Rule**:
+1. For every list endpoint, inspect the actual backend DTO shape before wiring the UI.
+2. Flatten paginated responses in the API client helper, not ad hoc in each component.
+3. When a shared surface like notifications is used across pages, regression-test or live-verify one unrelated route to catch cross-feature runtime breakage early.
+
+**Applied In**: `apps/project-dashboard/lib/notifications/notifications-client.ts` now normalizes paginated notification bodies into a stable `{ data: Notification[]; meta.pagination }` shape before the dropdown and inbox page read from it.
+
 ## Date: 2026-03-22
 
 ### Lesson: Handle Indexed Array Access Explicitly Under Strict TypeScript

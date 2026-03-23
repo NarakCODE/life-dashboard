@@ -87,14 +87,14 @@ const STATUS_OPTIONS = [
 ] as const;
 
 interface BudgetFormState {
-  name: string
-  amount: string
-  category: string
-  period: BudgetPeriod
-  startDate: string
-  endDate: string
-  currency: string
-  isActive: boolean
+  name: string;
+  amount: string;
+  category: string;
+  period: BudgetPeriod;
+  startDate: string;
+  endDate: string;
+  currency: string;
+  isActive: boolean;
 }
 
 function createDefaultBudgetFormState(): BudgetFormState {
@@ -140,7 +140,9 @@ function toBudgetInput(formState: BudgetFormState): CreateBudgetInput {
     startDate: formState.startDate
       ? `${formState.startDate}T00:00:00.000Z`
       : undefined,
-    endDate: formState.endDate ? `${formState.endDate}T23:59:59.999Z` : undefined,
+    endDate: formState.endDate
+      ? `${formState.endDate}T23:59:59.999Z`
+      : undefined,
     currency: formState.currency.trim().toUpperCase() || "USD",
   };
 }
@@ -192,10 +194,10 @@ function SummaryCard({
   detail,
   tone = "default",
 }: {
-  title: string
-  value: string
-  detail: string
-  tone?: "default" | "danger" | "success"
+  title: string;
+  value: string;
+  detail: string;
+  tone?: "default" | "danger" | "success";
 }) {
   return (
     <Card
@@ -263,11 +265,11 @@ function BudgetFormDialog({
   initialBudget,
   isSubmitting,
 }: {
-  open: boolean
-  onClose: () => void
-  onSubmit: (input: CreateBudgetInput | UpdateBudgetInput) => Promise<void>
-  initialBudget?: Budget
-  isSubmitting: boolean
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (input: CreateBudgetInput | UpdateBudgetInput) => Promise<void>;
+  initialBudget?: Budget;
+  isSubmitting: boolean;
 }) {
   const [formState, setFormState] = useState<BudgetFormState>(
     createDefaultBudgetFormState(),
@@ -484,14 +486,17 @@ function DeleteBudgetDialog({
   budgetName,
   isDeleting,
 }: {
-  open: boolean
-  onClose: () => void
-  onConfirm: () => Promise<void>
-  budgetName: string
-  isDeleting: boolean
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  budgetName: string;
+  isDeleting: boolean;
 }) {
   return (
-    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete budget</AlertDialogTitle>
@@ -561,10 +566,8 @@ export function BudgetsPage() {
     isPending: isBudgetsPending,
     error: budgetsError,
   } = useBudgetsQuery(workspaceId ?? "", budgetsQuery, isQueryEnabled);
-  const {
-    data: budgetSummaryData,
-    isPending: isSummaryPending,
-  } = useBudgetSummaryQuery(workspaceId ?? "", summaryQuery, isQueryEnabled);
+  const { data: budgetSummaryData, isPending: isSummaryPending } =
+    useBudgetSummaryQuery(workspaceId ?? "", summaryQuery, isQueryEnabled);
 
   const createBudgetMutation = useCreateBudgetMutation(
     workspaceId ?? "",
@@ -580,11 +583,13 @@ export function BudgetsPage() {
   );
 
   const budgets = useMemo(() => budgetsData?.data.items ?? [], [budgetsData]);
-  const summaryItems = useMemo(() => budgetSummaryData ?? [], [budgetSummaryData]);
+  const summaryItems = useMemo(
+    () => budgetSummaryData ?? [],
+    [budgetSummaryData],
+  );
 
   const summaryById = useMemo(
-    () =>
-      new Map(summaryItems.map((budget) => [budget.id, budget] as const)),
+    () => new Map(summaryItems.map((budget) => [budget.id, budget] as const)),
     [summaryItems],
   );
 
@@ -608,7 +613,9 @@ export function BudgetsPage() {
       if (budget.category) categories.add(budget.category);
     });
 
-    return Array.from(categories).sort((left, right) => left.localeCompare(right));
+    return Array.from(categories).sort((left, right) =>
+      left.localeCompare(right),
+    );
   }, [budgets, summaryItems]);
 
   const metrics = useMemo(() => {
@@ -628,10 +635,12 @@ export function BudgetsPage() {
     const overBudgetCount = visibleBudgetRows.filter(
       (row) => row.summary?.isOverBudget,
     ).length;
-    const currencySet = new Set(visibleBudgetRows.map((row) => row.budget.currency));
+    const currencySet = new Set(
+      visibleBudgetRows.map((row) => row.budget.currency),
+    );
     const primaryCurrency =
       currencySet.size === 1
-        ? visibleBudgetRows[0]?.budget.currency ?? "USD"
+        ? (visibleBudgetRows[0]?.budget.currency ?? "USD")
         : "USD";
 
     return {
@@ -645,7 +654,9 @@ export function BudgetsPage() {
   }, [visibleBudgetRows]);
 
   const isEmpty = !isBudgetsPending && budgets.length === 0;
-  const handleCreateBudget = async (input: CreateBudgetInput | UpdateBudgetInput) => {
+  const handleCreateBudget = async (
+    input: CreateBudgetInput | UpdateBudgetInput,
+  ) => {
     try {
       await createBudgetMutation.mutateAsync(input as CreateBudgetInput);
       toast.success("Budget created successfully");
@@ -657,7 +668,9 @@ export function BudgetsPage() {
     }
   };
 
-  const handleUpdateBudget = async (input: CreateBudgetInput | UpdateBudgetInput) => {
+  const handleUpdateBudget = async (
+    input: CreateBudgetInput | UpdateBudgetInput,
+  ) => {
     if (!editingBudget) return;
 
     try {
@@ -699,18 +712,20 @@ export function BudgetsPage() {
       );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update budget status",
+        error instanceof Error
+          ? error.message
+          : "Failed to update budget status",
       );
     }
   };
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-border bg-background px-4 py-4">
+    <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
       <PageHeader
         title="Budgets"
         actions={
-          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button size="sm" variant="ghost" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
             New budget
           </Button>
         }
@@ -761,7 +776,10 @@ export function BudgetsPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
                   <SelectTrigger className="w-full lg:w-44">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -780,7 +798,7 @@ export function BudgetsPage() {
         }
       />
 
-      <div className="flex-1 space-y-4 overflow-y-auto pt-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {isBudgetsPending ? <BudgetsSkeleton /> : null}
 
         {!isBudgetsPending ? (
@@ -870,7 +888,9 @@ export function BudgetsPage() {
                           <h3 className="truncate text-lg font-semibold text-foreground">
                             {budget.name}
                           </h3>
-                          <Badge variant={budget.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={budget.isActive ? "default" : "secondary"}
+                          >
                             {budget.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {isOverBudget ? (
@@ -898,17 +918,25 @@ export function BudgetsPage() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingBudget(budget)}>
+                          <DropdownMenuItem
+                            onClick={() => setEditingBudget(budget)}
+                          >
                             <PencilLine className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => void handleToggleBudgetStatus(budget)}
+                            onClick={() =>
+                              void handleToggleBudgetStatus(budget)
+                            }
                           >
                             <Wallet className="mr-2 h-4 w-4" />
                             {budget.isActive ? "Mark inactive" : "Reactivate"}
@@ -961,7 +989,9 @@ export function BudgetsPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Utilization</span>
+                        <span className="text-muted-foreground">
+                          Utilization
+                        </span>
                         <span
                           className={cn(
                             "font-medium",

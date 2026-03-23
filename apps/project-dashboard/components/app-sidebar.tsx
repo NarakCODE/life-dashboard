@@ -33,7 +33,10 @@ import {
   FolderIcon,
   UsersIcon,
   CurrencyDollarIcon,
+  CreditCardIcon,
   ChartBarIcon,
+  BellIcon,
+  NotebookIcon,
   GearIcon,
   LayoutIcon,
   QuestionIcon,
@@ -52,7 +55,9 @@ import {
 } from "@/lib/data/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { WorkspaceCombobox } from "@/components/workspaces/workspace-combobox";
+import { useUnreadNotificationCountQuery } from "@/lib/notifications/notifications-query";
 import {
   useWorkspacesQuery,
   useSwitchWorkspaceMutation,
@@ -75,9 +80,12 @@ const navItemIcons: Record<
   projects: FolderIcon,
   clients: UsersIcon,
   budgets: CurrencyDollarIcon,
+  transactions: CreditCardIcon,
+  notifications: BellIcon,
   performance: ChartBarIcon,
   habits: TargetIcon,
   "habit-logs": TargetIcon,
+  journal: NotebookIcon,
   goals: FlagIcon,
 };
 
@@ -106,6 +114,10 @@ export function AppSidebar() {
   const switchWorkspace = useSwitchWorkspaceMutation();
 
   const activeWorkspaceId = currentWorkspaceId;
+  const unreadNotificationsQuery = useUnreadNotificationCountQuery(
+    activeWorkspaceId ?? "",
+    Boolean(activeWorkspaceId),
+  );
   const scopedPathname = getWorkspaceChildPath(
     pathname,
     routeWorkspaceId ?? currentWorkspaceId,
@@ -172,12 +184,18 @@ export function AppSidebar() {
       return buildWorkspacePath(currentWorkspaceId, "/clients");
     if (id === "budgets")
       return buildWorkspacePath(currentWorkspaceId, "/budgets");
+    if (id === "transactions")
+      return buildWorkspacePath(currentWorkspaceId, "/transactions");
+    if (id === "notifications")
+      return buildWorkspacePath(currentWorkspaceId, "/notifications");
     if (id === "performance")
       return buildWorkspacePath(currentWorkspaceId, "/performance");
     if (id === "habits")
       return buildWorkspacePath(currentWorkspaceId, "/habits");
     if (id === "habit-logs")
       return buildWorkspacePath(currentWorkspaceId, "/habit-logs");
+    if (id === "journal")
+      return buildWorkspacePath(currentWorkspaceId, "/journal");
     if (id === "goals")
       return buildWorkspacePath(currentWorkspaceId, "/goals");
     return "#";
@@ -202,6 +220,12 @@ export function AppSidebar() {
     if (id === "budgets") {
       return scopedPathname.startsWith("/budgets");
     }
+    if (id === "transactions") {
+      return scopedPathname.startsWith("/transactions");
+    }
+    if (id === "notifications") {
+      return scopedPathname.startsWith("/notifications");
+    }
     if (id === "performance") {
       return scopedPathname.startsWith("/performance");
     }
@@ -210,6 +234,9 @@ export function AppSidebar() {
     }
     if (id === "habit-logs") {
       return scopedPathname.startsWith("/habit-logs");
+    }
+    if (id === "journal") {
+      return scopedPathname.startsWith("/journal");
     }
     if (id === "goals") {
       return scopedPathname.startsWith("/goals");
@@ -252,6 +279,10 @@ export function AppSidebar() {
               {navItems.map((item) => {
                 const href = getHrefForNavItem(item.id);
                 const active = isItemActive(item.id);
+                const badgeCount =
+                  item.id === "inbox"
+                    ? unreadNotificationsQuery.data?.count ?? 0
+                    : item.badge ?? 0;
 
                 return (
                   <SidebarMenuItem key={item.label}>
@@ -268,9 +299,9 @@ export function AppSidebar() {
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {item.badge && (
+                    {badgeCount > 0 && (
                       <SidebarMenuBadge className="bg-muted text-muted-foreground rounded-full px-2">
-                        {item.badge}
+                        {badgeCount > 99 ? "99+" : badgeCount}
                       </SidebarMenuBadge>
                     )}
                   </SidebarMenuItem>
@@ -309,6 +340,10 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/40 p-2">
+        <div className="mb-2 flex items-center justify-end">
+          <NotificationsDropdown workspaceId={activeWorkspaceId} />
+        </div>
+
         <SidebarMenu>
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.label}>

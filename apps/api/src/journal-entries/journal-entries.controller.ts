@@ -29,6 +29,7 @@ import {
   MoodSummaryQueryDto,
   MoodSummaryResponseDto,
 } from './dto';
+import { Types } from 'mongoose';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
 import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
@@ -36,6 +37,7 @@ import { WorkspaceContext } from '../workspaces/decorators/workspace-context.dec
 import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
 import { RequireWorkspacePermission } from '../workspaces/decorators/require-workspace-permission.decorator';
 import { WorkspacePermission } from '../workspaces/workspace-permissions';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 
 @ApiTags('journal-entries')
 @ApiBearerAuth('access-token')
@@ -109,10 +111,10 @@ export class JournalEntriesController {
     type: JournalEntryResponseDto,
   })
   findOne(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: Types.ObjectId,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
-    return this.journalEntriesService.findByIdAndUser(id, workspace);
+    return this.journalEntriesService.findByIdAndUser(id.toString(), workspace);
   }
 
   @Patch(':id')
@@ -124,12 +126,12 @@ export class JournalEntriesController {
     type: JournalEntryResponseDto,
   })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: Types.ObjectId,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() updateJournalEntryDto: UpdateJournalEntryDto,
   ) {
     return this.journalEntriesService.update(
-      id,
+      id.toString(),
       workspace,
       updateJournalEntryDto,
     );
@@ -142,9 +144,9 @@ export class JournalEntriesController {
   @ApiParam({ name: 'id', description: 'Journal entry ID' })
   @ApiOkResponse({ description: 'Journal entry successfully deleted' })
   remove(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: Types.ObjectId,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ) {
-    return this.journalEntriesService.delete(id, workspace);
+    return this.journalEntriesService.delete(id.toString(), workspace);
   }
 }

@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { getErrorMessage } from "@/components/auth/auth-error"
@@ -15,8 +16,20 @@ import {
   useVerifyEmailMutation,
 } from "@/lib/auth/auth-query"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 
 const verifyEmailSchema = z.object({
   email: z.email("Enter a valid email address"),
@@ -77,7 +90,7 @@ export function VerifyEmailForm() {
         </p>
       }
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -85,15 +98,45 @@ export function VerifyEmailForm() {
             <FieldError>{form.formState.errors.email?.message}</FieldError>
           </Field>
 
-          <Field>
+          <Field data-invalid={Boolean(form.formState.errors.code)}>
             <FieldLabel htmlFor="code">Verification code</FieldLabel>
-            <Input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              {...form.register("code")}
+            <Controller
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <InputOTP
+                  id="code"
+                  maxLength={6}
+                  pattern={REGEXP_ONLY_DIGITS}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  aria-invalid={form.formState.errors.code ? "true" : undefined}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onChange={(value) => {
+                    field.onChange(value)
+
+                    if (form.formState.errors.root) {
+                      form.clearErrors("root")
+                    }
+                  }}
+                  containerClassName="justify-center sm:justify-start"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              )}
             />
+            <FieldDescription>Paste the full six-digit code or enter it one digit at a time.</FieldDescription>
             <FieldError>{form.formState.errors.code?.message}</FieldError>
           </Field>
         </FieldGroup>

@@ -1,4 +1,4 @@
-import { IsOptional, IsDate } from 'class-validator';
+import { IsOptional, IsDate, IsEnum, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { MoodLevel } from '../schemas/journal-entry.schema';
@@ -7,6 +7,11 @@ import { MoodLevel } from '../schemas/journal-entry.schema';
  * DTO for querying mood summary
  */
 export class MoodSummaryQueryDto {
+  @ApiPropertyOptional({ enum: MoodLevel })
+  @IsEnum(MoodLevel)
+  @IsOptional()
+  mood?: MoodLevel;
+
   @ApiPropertyOptional({
     description: 'Start date for summary period',
     example: '2026-01-01',
@@ -24,6 +29,22 @@ export class MoodSummaryQueryDto {
   @Type(() => Date)
   @IsOptional()
   dateTo?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Filter by tag',
+    example: 'gratitude',
+  })
+  @IsString()
+  @IsOptional()
+  tag?: string;
+
+  @ApiPropertyOptional({
+    description: 'Search in title and content',
+    example: 'productive day',
+  })
+  @IsString()
+  @IsOptional()
+  search?: string;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { JournalEntryResponseDto } from './dto/journal-entry-response.dto';
 import { JournalEntriesRepository } from './journal-entries.repository';
 import {
   JournalEntryDocument,
@@ -23,11 +24,13 @@ export class JournalEntriesService {
   async create(
     workspace: WorkspaceRequestContext,
     dto: CreateJournalEntryDto,
-  ): Promise<JournalEntryDocument> {
-    return this.journalEntriesRepo.create(
+  ): Promise<JournalEntryResponseDto> {
+    const entry = await this.journalEntriesRepo.create(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
       dto,
     );
+
+    return this.toJournalEntryResponse(entry);
   }
 
   /**
@@ -36,7 +39,7 @@ export class JournalEntriesService {
   async findByIdAndUser(
     id: string,
     workspace: WorkspaceRequestContext,
-  ): Promise<JournalEntryDocument> {
+  ): Promise<JournalEntryResponseDto> {
     const entry = await this.journalEntriesRepo.findByIdAndUser(id, {
       workspaceId: workspace.workspaceId,
       userId: workspace.actorUserId,
@@ -44,7 +47,7 @@ export class JournalEntriesService {
     if (!entry) {
       throw new NotFoundException('Journal entry not found');
     }
-    return entry;
+    return this.toJournalEntryResponse(entry);
   }
 
   /**
@@ -53,11 +56,17 @@ export class JournalEntriesService {
   async findMany(
     workspace: WorkspaceRequestContext,
     query: QueryJournalEntryDto,
-  ): Promise<{ items: JournalEntryDocument[]; total: number }> {
-    return this.journalEntriesRepo.findWithPaginationAndFilters(
-      { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
-      query,
-    );
+  ): Promise<{ items: JournalEntryResponseDto[]; total: number }> {
+    const { items, total } =
+      await this.journalEntriesRepo.findWithPaginationAndFilters(
+        { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
+        query,
+      );
+
+    return {
+      items: items.map((item) => this.toJournalEntryResponse(item)),
+      total,
+    };
   }
 
   /**
@@ -67,7 +76,7 @@ export class JournalEntriesService {
     id: string,
     workspace: WorkspaceRequestContext,
     dto: UpdateJournalEntryDto,
-  ): Promise<JournalEntryDocument> {
+  ): Promise<JournalEntryResponseDto> {
     const entry = await this.journalEntriesRepo.updateByIdAndUser(
       id,
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
@@ -76,7 +85,7 @@ export class JournalEntriesService {
     if (!entry) {
       throw new NotFoundException('Journal entry not found');
     }
-    return entry;
+    return this.toJournalEntryResponse(entry);
   }
 
   /**
@@ -99,21 +108,16 @@ export class JournalEntriesService {
     workspace: WorkspaceRequestContext,
     query: MoodSummaryQueryDto,
   ): Promise<MoodSummaryResponseDto> {
-    const dateFrom = query.dateFrom;
-    const dateTo = query.dateTo;
-
     // Get summary data
     const summary = await this.journalEntriesRepo.getMoodSummary(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
-      dateFrom,
-      dateTo,
+      query,
     );
 
     // Get trend data
     const trend = await this.journalEntriesRepo.getMoodTrend(
       { workspaceId: workspace.workspaceId, userId: workspace.actorUserId },
-      dateFrom,
-      dateTo,
+      query,
     );
 
     // Calculate mood distribution with percentages and labels
@@ -129,9 +133,10 @@ export class JournalEntriesService {
 
     // Determine period dates
     const periodStart =
-      dateFrom || (trend.length > 0 ? new Date(trend[0].date) : new Date());
+      query.dateFrom ||
+      (trend.length > 0 ? new Date(trend[0].date) : new Date());
     const periodEnd =
-      dateTo ||
+      query.dateTo ||
       (trend.length > 0 ? new Date(trend[trend.length - 1].date) : new Date());
 
     return {
@@ -143,5 +148,40 @@ export class JournalEntriesService {
       periodStart,
       periodEnd,
     };
+  }
+
+  private toJournalEntryResponse(
+    entry: JournalEntryDocument | Record<string, any>,
+  ): JournalEntryResponseDto {
+    const raw: Record<string, any> =
+      typeof (entry as JournalEntryDocument).toObject === 'function'
+        ? ((entry as JournalEntryDocument).toObject() as Record<string, any>)
+        : (entry as Record<string, any>);
+
+    return new JournalEntryResponseDto({
+      id: this.toIdString(raw._id ?? raw.id) ?? '',
+      workspaceId: this.toIdString(raw.workspaceId),
+      userId: this.toIdString(raw.userId) ?? '',
+      authorUserId: this.toIdString(raw.authorUserId),
+      updatedBy: this.toIdString(raw.updatedBy),
+      entryDate: raw.entryDate,
+      title: raw.title,
+      content: raw.content,
+      mood: raw.mood,
+      tags: Array.isArray(raw.tags)
+        ? raw.tags.filter((tag): tag is string => typeof tag === 'string')
+        : [],
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
+  }
+
+  private toIdString(value: unknown): string | null {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && 'toString' in value) {
+      return value.toString();
+    }
+    return null;
   }
 }
