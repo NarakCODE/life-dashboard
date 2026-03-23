@@ -6,7 +6,7 @@ import type { ReactNode } from "react"
 
 interface PageHeaderProps {
   /** Page title displayed next to the sidebar trigger */
-  title: string
+  title: ReactNode
   /** Actions to display in the top-right corner (e.g., buttons) */
   actions?: ReactNode
   /** Content for the bottom section (filters, tabs, etc.) */
@@ -54,7 +54,7 @@ export function PageHeader({
       >
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
-          <p className="text-base font-medium text-foreground">{title}</p>
+          <div className="text-base font-medium text-foreground">{title}</div>
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>

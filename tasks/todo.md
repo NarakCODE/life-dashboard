@@ -1,3 +1,31 @@
+# Transaction Create Response Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Reproduce the transaction create failure from the live UI and inspect the API response
+- [x] Confirm the transactions API is returning raw Mongoose documents instead of normalized DTO payloads
+
+### 2. Fix
+- [x] Serialize transaction create/read/list/update responses through the existing response DTO
+- [x] Add focused regression coverage for normalized transaction responses
+
+### 3. Verification
+- [x] Run targeted backend verification for the touched transactions files
+- [x] Record results and any remaining follow-up
+
+## Review / Results
+- Fixed `apps/api/src/transactions/transactions.service.ts` so transaction create, list, detail, and update responses are normalized through `TransactionResponseDto` instead of leaking raw Mongoose documents with `$__` and `_doc`.
+- Added `apps/api/src/transactions/transactions.service.spec.ts` to cover normalized create and list response behavior.
+- Verification:
+- `pnpm test -- transactions.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint src/transactions/transactions.service.ts src/transactions/transactions.service.spec.ts` in `apps/api` ✅
+- `pnpm exec tsc --noEmit 2>&1 | rg "src/transactions/transactions\\.service(\\.spec)?\\.ts" || true` in `apps/api` returned no matches ✅
+- Chrome DevTools verification:
+- reproduced the original `POST /transactions` failure and confirmed the API had been returning raw Mongoose documents in the list payload
+- reloaded after the fix and confirmed the transactions page rendered correctly with stable item ids
+- created a new `Taxi` expense for `$40` and confirmed the page stayed mounted, showed the success toast, and updated the list/summary totals ✅
+
 # Budget Inactive List Plan
 
 ## Status: COMPLETE

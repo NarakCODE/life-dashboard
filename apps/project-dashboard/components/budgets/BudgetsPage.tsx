@@ -724,7 +724,11 @@ export function BudgetsPage() {
       <PageHeader
         title="Budgets"
         actions={
-          <Button size="sm" variant="ghost" onClick={() => setIsCreateDialogOpen(true)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
             <Plus className="mr-1.5 h-4 w-4" />
             New budget
           </Button>
@@ -798,7 +802,7 @@ export function BudgetsPage() {
         }
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
         {isBudgetsPending ? <BudgetsSkeleton /> : null}
 
         {!isBudgetsPending ? (
@@ -835,6 +839,15 @@ export function BudgetsPage() {
             />
           </div>
         ) : null}
+
+        <div className="flex flex-col">
+          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+            Budgets
+          </h4>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your latest budget updates and completions will appear here.
+          </p>
+        </div>
 
         {budgetsError ? (
           <EmptyState
@@ -876,7 +889,7 @@ export function BudgetsPage() {
                 <Card
                   key={budget.id}
                   className={cn(
-                    "border-border/60 bg-card/80",
+                    "",
                     isOverBudget && "border-rose-200/80 bg-rose-50/40",
                     !budget.isActive && "opacity-75",
                   )}
@@ -885,9 +898,14 @@ export function BudgetsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="truncate text-lg font-semibold text-foreground">
-                            {budget.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100/80 text-emerald-700">
+                              <Wallet className="h-3.5 w-3.5" />
+                            </div>
+                            <h3 className="truncate text-lg font-semibold text-foreground">
+                              {budget.name}
+                            </h3>
+                          </div>
                           <Badge
                             variant={budget.isActive ? "default" : "secondary"}
                           >

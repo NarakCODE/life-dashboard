@@ -2,6 +2,25 @@
 
 ## Date: 2026-03-23
 
+### Lesson: Do Not Return Raw Mongoose Documents From API Services
+
+**Context**: Fixed the transactions create flow after the API started returning raw Mongoose documents that leaked `$__` and `_doc` internals into the JSON response.
+
+**Mistake/Risk Avoided**:
+- The transactions service returned `TransactionDocument` instances directly for create, list, detail, and update operations.
+- That leaked Mongo internals into the API contract, broke the frontend’s `id` expectations, and contributed to the transaction create/list failure path.
+
+**Root Cause**:
+- The feature already had `TransactionResponseDto`, but the service layer was bypassing it and exposing repository documents directly.
+- Repository return shapes are persistence-layer objects, not stable API contracts.
+
+**Preventative Rule**:
+1. Normalize repository documents in the service layer before they cross the controller boundary.
+2. Reuse or add response DTOs for every CRUD path, not just selected endpoints.
+3. When a frontend starts receiving `_id`, `$__`, or `_doc`, treat that as a service serialization bug immediately.
+
+**Applied In**: `apps/api/src/transactions/transactions.service.ts` now maps transactions into `TransactionResponseDto`, and `apps/api/src/transactions/transactions.service.spec.ts` covers the normalized response shape.
+
 ### Lesson: Boolean Query Transforms Must Preserve Omitted Values
 
 **Context**: Fixed the budgets list API so marking a budget inactive does not disappear it from the unfiltered response due to controller-level query parsing.
