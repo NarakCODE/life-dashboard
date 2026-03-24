@@ -24,6 +24,8 @@ export enum WorkspacePermission {
   JOURNAL_WRITE = 'journal.write',
   NOTIFICATION_READ = 'notification.read',
   NOTIFICATION_WRITE = 'notification.write',
+  NOTE_READ = 'note.read',
+  NOTE_WRITE = 'note.write',
 }
 
 const VIEWER_PERMISSIONS: WorkspacePermission[] = [
@@ -36,6 +38,7 @@ const VIEWER_PERMISSIONS: WorkspacePermission[] = [
   WorkspacePermission.TRANSACTION_READ,
   WorkspacePermission.JOURNAL_READ,
   WorkspacePermission.NOTIFICATION_READ,
+  WorkspacePermission.NOTE_READ,
 ];
 
 const MEMBER_PERMISSIONS: WorkspacePermission[] = [
@@ -49,6 +52,7 @@ const MEMBER_PERMISSIONS: WorkspacePermission[] = [
   WorkspacePermission.TRANSACTION_WRITE,
   WorkspacePermission.JOURNAL_WRITE,
   WorkspacePermission.NOTIFICATION_WRITE,
+  WorkspacePermission.NOTE_WRITE,
 ];
 
 const ADMIN_PERMISSIONS: WorkspacePermission[] = [

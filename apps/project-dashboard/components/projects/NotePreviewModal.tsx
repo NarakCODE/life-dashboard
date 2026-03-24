@@ -40,12 +40,14 @@ type NotePreviewModalProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
     note: ProjectNote | null
+    onDelete?: (noteId: string) => void
 }
 
 export function NotePreviewModal({
     open,
     onOpenChange,
     note,
+    onDelete,
 }: NotePreviewModalProps) {
     const [isPlaying, setIsPlaying] = useState(false)
     const [activeSegment, setActiveSegment] = useState<string | null>(null)
@@ -84,12 +86,16 @@ export function NotePreviewModal({
                                         </Button>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                        {format(note.addedDate, "MMMM d, yyyy")} · {format(note.addedDate, "h:mm a")} · Translate
+                                        {note.createdAt ? format(new Date(note.createdAt), "MMMM d, yyyy") : "—"} · {note.createdAt ? format(new Date(note.createdAt), "h:mm a") : "—"} · Translate
                                     </p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon-sm">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon-sm"
+                                    onClick={() => note && onDelete?.(note.id)}
+                                >
                                     <DotsThree className="h-4 w-4" weight="bold" />
                                 </Button>
                                 <Button variant="outline" size="sm">

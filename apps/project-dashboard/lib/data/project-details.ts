@@ -138,8 +138,13 @@ export type ProjectNote = {
   content?: string
   noteType: NoteType
   status: NoteStatus
-  addedDate: Date
-  addedBy: User
+  projectId: string
+  projectName?: string
+  author?: User
+  audioUrl?: string
+  audioDuration?: string
+  createdAt: Date
+  updatedAt: Date
   audioData?: AudioNoteData
 }
 
@@ -325,8 +330,12 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Project review",
         noteType: "audio",
         status: "completed",
-        addedDate: new Date(2025, 6, 12),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        audioUrl: "/audio/project-review-meeting.mp3",
+        audioDuration: "00:02:21",
+        createdAt: new Date(2025, 6, 12),
+        updatedAt: new Date(2025, 6, 12),
         audioData: {
           duration: "00:02:21",
           fileName: "project-review-meeting.mp3",
@@ -358,8 +367,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Meeting note",
         noteType: "meeting",
         status: "completed",
-        addedDate: new Date(2024, 8, 18),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 18),
+        updatedAt: new Date(2024, 8, 18),
         content:
           "Discussion about current sprint goals, open issues, and next steps for the design handoff.",
       },
@@ -368,8 +379,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Client feedback",
         noteType: "general",
         status: "completed",
-        addedDate: new Date(2024, 8, 18),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 18),
+        updatedAt: new Date(2024, 8, 18),
         content:
           "Client shared feedback on the latest homepage iteration. Main concern is clarity of the hero copy.",
       },
@@ -378,8 +391,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Internal brainstorm",
         noteType: "general",
         status: "completed",
-        addedDate: new Date(2024, 8, 17),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 17),
+        updatedAt: new Date(2024, 8, 17),
         content:
           "Ideas for onboarding improvements, including checklists, progress indicators, and inline tips.",
       },
@@ -388,8 +403,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Hero Description",
         noteType: "general",
         status: "completed",
-        addedDate: new Date(2024, 8, 17),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 17),
+        updatedAt: new Date(2024, 8, 17),
         content:
           "Copy options for the hero section headline and supporting description for A/B testing.",
       },
@@ -398,8 +415,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Trade-off",
         noteType: "meeting",
         status: "processing",
-        addedDate: new Date(2024, 8, 17),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 17),
+        updatedAt: new Date(2024, 8, 17),
         content:
           "Notes about trade-offs between performance and flexibility for the new dashboard widgets.",
       },
@@ -408,8 +427,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Roadmap",
         noteType: "general",
         status: "completed",
-        addedDate: new Date(2024, 8, 16),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 16),
+        updatedAt: new Date(2024, 8, 16),
         content:
           "High-level roadmap for the next two quarters focusing on analytics and collaboration features.",
       },
@@ -418,8 +439,10 @@ function baseDetailsFromListItem(p: ProjectListItem): ProjectDetails {
         title: "Brainstorm",
         noteType: "general",
         status: "completed",
-        addedDate: new Date(2024, 8, 16),
-        addedBy: primaryPic,
+        projectId: p.id,
+        author: primaryPic,
+        createdAt: new Date(2024, 8, 16),
+        updatedAt: new Date(2024, 8, 16),
         content:
           "Rough brainstorming around potential integrations and automation opportunities.",
       },

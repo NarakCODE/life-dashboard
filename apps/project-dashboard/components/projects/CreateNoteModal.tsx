@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Paperclip, Microphone, UploadSimple, Tag, X } from "@phosphor-icons/react/dist/ssr"
 
-import type { User } from "@/lib/data/project-details"
+import type { User, ProjectNote } from "@/lib/data/project-details"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { QuickCreateModalLayout } from "@/components/QuickCreateModalLayout"
@@ -13,35 +13,51 @@ type CreateNoteModalProps = {
     open: boolean
     onOpenChange: (open: boolean) => void
     currentUser: User
+    editingNote?: ProjectNote | null
     onCreateNote: (title: string, content: string) => void
+    onUpdateNote?: (noteId: string, title: string, content: string) => void
     onUploadAudio: () => void
+    isPending?: boolean
 }
 
 export function CreateNoteModal({
     open,
     onOpenChange,
     currentUser,
+    editingNote,
     onCreateNote,
+    onUpdateNote,
     onUploadAudio,
+    isPending,
 }: CreateNoteModalProps) {
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState<string | undefined>(undefined)
     const [isExpanded, setIsExpanded] = useState(false)
+    const isEditing = Boolean(editingNote)
 
     useEffect(() => {
         if (!open) return
 
-        setTitle("")
-        setDescription(undefined)
+        if (editingNote) {
+            setTitle(editingNote.title)
+            setDescription(editingNote.content)
+        } else {
+            setTitle("")
+            setDescription(undefined)
+        }
         setIsExpanded(false)
-    }, [open])
+    }, [open, editingNote])
 
     const handleClose = () => {
         onOpenChange(false)
     }
 
-    const handleCreate = () => {
-        onCreateNote(title, description ?? "")
+    const handleSubmit = () => {
+        if (isEditing && editingNote && onUpdateNote) {
+            onUpdateNote(editingNote.id, title, description ?? "")
+        } else {
+            onCreateNote(title, description ?? "")
+        }
         setTitle("")
         setDescription(undefined)
         onOpenChange(false)
@@ -56,7 +72,7 @@ export function CreateNoteModal({
             open={open}
             onClose={handleClose}
             isDescriptionExpanded={isExpanded}
-            onSubmitShortcut={handleCreate}
+            onSubmitShortcut={handleSubmit}
         >
             {/* Title row with close button */}
             <div className="flex items-center justify-between gap-2 w-full shrink-0 mt-1">
@@ -127,8 +143,8 @@ export function CreateNoteModal({
                         <UploadSimple className="h-4 w-4" />
                         Upload audio file
                     </Button>
-                    <Button size="sm" onClick={handleCreate}>
-                        Create Note
+                    <Button size="sm" onClick={handleSubmit} disabled={isPending}>
+                        {isEditing ? "Update Note" : "Create Note"}
                     </Button>
                 </div>
             </div>

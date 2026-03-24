@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { LinkSimple, SquareHalf } from "@phosphor-icons/react/dist/ssr"
+
 import { toast } from "sonner"
 import { AnimatePresence, motion } from "motion/react"
 import { cn } from "@/lib/utils"
@@ -28,7 +29,6 @@ import {
   useMoveProjectTaskMutation,
   usePatchProjectTaskMutation,
   useProjectDetailsQuery,
-  useReorderProjectTasksMutation,
   useReorderProjectWorkstreamTasksMutation,
   useUpdateProjectMutation,
 } from "@/lib/projects/projects-query"
@@ -57,12 +57,9 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
   )
   const reorderProjectWorkstreamTasksMutation =
     useReorderProjectWorkstreamTasksMutation(workspaceId ?? "", projectId)
-  const reorderProjectTasksMutation = useReorderProjectTasksMutation(
-    workspaceId ?? "",
-    projectId,
-  )
   const [showMeta, setShowMeta] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("overview")
 
   const copyLink = useCallback(async () => {
     if (!navigator.clipboard) {
@@ -181,15 +178,6 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
     }
   }
 
-  const handleReorderProjectTasks = async (taskIds: string[]) => {
-    try {
-      await reorderProjectTasksMutation.mutateAsync(taskIds)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reorder project tasks"
-      toast.error(message)
-    }
-  }
-
   return (
     <div className="flex flex-1 flex-col min-w-0">
       <div className="sticky top-0 z-20 flex items-center justify-between gap-4 px-4 py-4 bg-background/80 backdrop-blur-md border-b">
@@ -235,7 +223,7 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                   onEditProject={canManageProjects ? openWizard : undefined}
                 />
 
-                <Tabs defaultValue="overview">
+                <Tabs defaultValue="overview" onValueChange={(value) => setActiveTab(value)}>
                   <TabsList className="w-full gap-6">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="workstream">Workstream</TabsTrigger>
@@ -265,14 +253,19 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
 
                   <TabsContent value="tasks">
                     <ProjectTasksTab
-                      project={project}
-                      onToggleTask={handleToggleTask}
-                      onReorderTasks={handleReorderProjectTasks}
+                      workspaceId={workspaceId ?? ""}
+                      projectId={projectId}
+                      projectName={project.name}
+                      isActive={activeTab === "tasks"}
                     />
                   </TabsContent>
 
                   <TabsContent value="notes">
-                    <NotesTab notes={project.notes || []} />
+                    <NotesTab
+                      workspaceId={workspaceId ?? ""}
+                      projectId={projectId}
+                      isActive={activeTab === "notes"}
+                    />
                   </TabsContent>
 
                   <TabsContent value="assets">

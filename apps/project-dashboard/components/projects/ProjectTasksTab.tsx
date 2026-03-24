@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { DotsThreeVertical, Plus } from "@phosphor-icons/react/dist/ssr"
+import { DotsThreeVertical, Plus, Spinner, Trash } from "@phosphor-icons/react/dist/ssr"
 import {
   DndContext,
   type DragEndEvent,
@@ -14,133 +14,243 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { toast } from "sonner"
 
-import type { ProjectDetails, ProjectTask } from "@/lib/data/project-details"
-import { getProjectTasks } from "@/lib/data/project-details"
+import type { ProjectTask } from "@/lib/data/project-details"
 import type { FilterCounts } from "@/lib/data/projects"
 import type { FilterChip as FilterChipType } from "@/lib/view-options"
+import type { MyTasksQuery } from "@/lib/tasks/types"
+import { useAllTasksQuery, useUpdateTaskMutation, useDeleteTaskMutation } from "@/lib/tasks/tasks-query"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { FilterPopover } from "@/components/filter-popover"
 import { ChipOverflow } from "@/components/chip-overflow"
 import { TaskRowBase } from "@/components/tasks/TaskRowBase"
+import { TaskQuickCreateModal } from "@/components/tasks/TaskQuickCreateModal"
 import { cn } from "@/lib/utils"
 
 type ProjectTasksTabProps = {
-  project: ProjectDetails
-  onToggleTask?: (taskId: string, nextStatus: "todo" | "done") => Promise<void> | void
-  onReorderTasks?: (taskIds: string[]) => Promise<void> | void
+  workspaceId: string
+  projectId: string
+  projectName: string
+  isActive?: boolean
 }
 
 export function ProjectTasksTab({
-  project,
-  onToggleTask,
-  onReorderTasks,
+  workspaceId,
+  projectId,
+  projectName,
+  isActive = false,
 }: ProjectTasksTabProps) {
-  const [tasks, setTasks] = useState<ProjectTask[]>(() => getProjectTasks(project))
+  // Local state for filters and UI
   const [filters, setFilters] = useState<FilterChipType[]>([])
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<ProjectTask | null>(null)
 
-  useEffect(() => {
-    setTasks(getProjectTasks(project))
-  }, [project])
+  // Query params for fetching tasks
+  const queryParams: MyTasksQuery = useMemo(() => ({
+    projectId,
+    page: 1,
+    limit: 100,
+  }), [projectId])
 
-  const counts = useMemo<FilterCounts>(() => computeTaskFilterCounts(tasks), [tasks])
-
-  const filteredTasks = useMemo(
-    () => filterTasksByChips(tasks, filters),
-    [tasks, filters],
+  // Fetch tasks from BFF API - only when tab is active
+  const { data: tasksData, isLoading, error } = useAllTasksQuery(
+    workspaceId,
+    queryParams,
+    isActive // Only enable when tab is active
   )
 
-  const toggleTask = (taskId: string) => {
-    const currentTask = tasks.find((task) => task.id === taskId)
-    const nextStatus = currentTask?.status === "done" ? "todo" : "done"
+  // Mutations
+  const updateTaskMutation = useUpdateTaskMutation(workspaceId, queryParams)
+  const deleteTaskMutation = useDeleteTaskMutation(workspaceId, queryParams)
 
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: task.status === "done" ? "todo" : "done",
-            }
-          : task,
-      ),
-    )
+  const tasks = tasksData?.data.tasks ?? []
+  const filterCounts = tasksData?.meta.filterCounts
 
-    if (currentTask && (nextStatus === "todo" || nextStatus === "done")) {
-      void onToggleTask?.(taskId, nextStatus)
+  // Apply local filters to the fetched tasks
+  const filteredTasks = useMemo(
+    () => filterTasksByChips(tasks, filters),
+    [tasks, filters]
+  )
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load tasks. Please try again.")
+    }
+  }, [error])
+
+  const handleToggleTask = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+
+    const nextStatus = task.status === "done" ? "todo" : "done"
+
+    try {
+      await updateTaskMutation.mutateAsync({
+        taskId,
+        input: { status: nextStatus },
+      })
+      toast.success(`Task marked as ${nextStatus === "done" ? "done" : "todo"}`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update task"
+      toast.error(message)
     }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      setTasks((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id)
-        const newIndex = items.findIndex((item) => item.id === over.id)
-        const next = arrayMove(items, oldIndex, newIndex)
-        void onReorderTasks?.(next.map((task) => task.id))
-        return next
-      })
+      const oldIndex = tasks.findIndex((item) => item.id === active.id)
+      const newIndex = tasks.findIndex((item) => item.id === over.id)
+      const reorderedTasks = arrayMove(tasks, oldIndex, newIndex)
+
+      // Note: Reordering via BFF API would need a dedicated endpoint
+      // For now, we just update the local order optimistically
+      // This can be enhanced when the API supports task reordering
     }
   }
 
-  if (!tasks.length) {
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTaskMutation.mutateAsync(taskId)
+      toast.success("Task deleted successfully")
+      setEditingTask(null)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete task"
+      toast.error(message)
+    }
+  }
+
+  // Compute filter counts from API data
+  const counts: FilterCounts = useMemo(() => {
+    if (filterCounts) {
+      return filterCounts
+    }
+    return computeTaskFilterCounts(tasks)
+  }, [filterCounts, tasks])
+
+  if (isLoading) {
     return (
-      <section className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        No tasks defined yet.
+      <section className="rounded-2xl border border-border bg-card">
+        <div className="flex items-center justify-center px-4 py-16">
+          <Spinner className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </section>
     )
   }
 
-  return (
-    <section className="rounded-2xl border border-border bg-card shadow-[var(--shadow-workstream)]">
-      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <FilterPopover
-            initialChips={filters}
-            onApply={setFilters}
-            onClear={() => setFilters([])}
-            counts={counts}
-          />
-          <ChipOverflow
-            chips={filters}
-            onRemove={(key, value) =>
-              setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
-            }
-            maxVisible={4}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 rounded-lg border-border/60 bg-transparent px-3 text-xs font-medium"
-          >
-            View
-          </Button>
-          <Button size="sm" className="h-8 rounded-lg px-3 text-xs font-medium">
-            <Plus className="mr-1.5 h-4 w-4" />
-            New Task
-          </Button>
-        </div>
-      </header>
+  if (error) {
+    return (
+      <section className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-10 text-center">
+        <p className="text-sm text-muted-foreground">Failed to load tasks.</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+      </section>
+    )
+  }
 
-      <div className="space-y-1 px-2 py-3">
-        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={filteredTasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-            {filteredTasks.map((task) => (
-              <TaskRowDnD
-                key={task.id}
-                task={task}
-                onToggle={() => toggleTask(task.id)}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </div>
-    </section>
+  if (!tasks.length && !filters.length) {
+    return (
+      <>
+        <section className="rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+          <p>No tasks defined yet.</p>
+          <Button
+            size="sm"
+            className="mt-4"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Create your first task
+          </Button>
+        </section>
+        <TaskQuickCreateModal
+          open={isCreateDialogOpen}
+          onClose={() => setIsCreateDialogOpen(false)}
+          context={{ projectId }}
+        />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <section className="rounded-2xl border border-border bg-card shadow-[var(--shadow-workstream)]">
+        <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <FilterPopover
+              initialChips={filters}
+              onApply={setFilters}
+              onClear={() => setFilters([])}
+              counts={counts}
+            />
+            <ChipOverflow
+              chips={filters}
+              onRemove={(key, value) =>
+                setFilters((prev) => prev.filter((chip) => !(chip.key === key && chip.value === value)))
+              }
+              maxVisible={4}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg border-border/60 bg-transparent px-3 text-xs font-medium"
+            >
+              View
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 rounded-lg px-3 text-xs font-medium"
+              onClick={() => setIsCreateDialogOpen(true)}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              New Task
+            </Button>
+          </div>
+        </header>
+
+        <div className="space-y-1 px-2 py-3">
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={filteredTasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+              {filteredTasks.map((task) => (
+                <TaskRowDnD
+                  key={task.id}
+                  task={task}
+                  onToggle={() => handleToggleTask(task.id)}
+                  onEdit={() => setEditingTask(task)}
+                  onDelete={() => handleDeleteTask(task.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </section>
+
+      {/* Create/Edit Task Dialog */}
+      <TaskQuickCreateModal
+        open={isCreateDialogOpen || !!editingTask}
+        onClose={() => {
+          setIsCreateDialogOpen(false)
+          setEditingTask(null)
+        }}
+        context={{ projectId }}
+        editingTask={editingTask ?? undefined}
+      />
+    </>
   )
 }
 
@@ -241,9 +351,11 @@ function getStatusColor(status: ProjectTask["status"]): string {
 type TaskRowDnDProps = {
   task: ProjectTask
   onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
-function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
+function TaskRowDnD({ task, onToggle, onEdit, onDelete }: TaskRowDnDProps) {
   const isDone = task.status === "done"
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -255,8 +367,13 @@ function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
     transition,
   }
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onDelete()
+  }
+
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} onClick={onEdit} className="cursor-pointer">
       <TaskRowBase
         checked={isDone}
         title={task.name}
@@ -281,8 +398,19 @@ function TaskRowDnD({ task, onToggle }: TaskRowDnDProps) {
               type="button"
               size="icon-sm"
               variant="ghost"
+              className="size-7 rounded-md text-muted-foreground hover:text-destructive"
+              aria-label="Delete task"
+              onClick={handleDelete}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
               className="size-7 rounded-md text-muted-foreground cursor-grab active:cursor-grabbing"
               aria-label="Reorder task"
+              onClick={(e) => e.stopPropagation()}
               {...attributes}
               {...listeners}
             >

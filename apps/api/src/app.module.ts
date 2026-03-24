@@ -21,6 +21,7 @@ import { JournalEntriesModule } from './journal-entries/journal-entries.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OtpCodesModule } from './otp-codes/otp-codes.module';
 import { ProjectsModule } from './projects/projects.module';
+import { NotesModule } from './notes/notes.module';
 import { appConfig, databaseConfig } from './config';
 import { emailConfig } from './email/email.config';
 import { validate } from './config/env.validation';
@@ -103,6 +104,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     HabitLogsModule,
     BudgetsModule,
     ProjectsModule,
+    NotesModule,
     GoalsModule,
     JournalEntriesModule,
     NotificationsModule,

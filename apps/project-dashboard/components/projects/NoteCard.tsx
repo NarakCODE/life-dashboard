@@ -58,7 +58,7 @@ export function NoteCard({ note, onEdit, onDelete, onClick }: NoteCardProps) {
                     {note.title}
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    {format(note.addedDate, "d MMM")}
+                    {note.createdAt ? format(new Date(note.createdAt), "d MMM") : "—"}
                 </p>
             </div>
         </div>

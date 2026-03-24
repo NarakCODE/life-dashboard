@@ -107,10 +107,10 @@ export function NotesTable({ notes, onAddNote, onEditNote, onDeleteNote, onNoteC
                                 </TableCell>
                                 <TableCell className="font-medium">{note.title}</TableCell>
                                 <TableCell className="text-muted-foreground">
-                                    {note.addedBy.name}
+                                    {note.author?.name ?? "—"}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
-                                    {format(note.addedDate, "d MMM")}
+                                    {note.createdAt ? format(new Date(note.createdAt), "d MMM") : "—"}
                                 </TableCell>
                                 <TableCell>
                                     <StatusBadge status={note.status} />
