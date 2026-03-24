@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, PageToolbarResponsive } from "@/components/page-layout";
+import { PageHeader, PageToolbarResponsive, PageLayout } from "@/components/page-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -388,7 +388,7 @@ export function JournalEntriesPage() {
   }
 
   return (
-    <div className="mx-2 my-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+    <PageLayout>
       <PageHeader
         title="Journal"
         actions={
@@ -928,6 +928,6 @@ export function JournalEntriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageLayout>
   );
 }

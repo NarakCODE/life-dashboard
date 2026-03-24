@@ -11,14 +11,12 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { UsersRepository } from '../users/users.repository';
 import { OtpCodesService } from '../otp-codes/otp-codes.service';
-import { BrevoEmailService } from '../email/brevo-email.service';
 import { OtpType } from '../otp-codes/schemas/otp-code.schema';
+import { EmailVerificationService } from './services/email-verification.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokensDto, JwtPayload } from './dto/auth-tokens.dto';
 import { UserDocument } from '../users/schemas/user.schema';
-import { UserResponseDto } from '../users/dto/user-response.dto';
-import { OnboardingService } from '../onboarding/onboarding.service';
 
 const BCRYPT_ROUNDS = 10;
 const DEV_BOOTSTRAP_EMAIL = 'dev@life-dashboard.local';
@@ -33,10 +31,9 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly usersRepo: UsersRepository,
     private readonly otpCodesService: OtpCodesService,
-    private readonly emailService: BrevoEmailService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    private readonly onboardingService: OnboardingService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {
     const expiresIn = this.config.get<string>('jwt.expiresIn', '15m');
     this.jwtExpiresIn = this.parseExpiryToSeconds(expiresIn);
@@ -59,8 +56,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.usersService.create({ ...dto, passwordHash });
 
-    // Send verification email (fire-and-forget)
-    await this.sendVerificationEmail(user);
+    await this.emailVerificationService.sendVerificationEmail(user);
 
     return {
       message:
@@ -87,6 +83,8 @@ export class AuthService {
         'Email not verified. Please check your inbox for the verification code.',
       );
     }
+
+    await this.usersService.setLastLogin(user._id);
 
     return this.issueTokens(user);
   }
@@ -181,7 +179,7 @@ export class AuthService {
       return { message: 'Email is already verified.' };
     }
 
-    await this.sendVerificationEmail(user);
+    await this.emailVerificationService.sendVerificationEmail(user);
     return { message: 'A new verification code has been sent to your email.' };
   }
 
@@ -206,41 +204,7 @@ export class AuthService {
     await this.usersRepo.clearRefreshToken(userId);
   }
 
-  /**
-   * Get the authenticated user's profile.
-   */
-  async getMe(userId: string): Promise<UserResponseDto> {
-    const [user, onboarding] = await Promise.all([
-      this.usersService.findById(userId),
-      this.onboardingService.getSummary(userId),
-    ]);
-
-    return this.toResponseDto(user, onboarding);
-  }
-
-  /**
-   * Update the authenticated user's profile.
-   */
-  async updateProfile(
-    userId: string,
-    update: { displayName?: string; avatarUrl?: string | null },
-  ): Promise<void> {
-    await this.usersService.updateProfile(userId, update);
-  }
-
   // ── Private helpers ───────────────────────────────────────────────────────
-
-  private async sendVerificationEmail(user: UserDocument): Promise<void> {
-    const rawCode = await this.otpCodesService.generate({
-      userId: user._id.toString(),
-      type: OtpType.EMAIL_VERIFY,
-    });
-
-    await this.emailService.sendEmailVerification({
-      to: { email: user.email, name: user.displayName },
-      code: rawCode,
-    });
-  }
 
   private async issueTokens(
     user: UserDocument,
@@ -252,6 +216,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user._id.toString(),
       email: user.email,
+      tokenVersion: user.tokenVersion ?? 0,
     };
 
     const accessSecret = this.config.get<string>(
@@ -291,28 +256,11 @@ export class AuthService {
     return { accessToken, refreshToken, expiresIn: this.jwtExpiresIn };
   }
 
-  private toResponseDto(
-    user: UserDocument,
-    onboarding: Awaited<ReturnType<OnboardingService['getSummary']>>,
-  ): UserResponseDto {
-    return new UserResponseDto({
-      id: user._id.toString(),
-      email: user.email,
-      displayName: user.displayName,
-      isEmailVerified: user.isEmailVerified,
-      defaultWorkspaceId: user.defaultWorkspaceId?.toString() ?? null,
-      activeWorkspaceId: user.activeWorkspaceId?.toString() ?? null,
-      onboarding,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
-  }
-
   private parseExpiryToSeconds(expiry: string): number {
     const match = /^(\d+)(s|m|h|d)$/.exec(expiry);
     if (!match) return 900;
-    const value = parseInt(match[1], 10);
-    const unit = match[2];
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!;
     const multipliers: Record<string, number> = {
       s: 1,
       m: 60,

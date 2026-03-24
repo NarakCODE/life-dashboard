@@ -13,22 +13,22 @@ export enum OtpType {
 @Schema({ timestamps: true, collection: 'otp_codes' })
 export class OtpCode {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ required: true, length: 6 })
-  code: string;
+  code!: string;
 
   @Prop({ required: true, enum: Object.values(OtpType) })
-  type: OtpType;
+  type!: OtpType;
 
   @Prop({ required: true })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Prop({ default: null })
   usedAt?: Date;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const OtpCodeSchema = SchemaFactory.createForClass(OtpCode);

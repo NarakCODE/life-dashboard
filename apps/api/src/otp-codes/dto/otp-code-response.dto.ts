@@ -6,23 +6,23 @@ import { OtpType } from '../schemas/otp-code.schema';
 export class OtpCodeResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
-  code: string;
+  code!: string;
 
   @Expose()
   @ApiProperty({ enum: OtpType })
-  type: OtpType;
+  type!: OtpType;
 
   @Expose()
   @ApiProperty()
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Expose()
   @ApiProperty()
@@ -30,11 +30,11 @@ export class OtpCodeResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<OtpCodeResponseDto>) {
     Object.assign(this, partial);

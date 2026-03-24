@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { UsersRepository } from '../../users/users.repository';
 import { JwtPayload, JwtRefreshPayload } from '../dto/auth-tokens.dto';
+import { UserStatus } from '../../users/schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -54,6 +55,22 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('Refresh token invalid or expired');
     }
 
-    return { sub: payload.sub, email: payload.email, refreshToken };
+    if (
+      user.status === UserStatus.DELETED ||
+      user.status === UserStatus.PENDING_DELETION
+    ) {
+      throw new UnauthorizedException('Account disabled');
+    }
+
+    if ((user.tokenVersion ?? 0) !== payload.tokenVersion) {
+      throw new UnauthorizedException('Token has been invalidated');
+    }
+
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      refreshToken,
+      tokenVersion: payload.tokenVersion,
+    };
   }
 }

@@ -65,6 +65,19 @@ export class TasksService {
       },
     );
 
+    // Emit task assigned notification if assignee is different from creator
+    if (assignee && assignee.id.toString() !== workspace.actorUserId) {
+      const assigner = await this.usersService.findById(workspace.actorUserId);
+      this.eventEmitter.emit('task.assigned', {
+        taskId: task._id.toString(),
+        taskName: dto.name,
+        assignerId: workspace.actorUserId,
+        assignerName: assigner.displayName,
+        assigneeId: assignee.id.toString(),
+        workspaceId: workspace.workspaceId,
+      });
+    }
+
     return this.toTaskResponse(task);
   }
 
@@ -214,6 +227,27 @@ export class TasksService {
         oldStatus: this.normalizeStatus(existingTask.status),
         newStatus: dto.status,
       });
+    }
+
+    // Emit task assigned notification if assignee changed
+    if ('assigneeId' in dto && dto.assigneeId) {
+      const newAssigneeId = dto.assigneeId;
+      const oldAssigneeId = existingTask.assignee?.id?.toString();
+
+      // Only notify if assignee actually changed and is different from updater
+      if (newAssigneeId !== oldAssigneeId && newAssigneeId !== workspace.actorUserId) {
+        const assigner = await this.usersService.findById(workspace.actorUserId);
+        const taskName = dto.name ?? existingTask.name ?? 'Untitled Task';
+        
+        this.eventEmitter.emit('task.assigned', {
+          taskId: id,
+          taskName,
+          assignerId: workspace.actorUserId,
+          assignerName: assigner.displayName,
+          assigneeId: newAssigneeId,
+          workspaceId: workspace.workspaceId,
+        });
+      }
     }
 
     return this.toTaskResponse(updatedTask);

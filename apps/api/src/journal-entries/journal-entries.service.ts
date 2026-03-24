@@ -134,10 +134,10 @@ export class JournalEntriesService {
     // Determine period dates
     const periodStart =
       query.dateFrom ||
-      (trend.length > 0 ? new Date(trend[0].date) : new Date());
+      (trend.length > 0 ? new Date(trend[0]!.date) : new Date());
     const periodEnd =
       query.dateTo ||
-      (trend.length > 0 ? new Date(trend[trend.length - 1].date) : new Date());
+      (trend.length > 0 ? new Date(trend[trend.length - 1]!.date) : new Date());
 
     return {
       totalEntries: summary.totalEntries,

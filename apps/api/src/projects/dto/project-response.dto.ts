@@ -6,15 +6,15 @@ import { ProjectPriority, ProjectStatus } from '../schemas/project.schema';
 export class ProjectWorkstreamResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty()
-  order: number;
+  order!: number;
 
   constructor(partial: Partial<ProjectWorkstreamResponseDto>) {
     Object.assign(this, partial);
@@ -25,23 +25,23 @@ export class ProjectWorkstreamResponseDto {
 export class ProjectResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  workspaceId: string;
+  workspaceId!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty({ enum: ProjectStatus })
-  status: ProjectStatus;
+  status!: ProjectStatus;
 
   @Expose()
   @ApiProperty({ enum: ProjectPriority })
-  priority: ProjectPriority;
+  priority!: ProjectPriority;
 
   @Expose()
   @ApiPropertyOptional()
@@ -54,7 +54,7 @@ export class ProjectResponseDto {
   @Expose()
   @Type(() => ProjectWorkstreamResponseDto)
   @ApiProperty({ type: [ProjectWorkstreamResponseDto] })
-  workstreams: ProjectWorkstreamResponseDto[];
+  workstreams!: ProjectWorkstreamResponseDto[];
 
   constructor(partial: Partial<ProjectResponseDto>) {
     Object.assign(this, partial);

@@ -126,7 +126,7 @@ export function SettingsDialog({
             className={cn(
               "relative overflow-hidden rounded-2xl bg-background shadow-2xl",
               "border border-border/60",
-              "h-[calc(100vh-3rem)] max-h-[680px] min-h-[480px]"
+              "h-[calc(100vh-3rem)] max-h-170 min-h-120"
             )}
           >
             {/* Close button */}

@@ -6,7 +6,7 @@ import { GoalStatus, GoalType } from '../schemas/goal.schema';
 export class ProgressLogResponseDto {
   @Expose()
   @ApiProperty()
-  value: number;
+  value!: number;
 
   @Expose()
   @ApiProperty()
@@ -14,14 +14,14 @@ export class ProgressLogResponseDto {
 
   @Expose()
   @ApiProperty()
-  loggedAt: Date;
+  loggedAt!: Date;
 }
 
 @Exclude()
 export class GoalResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
@@ -29,11 +29,11 @@ export class GoalResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
-  title: string;
+  title!: string;
 
   @Expose()
   @ApiProperty()
@@ -41,15 +41,15 @@ export class GoalResponseDto {
 
   @Expose()
   @ApiProperty({ enum: GoalType })
-  type: GoalType;
+  type!: GoalType;
 
   @Expose()
   @ApiProperty()
-  targetValue: number;
+  targetValue!: number;
 
   @Expose()
   @ApiProperty()
-  currentValue: number;
+  currentValue!: number;
 
   @Expose()
   @ApiProperty()
@@ -61,31 +61,31 @@ export class GoalResponseDto {
 
   @Expose()
   @ApiProperty({ enum: GoalStatus })
-  status: GoalStatus;
+  status!: GoalStatus;
 
   @Expose()
   @ApiProperty({ type: [ProgressLogResponseDto] })
-  progressLogs: ProgressLogResponseDto[];
+  progressLogs!: ProgressLogResponseDto[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  linkedTasks: string[];
+  linkedTasks!: string[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  linkedHabits: string[];
+  linkedHabits!: string[];
 
   @Expose()
   @ApiProperty()
-  progressPercent: number;
+  progressPercent!: number;
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<GoalResponseDto>) {
     Object.assign(this, partial);

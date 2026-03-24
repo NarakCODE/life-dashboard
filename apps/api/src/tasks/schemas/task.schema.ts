@@ -21,10 +21,10 @@ export enum TaskPriority {
 @Schema({ _id: false, timestamps: false })
 export class TaskAssigneeSnapshot {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  id: Types.ObjectId;
+  id!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ trim: true })
   avatarUrl?: string;
@@ -42,10 +42,10 @@ export class Task {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
@@ -57,7 +57,7 @@ export class Task {
   assigneeId?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ trim: true })
   description?: string;
@@ -68,15 +68,15 @@ export class Task {
     default: TaskStatus.TODO,
     index: true,
   })
-  status: TaskStatus;
+  status!: TaskStatus;
 
   // Denormalized project metadata keeps the tasks API usable until a
   // dedicated projects/workstreams backend exists.
   @Prop({ required: true, trim: true, index: true })
-  projectId: string;
+  projectId!: string;
 
   @Prop({ required: true, trim: true })
-  projectName: string;
+  projectName!: string;
 
   @Prop({ trim: true })
   workstreamId?: string;
@@ -88,10 +88,10 @@ export class Task {
   assignee?: TaskAssigneeSnapshot | null;
 
   @Prop({ type: Number, min: 0, default: 0, index: true })
-  projectOrder: number;
+  projectOrder!: number;
 
   @Prop({ type: Number, min: 0, default: 0, index: true })
-  workstreamOrder: number;
+  workstreamOrder!: number;
 
   @Prop()
   startDate?: Date;
@@ -100,7 +100,7 @@ export class Task {
     enum: Object.values(TaskPriority),
     default: TaskPriority.NONE,
   })
-  priority: TaskPriority;
+  priority!: TaskPriority;
 
   @Prop()
   tag?: string;
@@ -111,8 +111,8 @@ export class Task {
   @Prop({ default: null })
   completedAt?: Date;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

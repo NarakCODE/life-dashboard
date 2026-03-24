@@ -16,10 +16,10 @@ export class Habit {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
@@ -28,7 +28,7 @@ export class Habit {
   archivedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ trim: true })
   description?: string;
@@ -38,26 +38,26 @@ export class Habit {
     enum: Object.values(HabitFrequency),
     default: HabitFrequency.DAILY,
   })
-  frequency: HabitFrequency;
+  frequency!: HabitFrequency;
 
   @Prop({ type: [Number], default: [] })
-  customDays: number[];
+  customDays!: number[];
 
   @Prop({ min: 1, default: 1 })
-  targetCount: number;
+  targetCount!: number;
 
   @Prop({ default: '#6b7280' })
-  color: string;
+  color!: string;
 
   @Prop({
     required: true,
     enum: ['active', 'archived'],
     default: 'active',
   })
-  status: string;
+  status!: string;
 
   @Prop({ type: Date })
-  startDate: Date;
+  startDate!: Date;
 
   @Prop({ type: Date, default: null })
   endDate?: Date;
@@ -66,13 +66,13 @@ export class Habit {
   archivedAt?: Date;
 
   @Prop({ default: 0 })
-  currentStreak: number;
+  currentStreak!: number;
 
   @Prop({ default: 0 })
-  longestStreak: number;
+  longestStreak!: number;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const HabitSchema = SchemaFactory.createForClass(Habit);

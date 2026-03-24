@@ -33,7 +33,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(ChatGateway.name);
 
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   // Track online users: userId -> socketId[]
   private readonly onlineUsers = new Map<string, string[]>();
@@ -54,7 +54,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       client.data.userId = payload.sub;
-      client.data.workspaceId = (client.handshake.query.workspaceId as string) || undefined;
+      client.data.workspaceId =
+        (client.handshake.query.workspaceId as string) || undefined;
 
       // Track online status
       this.addOnlineUser(payload.sub, client.id);
@@ -66,7 +67,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         socketId: client.id,
         userId: payload.sub,
       });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Connection failed: ${error.message}`);
       client.emit('error', { message: 'Authentication failed' });
       client.disconnect();
@@ -180,7 +181,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       this.logger.debug(`Message sent to channel ${dto.channelId}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to send message: ${error.message}`);
       client.emit('error', { message: 'Failed to send message' });
     }
@@ -204,7 +205,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         workspaceName: '',
         workspaceType: 'personal' as any,
       };
-      await this.unreadService.markAsRead(workspaceContext,
+      await this.unreadService.markAsRead(
+        workspaceContext,
         dto.channelId,
         dto.messageId,
       );
@@ -213,7 +215,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         channelId: dto.channelId,
         messageId: dto.messageId,
       });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to mark read: ${error.message}`);
       client.emit('error', { message: 'Failed to mark as read' });
     }
@@ -263,7 +265,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private removeOnlineUser(userId: string, socketId: string): void {
     const sockets = this.onlineUsers.get(userId) || [];
-    const filtered = sockets.filter(id => id !== socketId);
+    const filtered = sockets.filter((id) => id !== socketId);
 
     if (filtered.length === 0) {
       this.onlineUsers.delete(userId);

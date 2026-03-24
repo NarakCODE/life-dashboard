@@ -6,7 +6,7 @@ import { BudgetPeriod } from '../schemas/budget.schema';
 export class BudgetResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
@@ -14,15 +14,15 @@ export class BudgetResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty()
-  amount: number;
+  amount!: number;
 
   @Expose()
   @ApiProperty()
@@ -30,7 +30,7 @@ export class BudgetResponseDto {
 
   @Expose()
   @ApiProperty({ enum: BudgetPeriod })
-  period: BudgetPeriod;
+  period!: BudgetPeriod;
 
   @Expose()
   @ApiProperty()
@@ -42,11 +42,11 @@ export class BudgetResponseDto {
 
   @Expose()
   @ApiProperty()
-  currency: string;
+  currency!: string;
 
   @Expose()
   @ApiProperty()
-  isActive: boolean;
+  isActive!: boolean;
 
   @Expose()
   @ApiProperty()
@@ -66,11 +66,11 @@ export class BudgetResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<BudgetResponseDto>) {
     Object.assign(this, partial);

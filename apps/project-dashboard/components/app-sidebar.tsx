@@ -45,6 +45,7 @@ import {
   HouseIcon,
   TargetIcon,
   FlagIcon,
+  ChatCircleIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   footerItems,
@@ -91,6 +92,7 @@ const navItemIcons: Record<
   "habit-logs": TargetIcon,
   journal: NotebookIcon,
   goals: FlagIcon,
+  chat: ChatCircleIcon,
 };
 
 const footerItemIcons: Record<
@@ -224,6 +226,8 @@ export function AppSidebar() {
       return buildWorkspacePath(currentWorkspaceId, "/journal");
     if (id === "goals")
       return buildWorkspacePath(currentWorkspaceId, "/goals");
+    if (id === "chat")
+      return buildWorkspacePath(currentWorkspaceId, "/chat");
     return "#";
   };
 
@@ -266,6 +270,9 @@ export function AppSidebar() {
     }
     if (id === "goals") {
       return scopedPathname.startsWith("/goals");
+    }
+    if (id === "chat") {
+      return scopedPathname.startsWith("/chat");
     }
     return false;
   };

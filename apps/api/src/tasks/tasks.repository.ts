@@ -391,7 +391,7 @@ export class TasksRepository {
 
     const data = result[0] ?? {};
     const formatCount = (arr: Array<{ count: number }>) =>
-      arr.length > 0 ? arr[0].count : 0;
+      arr.length > 0 ? arr[0]!.count : 0;
 
     const overview = {
       totalTasks: formatCount(data.total ?? []),

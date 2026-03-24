@@ -13,16 +13,16 @@ export enum WorkspaceMembershipStatus {
 @Schema({ timestamps: true, collection: 'workspace_memberships' })
 export class WorkspaceMembership {
   @Prop({ type: Types.ObjectId, ref: 'Workspace', required: true, index: true })
-  workspaceId: Types.ObjectId;
+  workspaceId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({
     required: true,
     enum: Object.values(WorkspaceRole),
   })
-  role: WorkspaceRole;
+  role!: WorkspaceRole;
 
   @Prop({
     required: true,
@@ -30,19 +30,19 @@ export class WorkspaceMembership {
     default: WorkspaceMembershipStatus.ACTIVE,
     index: true,
   })
-  status: WorkspaceMembershipStatus;
+  status!: WorkspaceMembershipStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   invitedBy?: Types.ObjectId | null;
 
   @Prop({ default: Date.now })
-  joinedAt: Date;
+  joinedAt!: Date;
 
   @Prop({ type: Date, default: null })
   lastActiveAt?: Date | null;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const WorkspaceMembershipSchema =

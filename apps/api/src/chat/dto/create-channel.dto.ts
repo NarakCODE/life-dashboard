@@ -14,7 +14,7 @@ import { ChannelType } from '../schemas/channel.schema';
 export class CreateChannelDto {
   @ApiProperty({ enum: ChannelType, example: ChannelType.PUBLIC })
   @IsEnum(ChannelType)
-  type: ChannelType;
+  type!: ChannelType;
 
   @ApiPropertyOptional({ example: 'General', maxLength: 100 })
   @IsString()

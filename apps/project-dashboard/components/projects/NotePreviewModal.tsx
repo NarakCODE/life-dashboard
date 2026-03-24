@@ -61,7 +61,7 @@ export function NotePreviewModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[1200px] p-0 gap-0 max-h-[90vh] overflow-hidden rounded-2xl">
+            <DialogContent className="sm:max-w-300 p-0 gap-0 max-h-[90vh] overflow-hidden rounded-2xl">
                 <DialogHeader className="sr-only">
                     <VisuallyHidden>
                         <DialogTitle>Note Preview</DialogTitle>
@@ -91,8 +91,8 @@ export function NotePreviewModal({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="ghost" 
+                                <Button
+                                    variant="ghost"
                                     size="icon-sm"
                                     onClick={() => note && onDelete?.(note.id)}
                                 >
@@ -158,7 +158,7 @@ export function NotePreviewModal({
                     </div>
 
                     {isAudioNote && note.audioData && (
-                        <div className="w-[400px] flex flex-col bg-muted/30">
+                        <div className="w-100 flex flex-col bg-muted/30">
                             <div className="p-4">
                                 <h3 className="font-semibold">Transcript</h3>
                             </div>
@@ -189,7 +189,7 @@ export function NotePreviewModal({
                                     </Button>
                                 </div>
 
-                                <div className="h-12 flex items-center justify-center gap-[2px]">
+                                <div className="h-12 flex items-center justify-center gap-0.5">
                                     {WAVEFORM_BAR_HEIGHTS.map((height, i) => (
                                         <div
                                             key={i}

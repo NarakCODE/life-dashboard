@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PageHeader, PageToolbarResponsive } from "@/components/page-layout"
+import { PageHeader, PageToolbarResponsive, PageLayout } from "@/components/page-layout"
 import { InboxFilterPopover, type InboxFilters } from "./InboxFilterPopover"
 import { cn } from "@/lib/utils"
 import {
@@ -29,6 +29,7 @@ import {
   getNotificationTypeLabel,
 } from "@/lib/notifications/notification-utils"
 import {
+  notificationKeys,
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
   useNotificationsQuery,
@@ -36,6 +37,8 @@ import {
 } from "@/lib/notifications/notifications-query"
 import type { Notification } from "@/lib/notifications/types"
 import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
+import { useNotificationsSocket } from "@/hooks/use-notifications-socket"
+import { useQueryClient } from "@tanstack/react-query"
 
 type InboxTab = "all" | "unread"
 
@@ -117,6 +120,29 @@ export function InboxPage() {
   const markAllReadMutation = useMarkAllNotificationsReadMutation(
     workspaceId ?? "",
   )
+  const queryClient = useQueryClient()
+
+  // Real-time notification updates via WebSocket
+  useNotificationsSocket({
+    workspaceId: workspaceId ?? undefined,
+    onNewNotification: () => {
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({
+        queryKey: [...notificationKeys.all(workspaceId ?? ""), "list"],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...notificationKeys.all(workspaceId ?? ""), "unread-count"],
+      })
+    },
+    onUnreadCountUpdate: (count) => {
+      // Optimistically update the unread count
+      queryClient.setQueryData(
+        [...notificationKeys.all(workspaceId ?? ""), "unread-count"],
+        { count }
+      )
+    },
+    enabled: isEnabled,
+  })
 
   const notificationIdFromQuery = searchParams.get("notificationId")
   const notifications = listQuery.data?.data ?? emptyNotifications
@@ -203,7 +229,7 @@ export function InboxPage() {
     : []
 
   return (
-    <div className="mx-2 my-2 flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-border bg-background">
+    <PageLayout>
       <PageHeader
         title="Inbox"
         actions={
@@ -456,6 +482,6 @@ export function InboxPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageLayout>
   )
 }

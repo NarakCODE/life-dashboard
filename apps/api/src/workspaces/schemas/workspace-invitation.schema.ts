@@ -14,32 +14,32 @@ export enum InvitationStatus {
 @Schema({ timestamps: true, collection: 'workspace_invitations' })
 export class WorkspaceInvitation {
   @Prop({ type: Types.ObjectId, ref: 'Workspace', required: true, index: true })
-  workspaceId: Types.ObjectId;
+  workspaceId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true, lowercase: true, index: true })
-  email: string;
+  email!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  invitedBy: Types.ObjectId;
+  invitedBy!: Types.ObjectId;
 
   @Prop({
     required: true,
     enum: Object.values(WorkspaceRole),
   })
-  role: WorkspaceRole;
+  role!: WorkspaceRole;
 
   @Prop({
     required: true,
     enum: Object.values(InvitationStatus),
     default: InvitationStatus.PENDING,
   })
-  status: InvitationStatus;
+  status!: InvitationStatus;
 
   @Prop({ required: true, trim: true, index: true })
-  token: string;
+  token!: string;
 
   @Prop({ required: true, index: true })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   acceptedBy?: Types.ObjectId | null;
@@ -47,8 +47,8 @@ export class WorkspaceInvitation {
   @Prop({ type: Date, default: null })
   respondedAt?: Date | null;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const WorkspaceInvitationSchema =

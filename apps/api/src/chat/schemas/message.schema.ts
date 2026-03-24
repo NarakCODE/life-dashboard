@@ -6,19 +6,19 @@ export type MessageDocument = HydratedDocument<Message>;
 @Schema({ timestamps: true, collection: 'chat_messages' })
 export class Message {
   @Prop({ type: Types.ObjectId, ref: 'Channel', required: true, index: true })
-  channelId: Types.ObjectId;
+  channelId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  authorId: Types.ObjectId;
+  authorId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true, maxlength: 4000 })
-  content: string;
+  content!: string;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  mentionIds: Types.ObjectId[];
+  mentionIds!: Types.ObjectId[];
 
   @Prop({ type: Date, default: null })
   editedAt?: Date;
@@ -26,8 +26,8 @@ export class Message {
   @Prop({ type: Date, default: null })
   deletedAt?: Date;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

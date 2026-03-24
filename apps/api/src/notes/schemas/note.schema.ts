@@ -17,10 +17,10 @@ export enum NoteStatus {
 @Schema({ _id: false, timestamps: false })
 export class NoteAuthorSnapshot {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  id: Types.ObjectId;
+  id!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ trim: true })
   avatarUrl?: string;
@@ -35,16 +35,16 @@ export class Note {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  title: string;
+  title!: string;
 
   @Prop({ trim: true })
   content?: string;
@@ -55,7 +55,7 @@ export class Note {
     default: NoteType.GENERAL,
     index: true,
   })
-  noteType: NoteType;
+  noteType!: NoteType;
 
   @Prop({
     required: true,
@@ -63,11 +63,11 @@ export class Note {
     default: NoteStatus.COMPLETED,
     index: true,
   })
-  status: NoteStatus;
+  status!: NoteStatus;
 
   // Project reference for project-scoped notes
   @Prop({ required: true, trim: true, index: true })
-  projectId: string;
+  projectId!: string;
 
   @Prop({ trim: true })
   projectName?: string;
@@ -83,8 +83,8 @@ export class Note {
   @Prop({ type: NoteAuthorSnapshotSchema, default: null })
   author?: NoteAuthorSnapshot | null;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const NoteSchema = SchemaFactory.createForClass(Note);

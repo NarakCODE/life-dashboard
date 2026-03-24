@@ -1,81 +1,91 @@
-"use client"
+"use client";
 
-import { useCallback, useMemo, useState } from "react"
-import { LinkSimple, SquareHalf } from "@phosphor-icons/react/dist/ssr"
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LinkSimple, SquareHalf } from "@phosphor-icons/react/dist/ssr";
 
-import { toast } from "sonner"
-import { AnimatePresence, motion } from "motion/react"
-import { cn } from "@/lib/utils"
+import { toast } from "sonner";
+import { AnimatePresence, motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
-import { Breadcrumbs } from "@/components/projects/Breadcrumbs"
-import { ProjectHeader } from "@/components/projects/ProjectHeader"
-import { ScopeColumns } from "@/components/projects/ScopeColumns"
-import { OutcomesList } from "@/components/projects/OutcomesList"
-import { KeyFeaturesColumns } from "@/components/projects/KeyFeaturesColumns"
-import { TimelineGantt } from "@/components/projects/TimelineGantt"
-import { RightMetaPanel } from "@/components/projects/RightMetaPanel"
-import { WorkstreamTab } from "@/components/projects/WorkstreamTab"
-import { ProjectTasksTab } from "@/components/projects/ProjectTasksTab"
-import { NotesTab } from "@/components/projects/NotesTab"
-import { AssetsFilesTab } from "@/components/projects/AssetsFilesTab"
-import { ProjectFormDialog } from "@/components/projects/ProjectFormDialog"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
+import { Breadcrumbs } from "@/components/projects/Breadcrumbs";
+import { ProjectHeader } from "@/components/projects/ProjectHeader";
+import { ScopeColumns } from "@/components/projects/ScopeColumns";
+import { OutcomesList } from "@/components/projects/OutcomesList";
+import { KeyFeaturesColumns } from "@/components/projects/KeyFeaturesColumns";
+import { TimelineGantt } from "@/components/projects/TimelineGantt";
+import { RightMetaPanel } from "@/components/projects/RightMetaPanel";
+import { WorkstreamTab } from "@/components/projects/WorkstreamTab";
+import { ProjectTasksTab } from "@/components/projects/ProjectTasksTab";
+import { NotesTab } from "@/components/projects/NotesTab";
+import { AssetsFilesTab } from "@/components/projects/AssetsFilesTab";
+import { ProjectFormDialog } from "@/components/projects/ProjectFormDialog";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { PageLayout } from "@/components/page-layout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 import {
   useMoveProjectTaskMutation,
   usePatchProjectTaskMutation,
   useProjectDetailsQuery,
   useReorderProjectWorkstreamTasksMutation,
   useUpdateProjectMutation,
-} from "@/lib/projects/projects-query"
-import type { ProjectInput } from "@/lib/projects/projects-client"
+} from "@/lib/projects/projects-query";
+import type { ProjectInput } from "@/lib/projects/projects-client";
 
 type ProjectDetailsPageProps = {
-  projectId: string
-}
+  projectId: string;
+};
 
 export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
-  const { workspaceId, workspaceContext, isPending: isWorkspacePending } =
-    useWorkspaceScope()
+  const {
+    workspaceId,
+    workspaceContext,
+    isPending: isWorkspacePending,
+  } = useWorkspaceScope();
   const { data: project, isPending: isProjectPending } = useProjectDetailsQuery(
     workspaceId ?? "",
     projectId,
     Boolean(workspaceId),
-  )
-  const updateProjectMutation = useUpdateProjectMutation(workspaceId ?? "")
+  );
+  const updateProjectMutation = useUpdateProjectMutation(workspaceId ?? "");
   const patchProjectTaskMutation = usePatchProjectTaskMutation(
     workspaceId ?? "",
     projectId,
-  )
+  );
   const moveProjectTaskMutation = useMoveProjectTaskMutation(
     workspaceId ?? "",
     projectId,
-  )
+  );
   const reorderProjectWorkstreamTasksMutation =
-    useReorderProjectWorkstreamTasksMutation(workspaceId ?? "", projectId)
-  const [showMeta, setShowMeta] = useState(true)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
+    useReorderProjectWorkstreamTasksMutation(workspaceId ?? "", projectId);
+  const [showMeta, setShowMeta] = useState(true);
+  useEffect(() => {
+    const stored = window.localStorage.getItem("project-details:show-meta");
+    if (stored !== null) {
+      setShowMeta(stored === "true");
+    }
+  }, [projectId]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const copyLink = useCallback(async () => {
     if (!navigator.clipboard) {
-      toast.error("Clipboard not available")
-      return
+      toast.error("Clipboard not available");
+      return;
     }
 
     try {
-      await navigator.clipboard.writeText(window.location.href)
-      toast.success("Link copied")
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied");
     } catch {
-      toast.error("Failed to copy link")
+      toast.error("Failed to copy link");
     }
-  }, [])
+  }, []);
 
-  const projectName = project?.name ?? ""
+  const projectName = project?.name ?? "";
   const projectSummary = useMemo(
     () =>
       project
@@ -95,26 +105,26 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
           }
         : null,
     [project, workspaceId],
-  )
+  );
 
   const breadcrumbs = useMemo(
     () => [
       { label: "Projects", href: "/" },
       { label: projectName || "Project Details" },
     ],
-    [projectName]
-  )
+    [projectName],
+  );
 
   const canManageProjects =
-    workspaceContext?.permissions.includes("project.write") ?? false
+    workspaceContext?.permissions.includes("project.write") ?? false;
 
   const openWizard = useCallback(() => {
-    if (!canManageProjects) return
-    setIsEditOpen(true)
-  }, [canManageProjects])
+    if (!canManageProjects) return;
+    setIsEditOpen(true);
+  }, [canManageProjects]);
 
   if (isWorkspacePending || isProjectPending || !project) {
-    return <ProjectDetailsSkeleton />
+    return <ProjectDetailsSkeleton />;
   }
 
   const handleProjectUpdate = async (input: ProjectInput) => {
@@ -122,14 +132,15 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
       await updateProjectMutation.mutateAsync({
         projectId,
         input,
-      })
-      toast.success("Project updated successfully")
-      setIsEditOpen(false)
+      });
+      toast.success("Project updated successfully");
+      setIsEditOpen(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update project"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to update project";
+      toast.error(message);
     }
-  }
+  };
 
   const handleToggleTask = async (
     taskId: string,
@@ -139,12 +150,13 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
       await patchProjectTaskMutation.mutateAsync({
         taskId,
         input: { status: nextStatus },
-      })
+      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update task"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to update task";
+      toast.error(message);
     }
-  }
+  };
 
   const handleMoveTask = async (
     taskId: string,
@@ -156,12 +168,13 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
         taskId,
         targetWorkstreamId,
         targetOrder,
-      })
+      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to move task"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to move task";
+      toast.error(message);
     }
-  }
+  };
 
   const handleReorderWorkstreamTasks = async (
     workstreamId: string,
@@ -171,16 +184,19 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
       await reorderProjectWorkstreamTasksMutation.mutateAsync({
         workstreamId,
         taskIds,
-      })
+      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reorder workstream tasks"
-      toast.error(message)
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to reorder workstream tasks";
+      toast.error(message);
     }
-  }
+  };
 
   return (
-    <div className="flex flex-1 flex-col min-w-0">
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-4 px-4 py-4 bg-background/80 backdrop-blur-md border-b">
+    <PageLayout>
+      <div className="flex items-center justify-between gap-4 px-4 py-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent text-muted-foreground" />
           <div className="hidden sm:block">
@@ -189,32 +205,43 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" aria-label="Copy link" onClick={copyLink}>
-            <LinkSimple className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-pressed={!showMeta}
-            aria-label={showMeta ? "Collapse meta panel" : "Expand meta panel"}
-            className={showMeta ? "bg-muted" : ""}
-            onClick={() => setShowMeta((v) => !v)}
+            aria-label="Copy link"
+            onClick={copyLink}
           >
+            <LinkSimple className="h-4 w-4" />
+          </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-pressed={!showMeta}
+              aria-label={showMeta ? "Collapse meta panel" : "Expand meta panel"}
+              className={showMeta ? "bg-muted" : ""}
+              onClick={() => {
+                setShowMeta((value) => {
+                  const next = !value;
+                  window.localStorage.setItem(
+                    "project-details:show-meta",
+                    String(next),
+                  );
+                  return next;
+                });
+              }}
+            >
             <SquareHalf className="h-4 w-4" weight="duotone" />
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col bg-background px-2 my-0 min-w-0">
-        <div className="px-4 py-6">
+      <div className="flex flex-1 flex-col p-0 my-0 min-w-0 overflow-y-auto">
+        <div className="p-0">
           <div className="mx-auto w-full max-w-7xl">
-
             <div
               className={cn(
                 "mt-0 grid grid-cols-1 items-start gap-8 lg:gap-16",
-                showMeta
-                  ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,320px)]"
-                  : "lg:grid-cols-[minmax(0,1fr)_minmax(0,0px)]"
+                showMeta && "lg:grid-cols-[minmax(0,1fr)_320px]",
               )}
             >
               <div className="space-y-6">
@@ -223,7 +250,10 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                   onEditProject={canManageProjects ? openWizard : undefined}
                 />
 
-                <Tabs defaultValue="overview" onValueChange={(value) => setActiveTab(value)}>
+                <Tabs
+                  defaultValue="overview"
+                  onValueChange={(value) => setActiveTab(value)}
+                >
                   <TabsList className="w-full gap-6">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="workstream">Workstream</TabsTrigger>
@@ -234,7 +264,9 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
 
                   <TabsContent value="overview">
                     <div className="space-y-10">
-                      <p className="text-sm leading-6 text-muted-foreground">{project.description}</p>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        {project.description}
+                      </p>
                       <ScopeColumns scope={project.scope} />
                       <OutcomesList outcomes={project.outcomes} />
                       <KeyFeaturesColumns features={project.keyFeatures} />
@@ -274,8 +306,8 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                 </Tabs>
               </div>
 
-              <AnimatePresence initial={false}>
-                {showMeta && (
+              {showMeta && (
+                <AnimatePresence initial={false}>
                   <motion.div
                     key="meta-panel"
                     initial={{ x: 80, opacity: 0 }}
@@ -286,8 +318,8 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                   >
                     <RightMetaPanel project={project} />
                   </motion.div>
-                )}
-              </AnimatePresence>
+                </AnimatePresence>
+              )}
             </div>
           </div>
         </div>
@@ -303,13 +335,13 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
           onSubmit={handleProjectUpdate}
         />
       </div>
-    </div>
-  )
+    </PageLayout>
+  );
 }
 
 function ProjectDetailsSkeleton() {
   return (
-    <div className="flex flex-1 flex-col min-w-0">
+    <PageLayout>
       <div className="p-6">
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-24" />
@@ -340,6 +372,6 @@ function ProjectDetailsSkeleton() {
           </div>
         </div>
       </div>
-    </div>
-  )
+    </PageLayout>
+  );
 }

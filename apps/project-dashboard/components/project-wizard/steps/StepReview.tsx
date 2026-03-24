@@ -8,10 +8,11 @@ import { Rocket, Flask, Briefcase, User, Users, Layout, Target, CheckCircle, Que
 
 interface StepReviewProps {
   data: ProjectData;
+  projectName?: string;
   onEditStep?: (step: number) => void;
 }
 
-export function StepReview({ data, onEditStep }: StepReviewProps) {
+export function StepReview({ data, projectName, onEditStep }: StepReviewProps) {
     const getIntentIcon = () => {
         switch (data.intent) {
             case 'delivery': return <Rocket className="h-5 w-5" />;
@@ -83,6 +84,30 @@ export function StepReview({ data, onEditStep }: StepReviewProps) {
 
       <div className="">
         <div className="space-y-0.5">
+          {/* Project Name */}
+          <div className="flex items-center gap-4 rounded-3xl bg-background p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground pb-1">Project name</p>
+              <p className="text-sm font-semibold">
+                {projectName || "Untitled project"}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full"
+              type="button"
+              onClick={() => onEditStep?.(1)}
+            >
+              <PencilSimpleLine className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Separator className="opacity-0" />
+
           {/* Intent */}
           <div className="flex items-center gap-4 rounded-3xl bg-background p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground">

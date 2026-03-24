@@ -15,11 +15,11 @@ export enum OnboardingStateStatus {
 export class OnboardingSummaryDto {
   @Expose()
   @ApiProperty({ enum: Object.values(OnboardingStateStatus) })
-  status: OnboardingStateStatus;
+  status!: OnboardingStateStatus;
 
   @Expose()
   @ApiProperty()
-  requiresOnboarding: boolean;
+  requiresOnboarding!: boolean;
 
   @Expose()
   @ApiProperty({

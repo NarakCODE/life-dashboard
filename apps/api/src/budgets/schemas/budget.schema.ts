@@ -17,19 +17,19 @@ export class Budget {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ required: true, min: 0 })
-  amount: number;
+  amount!: number;
 
   @Prop({ trim: true })
   category?: string;
@@ -39,7 +39,7 @@ export class Budget {
     enum: Object.values(BudgetPeriod),
     default: BudgetPeriod.MONTHLY,
   })
-  period: BudgetPeriod;
+  period!: BudgetPeriod;
 
   @Prop()
   startDate?: Date;
@@ -48,13 +48,13 @@ export class Budget {
   endDate?: Date;
 
   @Prop({ default: 'USD', uppercase: true, length: 3 })
-  currency: string;
+  currency!: string;
 
   @Prop({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const BudgetSchema = SchemaFactory.createForClass(Budget);

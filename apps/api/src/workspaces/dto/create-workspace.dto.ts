@@ -9,5 +9,5 @@ export class CreateWorkspaceDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 }

@@ -19,7 +19,7 @@ export class CreateHabitDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: '30 minutes of cardio' })
   @IsString()

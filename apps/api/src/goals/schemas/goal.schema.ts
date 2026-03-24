@@ -19,13 +19,13 @@ export enum GoalType {
 @Schema({ _id: true, timestamps: false })
 export class ProgressLog {
   @Prop({ required: true })
-  value: number;
+  value!: number;
 
   @Prop({ trim: true })
   note?: string;
 
   @Prop({ required: true, default: Date.now })
-  loggedAt: Date;
+  loggedAt!: Date;
 }
 
 export const ProgressLogSchema = SchemaFactory.createForClass(ProgressLog);
@@ -36,16 +36,16 @@ export class Goal {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  title: string;
+  title!: string;
 
   @Prop({ trim: true })
   description?: string;
@@ -55,13 +55,13 @@ export class Goal {
     enum: Object.values(GoalType),
     default: GoalType.MANUAL,
   })
-  type: GoalType;
+  type!: GoalType;
 
   @Prop({ required: true, min: 0 })
-  targetValue: number;
+  targetValue!: number;
 
   @Prop({ default: 0, min: 0 })
-  currentValue: number;
+  currentValue!: number;
 
   @Prop({ trim: true })
   unit?: string;
@@ -75,16 +75,16 @@ export class Goal {
     default: GoalStatus.ACTIVE,
     index: true,
   })
-  status: GoalStatus;
+  status!: GoalStatus;
 
   @Prop({ type: [ProgressLogSchema], default: [] })
-  progressLogs: ProgressLog[];
+  progressLogs!: ProgressLog[];
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Task' }], default: [] })
-  linkedTasks: Types.ObjectId[];
+  linkedTasks!: Types.ObjectId[];
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Habit' }], default: [] })
-  linkedHabits: Types.ObjectId[];
+  linkedHabits!: Types.ObjectId[];
 
   get progressPercent(): number {
     if (!this.targetValue) return 0;
@@ -94,8 +94,8 @@ export class Goal {
     );
   }
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);

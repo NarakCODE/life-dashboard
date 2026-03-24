@@ -15,6 +15,9 @@ import { StepReview } from "./steps/StepReview";
 import { StepQuickCreate } from "./steps/StepQuickCreate";
 import { CaretLeft, CaretRight, X } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
+import { useCreateProjectWizardMutation } from "@/lib/project-wizard/project-wizard-query";
+import { toCreateProjectInput } from "@/lib/project-wizard/types";
 
 const QUICK_CREATE_STEP = 100;
 
@@ -24,9 +27,14 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({ onClose, onCreate }: ProjectWizardProps) {
+  const { workspaceId } = useWorkspaceScope();
+  const createProjectMutation = useCreateProjectWizardMutation(workspaceId ?? "");
+  
   const [step, setStep] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
   const [isQuickCreateExpanded, setIsQuickCreateExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectName, setProjectName] = useState("");
   const [data, setData] = useState<ProjectData>({
     mode: undefined,
     successType: 'undefined',
@@ -188,7 +196,12 @@ export function ProjectWizard({ onClose, onCreate }: ProjectWizardProps) {
                                 className="h-full"
                             >
                                 {step === 1 && (
-                                    <StepIntent selected={data.intent} onSelect={(i) => updateData({ intent: i })} />
+                                    <StepIntent 
+                                      selected={data.intent} 
+                                      onSelect={(i) => updateData({ intent: i })}
+                                      projectName={projectName}
+                                      onProjectNameChange={setProjectName}
+                                    />
                                 )}
                                 {step === 2 && (
                                     <StepOutcome data={data} updateData={updateData} />
@@ -200,7 +213,7 @@ export function ProjectWizard({ onClose, onCreate }: ProjectWizardProps) {
                                     <StepStructure data={data} updateData={updateData} />
                                 )}
                                 {step === 5 && (
-                                    <StepReview data={data} onEditStep={handleEditStepFromReview} />
+                                    <StepReview data={data} projectName={projectName} onEditStep={handleEditStepFromReview} />
                                 )}
                             </motion.div>
                         </AnimatePresence>
@@ -218,15 +231,35 @@ export function ProjectWizard({ onClose, onCreate }: ProjectWizardProps) {
                         <div className="flex gap-3">
                             {step === 5 ? (
                                 <>
-                                    <Button variant="outline">Save as template</Button>
+                                    <Button variant="outline" disabled={isSubmitting}>Save as template</Button>
                                     <Button
-                                      onClick={() => {
-                                        onCreate?.();
-                                        toast.success("Project created successfully");
-                                        onClose();
+                                      onClick={async () => {
+                                        if (!projectName.trim()) {
+                                          toast.error("Please enter a project name");
+                                          return;
+                                        }
+                                        
+                                        if (!workspaceId) {
+                                          toast.error("Workspace not available");
+                                          return;
+                                        }
+                                        
+                                        setIsSubmitting(true);
+                                        try {
+                                          const input = toCreateProjectInput(data, projectName.trim());
+                                          await createProjectMutation.mutateAsync(input);
+                                          toast.success("Project created successfully");
+                                          onCreate?.();
+                                          onClose();
+                                        } catch (error) {
+                                          toast.error(error instanceof Error ? error.message : "Failed to create project");
+                                        } finally {
+                                          setIsSubmitting(false);
+                                        }
                                       }}
+                                      disabled={isSubmitting}
                                     >
-                                      Create project
+                                      {isSubmitting ? "Creating..." : "Create project"}
                                     </Button>
                                 </>
                             ) : (

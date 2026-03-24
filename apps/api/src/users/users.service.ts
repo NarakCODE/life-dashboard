@@ -50,8 +50,35 @@ export class UsersService {
     update: {
       displayName?: string;
       avatarUrl?: string | null;
+      profileMetadata?: Record<string, string>;
     },
   ): Promise<void> {
     return this.usersRepo.updateProfile(id, update);
+  }
+
+  async updatePassword(
+    id: string | Types.ObjectId,
+    passwordHash: string,
+  ): Promise<void> {
+    return this.usersRepo.updatePassword(id, passwordHash);
+  }
+
+  async updateEmail(id: string | Types.ObjectId, email: string): Promise<void> {
+    return this.usersRepo.updateEmail(id, email);
+  }
+
+  async setLastLogin(id: string | Types.ObjectId, when?: Date): Promise<void> {
+    return this.usersRepo.setLastLogin(id, when);
+  }
+
+  async incrementTokenVersion(
+    id: string | Types.ObjectId,
+    delta = 1,
+  ): Promise<number> {
+    return this.usersRepo.incrementTokenVersion(id, delta);
+  }
+
+  async markDeleted(id: string | Types.ObjectId): Promise<void> {
+    return this.usersRepo.markDeleted(id);
   }
 }

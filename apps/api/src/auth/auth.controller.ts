@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,13 +25,23 @@ import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from './dto/auth-tokens.dto';
-import { UserResponseDto } from '../users/dto/user-response.dto';
-import { UpdateUserDto } from '../users/dto/update-user.dto';
+import { ProfileService } from './services/profile.service';
+import { AccountService } from './services/account.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateEmailDto } from './dto/update-email.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
+import { MeResponseDto } from './dto/me-response.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly profileService: ProfileService,
+    private readonly accountService: AccountService,
+  ) {}
 
   // ── Registration & Verification ───────────────────────────────────────────
 
@@ -149,21 +160,73 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the current authenticated user' })
-  @ApiOkResponse({ type: UserResponseDto })
-  getMe(@CurrentUser() user: JwtPayload): Promise<UserResponseDto> {
-    return this.authService.getMe(user.sub);
+  @ApiOkResponse({ type: MeResponseDto })
+  getMe(@CurrentUser() user: JwtPayload): Promise<MeResponseDto> {
+    return this.profileService.getProfile(user.sub);
   }
 
   @Patch('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update the current authenticated user profile' })
-  @ApiOkResponse({ type: UserResponseDto })
+  @ApiOkResponse({ type: MeResponseDto })
   async updateMe(
     @CurrentUser() user: JwtPayload,
-    @Body() dto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
-    await this.authService.updateProfile(user.sub, dto);
-    return this.authService.getMe(user.sub);
+    @Body() dto: UpdateProfileDto,
+  ): Promise<MeResponseDto> {
+    await this.profileService.updateProfile(user.sub, dto);
+    return this.profileService.getProfile(user.sub);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Change the current password' })
+  @ApiOkResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async changePassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.accountService.changePassword(user.sub, dto);
+    return { message: 'Password changed successfully' };
+  }
+
+  @Post('update-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update the email address for the account' })
+  @ApiOkResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  async updateEmail(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateEmailDto,
+  ) {
+    await this.accountService.updateEmail(user.sub, dto);
+    return {
+      message: 'Email updated; verify the new address to reactivate login.',
+    };
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Delete the authenticated user account' })
+  @ApiOkResponse({
+    schema: { type: 'object', properties: { message: { type: 'string' } } },
+  })
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
+  async deleteAccount(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: DeleteAccountDto,
+  ) {
+    await this.accountService.deleteAccount(user.sub, dto);
+    return {
+      message: 'Account deletion requested. Cancellation window may apply.',
+    };
   }
 }

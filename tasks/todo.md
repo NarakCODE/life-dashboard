@@ -1,3 +1,47 @@
+# Dashboard MDX Rendering Fix Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect the existing docs MDX page that contains the dashboard heading guidance
+- [x] Confirm the content is currently wrapped in JSX instead of written as native MDX
+
+### 2. Fix
+- [x] Convert the dashboard heading guidance to native MDX so headings, lists, and tables render correctly
+- [x] Keep the page content aligned with the existing docs structure
+
+### 3. Verification
+- [x] Run focused verification for the touched MDX file
+- [x] Record results
+
+## Review / Results
+- Updated `apps/project-dashboard/content/docs/components/note-details.mdx` so the dashboard heading guidance now uses native MDX instead of being wrapped inside a JSX `<Prose>` block.
+- This keeps the content structure explicit for MDX parsing and preserves the intended heading, list, blockquote, and table rendering semantics.
+- Trimmed the top-level imports in the doc page to only keep the typography import that is still referenced in examples on the page.
+- Verification:
+- `pnpm exec prettier --check content/docs/components/note-details.mdx` in `apps/project-dashboard` ✅
+
+# Note Create Sheet Editor Upgrade Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Confirm the current note create/edit sheet uses a simple textarea for the content field
+- [x] Identify the expected editor interface from the shadcn-editor documentation to replace it with
+
+### 2. Fix
+- [x] Install the shadcn-editor package files via `pnpm dlx shadcn@latest add @shadcn-editor/editor` and review the generated components
+- [x] Swap the textarea in `apps/project-dashboard/components/projects/note-create-sheet.tsx` with the new editor component while wiring the serialized state to the existing callbacks
+
+### 3. Verification
+- [x] Run `pnpm exec eslint components/projects/note-create-sheet.tsx` (apps/project-dashboard)
+- [x] Confirm the editor loads in the sheet and keyboard shortcut still submits
+
+## Review / Results
+- Replaced the textarea inside `apps/project-dashboard/components/projects/note-create-sheet.tsx` with the `Editor` provided by `components/blocks/editor-00`, mirroring the shadcn-editor rich text configuration.
+- Owned the editor state as a Lexical `SerializedEditorState`, kept a plain-text cache for form submissions, and wired `Cmd+Enter` handling through `SheetContent` so the shortcut still works.
+- Verification: `pnpm exec eslint components/projects/note-create-sheet.tsx` in `apps/project-dashboard` ✅
+
 # Project Details Implementation Plan
 
 ## Status: COMPLETE
@@ -1281,3 +1325,24 @@
   - This fixes list-view delete wiring only. Broader task-flow behavior still depends on the existing delete mutation and confirmation UI, which were not changed here.
 
 # Task Dialog Consistency Plan
+
+# Auth Service Revamp Plan
+
+## Status: IN PROGRESS
+
+### 1. Audit
+- [x] Review the existing auth controller/service flow (`apps/api/src/auth`) and user schema/repo to understand the current `/me` implementation and profile handling
+- [x] Confirm related DTO contracts (`users`, `auth tokens`, `onboarding summary`) and token metadata that need to evolve for identity/profile separation
+
+### 2. Fix
+- [ ] Extend the `User` domain (schema + DTOs + repo) to include roles, avatar, status, lastLogin, and tokenVersion, plus a modular `/me` response shape covering identity, profile, metadata, and workspace defaults
+- [ ] Introduce dedicated service boundaries (e.g., `ProfileService`, `AccountService`) so token issuance, user/profile data, and account lifecycle logic remain decoupled
+- [ ] Implement `PATCH /me`, `POST /auth/change-password`, `POST /auth/update-email`, and `DELETE /me` with validation, re-auth/password confirmation, OTP-driven email verification, audit hooks, and refresh-token invalidation
+- [ ] Document cascading cleanup for `DELETE /me` (soft delete strategy, idempotency) and ensure security/anti-abuse controls (rate limiting, token version bumps)
+
+### 3. Verification
+- [ ] Add targeted unit tests/specs around the new DTOs and services or note verification gaps if tests cannot run here
+- [ ] Double-check rate limiting/audit coverage on the sensitive endpoints using the existing throttler guard and logging config
+
+## Review / Results
+- Pending

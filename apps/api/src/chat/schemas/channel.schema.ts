@@ -15,7 +15,7 @@ export class Channel {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ required: true, enum: Object.values(ChannelType) })
-  type: ChannelType;
+  type!: ChannelType;
 
   @Prop({ trim: true })
   name?: string;
@@ -24,7 +24,7 @@ export class Channel {
   description?: string;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  memberIds: Types.ObjectId[];
+  memberIds!: Types.ObjectId[];
 
   @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   lastMessageId?: Types.ObjectId;
@@ -33,10 +33,10 @@ export class Channel {
   lastMessageAt?: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const ChannelSchema = SchemaFactory.createForClass(Channel);

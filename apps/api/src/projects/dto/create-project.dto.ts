@@ -18,7 +18,7 @@ export class CreateProjectWorkstreamDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 0 })
   @Type(() => Number)
@@ -32,7 +32,7 @@ export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ enum: ProjectStatus, default: ProjectStatus.ACTIVE })
   @IsEnum(ProjectStatus)

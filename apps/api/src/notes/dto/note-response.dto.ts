@@ -6,11 +6,11 @@ import { NoteType, NoteStatus } from '../schemas/note.schema';
 export class NoteAuthorResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -25,15 +25,15 @@ export class NoteAuthorResponseDto {
 export class NoteResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  workspaceId: string;
+  workspaceId!: string;
 
   @Expose()
   @ApiProperty()
-  title: string;
+  title!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -41,15 +41,15 @@ export class NoteResponseDto {
 
   @Expose()
   @ApiProperty({ enum: NoteType })
-  noteType: NoteType;
+  noteType!: NoteType;
 
   @Expose()
   @ApiProperty({ enum: NoteStatus })
-  status: NoteStatus;
+  status!: NoteStatus;
 
   @Expose()
   @ApiProperty()
-  projectId: string;
+  projectId!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -70,11 +70,11 @@ export class NoteResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<NoteResponseDto>) {
     Object.assign(this, partial);
@@ -83,27 +83,38 @@ export class NoteResponseDto {
 
 export class NotePaginationDto {
   @ApiProperty()
-  total: number;
+  total!: number;
 
   @ApiProperty()
-  page: number;
+  page!: number;
 
   @ApiProperty()
-  limit: number;
+  limit!: number;
 
   @ApiProperty()
-  totalPages: number;
+  totalPages!: number;
 }
 
-export class NotesDataDto {
+// Flat list response for consistency with other controllers
+export class NotesListDataDto {
   @ApiProperty({ type: [NoteResponseDto] })
-  notes: NoteResponseDto[];
+  notes!: NoteResponseDto[];
 
   @ApiProperty({ type: NotePaginationDto })
-  pagination: NotePaginationDto;
+  pagination!: NotePaginationDto;
 }
 
+// Legacy DTO for backwards compatibility (deprecated)
+export class NotesDataDto {
+  @ApiProperty({ type: [NoteResponseDto] })
+  notes!: NoteResponseDto[];
+
+  @ApiProperty({ type: NotePaginationDto })
+  pagination!: NotePaginationDto;
+}
+
+// Legacy DTO for backwards compatibility (deprecated)
 export class NotesResultDto {
   @ApiProperty({ type: NotesDataDto })
-  data: NotesDataDto;
+  data!: NotesDataDto;
 }

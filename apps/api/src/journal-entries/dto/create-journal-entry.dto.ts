@@ -30,7 +30,7 @@ export class CreateJournalEntryDto {
   @ApiProperty({ example: 'Today was a productive day...' })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiPropertyOptional({ enum: MoodLevel, example: MoodLevel.GOOD })
   @IsEnum(MoodLevel)

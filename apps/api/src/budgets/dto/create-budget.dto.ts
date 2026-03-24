@@ -17,12 +17,12 @@ export class CreateBudgetDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: 500 })
   @IsNumber()
   @Min(0)
-  amount: number;
+  amount!: number;
 
   @ApiPropertyOptional({ example: 'food' })
   @IsString()

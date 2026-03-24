@@ -1,18 +1,12 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react";
+import { X } from "@phosphor-icons/react/dist/ssr";
+import { QuickCreateModalLayout } from "@/components/QuickCreateModalLayout";
 
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,23 +14,23 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   ProjectInput,
   ProjectPriority,
   ProjectStatus,
   ProjectSummary,
-} from "@/lib/projects/projects-client"
+} from "@/lib/projects/projects-client";
 
 type ProjectFormDialogProps = {
-  open: boolean
-  mode: "create" | "edit"
-  project?: ProjectSummary | null
-  isPending?: boolean
-  onOpenChange: (open: boolean) => void
-  onSubmit: (input: ProjectInput) => Promise<void> | void
-}
+  open: boolean;
+  mode: "create" | "edit";
+  project?: ProjectSummary | null;
+  isPending?: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (input: ProjectInput) => Promise<void> | void;
+};
 
 const STATUS_OPTIONS: Array<{ value: ProjectStatus; label: string }> = [
   { value: "backlog", label: "Backlog" },
@@ -44,14 +38,14 @@ const STATUS_OPTIONS: Array<{ value: ProjectStatus; label: string }> = [
   { value: "active", label: "Active" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
-]
+];
 
 const PRIORITY_OPTIONS: Array<{ value: ProjectPriority; label: string }> = [
   { value: "urgent", label: "Urgent" },
   { value: "high", label: "High" },
   { value: "medium", label: "Medium" },
   { value: "low", label: "Low" },
-]
+];
 
 export function ProjectFormDialog({
   open,
@@ -61,49 +55,51 @@ export function ProjectFormDialog({
   onOpenChange,
   onSubmit,
 }: ProjectFormDialogProps) {
-  const [name, setName] = useState("")
-  const [status, setStatus] = useState<ProjectStatus>("active")
-  const [priority, setPriority] = useState<ProjectPriority>("medium")
-  const [typeLabel, setTypeLabel] = useState("")
-  const [durationLabel, setDurationLabel] = useState("")
-  const [workstreamsText, setWorkstreamsText] = useState("")
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<ProjectStatus>("active");
+  const [priority, setPriority] = useState<ProjectPriority>("medium");
+  const [typeLabel, setTypeLabel] = useState("");
+  const [durationLabel, setDurationLabel] = useState("");
+  const [workstreamsText, setWorkstreamsText] = useState("");
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
-    setName(project?.name ?? "")
-    setStatus(project?.status ?? "active")
-    setPriority(project?.priority ?? "medium")
-    setTypeLabel(project?.typeLabel ?? "")
-    setDurationLabel(project?.durationLabel ?? "")
+    setName(project?.name ?? "");
+    setStatus(project?.status ?? "active");
+    setPriority(project?.priority ?? "medium");
+    setTypeLabel(project?.typeLabel ?? "");
+    setDurationLabel(project?.durationLabel ?? "");
     setWorkstreamsText(
-      project?.workstreams.map((workstream) => workstream.name).join("\n") ?? "",
-    )
-  }, [open, project])
+      project?.workstreams.map((workstream) => workstream.name).join("\\n") ??
+        "",
+    );
+  }, [open, project]);
 
-  const isValid = name.trim().length > 0
+  const isValid = name.trim().length > 0;
 
-  const submitLabel = mode === "create" ? "Create project" : "Save changes"
+  const submitLabel = mode === "create" ? "Create project" : "Save changes";
 
+  const title = mode === "create" ? "New Project" : "Edit Project";
   const description = useMemo(
     () =>
       mode === "create"
         ? "Create a project in the current workspace and optionally add starter workstreams."
         : "Update the project metadata and workstreams used across task creation and grouping.",
     [mode],
-  )
+  );
 
   const handleSubmit = async () => {
-    if (!isValid) return
+    if (!isValid) return;
 
     const workstreams = workstreamsText
-      .split("\n")
+      .split("\\n")
       .map((item) => item.trim())
       .filter(Boolean)
       .map((item, index) => ({
         name: item,
         order: index,
-      }))
+      }));
 
     await onSubmit({
       name: name.trim(),
@@ -112,18 +108,43 @@ export function ProjectFormDialog({
       typeLabel: typeLabel.trim() || undefined,
       durationLabel: durationLabel.trim() || undefined,
       workstreams,
-    })
-  }
+    });
+  };
+
+  const handleClose = () => {
+    if (isPending) return;
+    onOpenChange(false);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{mode === "create" ? "New Project" : "Edit Project"}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <QuickCreateModalLayout
+      open={open}
+      onClose={handleClose}
+      onSubmitShortcut={handleSubmit}
+      className="max-w-160"
+      contentClassName="p-0 gap-0"
+    >
+      <div className="flex flex-1 flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pb-0">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="h-8 w-8 rounded-full shrink-0"
+            onClick={handleClose}
+            disabled={isPending}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <div className="flex flex-col gap-4">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           <div className="flex flex-col gap-2">
             <Label htmlFor="project-name">Project name</Label>
             <Input
@@ -218,20 +239,25 @@ export function ProjectFormDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 pt-0 mt-auto">
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isPending}
           >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={!isValid || isPending}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isValid || isPending}
+          >
             {submitLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+        </div>
+      </div>
+    </QuickCreateModalLayout>
+  );
 }

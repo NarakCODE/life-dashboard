@@ -8,7 +8,7 @@ export class OnboardingStateResponseDto extends OnboardingSummaryDto {
     required: false,
     nullable: true,
   })
-  session: OnboardingSessionResponseDto | null;
+  session!: OnboardingSessionResponseDto | null;
 
   constructor(partial: Partial<OnboardingStateResponseDto>) {
     super(partial);

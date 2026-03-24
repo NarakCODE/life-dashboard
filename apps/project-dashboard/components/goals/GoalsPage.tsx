@@ -67,12 +67,7 @@ import {
   useUnlinkHabitMutation,
   useUnlinkTaskMutation,
 } from "@/lib/goals/goals-query";
-import {
-  Goal,
-  GoalStatus,
-  GoalType,
-  CreateGoalInput,
-} from "@/lib/goals/types";
+import { Goal, GoalStatus, GoalType, CreateGoalInput } from "@/lib/goals/types";
 import { useAllTasksQuery } from "@/lib/tasks/tasks-query";
 import type { ProjectTask } from "@/lib/data/project-details";
 import { useHabitsQuery } from "@/lib/habits/habits-query";
@@ -231,10 +226,12 @@ function GoalFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit Goal" : "Create New Goal"}</DialogTitle>
+            <DialogTitle>
+              {isEditing ? "Edit Goal" : "Create New Goal"}
+            </DialogTitle>
             <DialogDescription>
               {isEditing
                 ? "Update your goal details below."
@@ -453,9 +450,7 @@ function LogProgressDialog({
                 min={0.1}
                 step={goal.unit === "hours" ? 0.5 : 1}
                 value={value}
-                onChange={(e) =>
-                  setValue(parseFloat(e.target.value) || 0)
-                }
+                onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
                 autoFocus
               />
             </div>
@@ -472,7 +467,8 @@ function LogProgressDialog({
             </div>
 
             <div className="text-sm text-muted-foreground">
-              Current: {goal.currentValue} / {goal.targetValue} {goal.unit || ""}
+              Current: {goal.currentValue} / {goal.targetValue}{" "}
+              {goal.unit || ""}
             </div>
           </div>
 
@@ -485,10 +481,7 @@ function LogProgressDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || value <= 0}
-            >
+            <Button type="submit" disabled={isSubmitting || value <= 0}>
               {isSubmitting ? "Logging..." : "Log Progress"}
             </Button>
           </DialogFooter>
@@ -585,17 +578,13 @@ function GoalLinksDialog({
 
   const toggleTask = (taskId: string, checked: boolean) => {
     setSelectedTaskIds((current) =>
-      checked
-        ? [...current, taskId]
-        : current.filter((id) => id !== taskId),
+      checked ? [...current, taskId] : current.filter((id) => id !== taskId),
     );
   };
 
   const toggleHabit = (habitId: string, checked: boolean) => {
     setSelectedHabitIds((current) =>
-      checked
-        ? [...current, habitId]
-        : current.filter((id) => id !== habitId),
+      checked ? [...current, habitId] : current.filter((id) => id !== habitId),
     );
   };
 
@@ -944,9 +933,9 @@ export function GoalsPage() {
   const [deletingGoal, setDeletingGoal] = useState<Goal | undefined>(undefined);
   const [loggingGoal, setLoggingGoal] = useState<Goal | undefined>(undefined);
   const [linkingGoal, setLinkingGoal] = useState<Goal | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | GoalStatus
-  >(GoalStatus.ACTIVE);
+  const [statusFilter, setStatusFilter] = useState<"all" | GoalStatus>(
+    GoalStatus.ACTIVE,
+  );
   const [typeFilter, setTypeFilter] = useState<"all" | GoalType>("all");
 
   const query = useMemo(
@@ -1003,14 +992,16 @@ export function GoalsPage() {
 
   const goals = useMemo(() => goalsData?.data.items ?? [], [goalsData]);
   const isEmpty = !isPending && goals.length === 0;
-  const {
-    data: tasksData,
-    isPending: isTasksPending,
-  } = useAllTasksQuery(workspaceId ?? "", tasksQuery, isQueryEnabled);
-  const {
-    data: habitsData,
-    isPending: isHabitsPending,
-  } = useHabitsQuery(workspaceId ?? "", habitsQuery, isQueryEnabled);
+  const { data: tasksData, isPending: isTasksPending } = useAllTasksQuery(
+    workspaceId ?? "",
+    tasksQuery,
+    isQueryEnabled,
+  );
+  const { data: habitsData, isPending: isHabitsPending } = useHabitsQuery(
+    workspaceId ?? "",
+    habitsQuery,
+    isQueryEnabled,
+  );
 
   const tasks = tasksData?.data.tasks ?? [];
   const habits = habitsData?.data.items ?? [];
@@ -1188,11 +1179,7 @@ export function GoalsPage() {
       <PageHeader
         title="Goals"
         actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsCreateDialogOpen(true)}
-          >
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             New Goal
           </Button>
@@ -1205,7 +1192,9 @@ export function GoalsPage() {
                 <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
                   <Button
                     size="sm"
-                    variant={statusFilter === GoalStatus.ACTIVE ? "secondary" : "ghost"}
+                    variant={
+                      statusFilter === GoalStatus.ACTIVE ? "secondary" : "ghost"
+                    }
                     className="h-7 text-xs"
                     onClick={() => setStatusFilter(GoalStatus.ACTIVE)}
                   >
@@ -1215,7 +1204,9 @@ export function GoalsPage() {
                   <Button
                     size="sm"
                     variant={
-                      statusFilter === GoalStatus.COMPLETED ? "secondary" : "ghost"
+                      statusFilter === GoalStatus.COMPLETED
+                        ? "secondary"
+                        : "ghost"
                     }
                     className="h-7 text-xs"
                     onClick={() => setStatusFilter(GoalStatus.COMPLETED)}
@@ -1226,7 +1217,9 @@ export function GoalsPage() {
                   <Button
                     size="sm"
                     variant={
-                      statusFilter === GoalStatus.ARCHIVED ? "secondary" : "ghost"
+                      statusFilter === GoalStatus.ARCHIVED
+                        ? "secondary"
+                        : "ghost"
                     }
                     className="h-7 text-xs"
                     onClick={() => setStatusFilter(GoalStatus.ARCHIVED)}
@@ -1278,8 +1271,12 @@ export function GoalsPage() {
           <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Visible Goals</div>
-                <div className="mt-2 text-2xl font-semibold">{summary.total}</div>
+                <div className="text-xs text-muted-foreground">
+                  Visible Goals
+                </div>
+                <div className="mt-2 text-2xl font-semibold">
+                  {summary.total}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -1293,12 +1290,16 @@ export function GoalsPage() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">Overdue</div>
-                <div className="mt-2 text-2xl font-semibold">{summary.overdue}</div>
+                <div className="mt-2 text-2xl font-semibold">
+                  {summary.overdue}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">Linked Items</div>
+                <div className="text-xs text-muted-foreground">
+                  Linked Items
+                </div>
                 <div className="mt-2 text-2xl font-semibold">
                   {summary.linkedItems}
                 </div>

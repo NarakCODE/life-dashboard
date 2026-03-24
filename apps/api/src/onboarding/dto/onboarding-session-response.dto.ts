@@ -9,11 +9,11 @@ import {
 export class OnboardingSessionResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty({ nullable: true })
@@ -21,23 +21,23 @@ export class OnboardingSessionResponseDto {
 
   @Expose()
   @ApiProperty({ enum: OnboardingStatus })
-  status: OnboardingStatus;
+  status!: OnboardingStatus;
 
   @Expose()
   @ApiProperty({ enum: OnboardingStep })
-  currentStep: OnboardingStep;
+  currentStep!: OnboardingStep;
 
   @Expose()
   @ApiProperty({ type: [String] })
-  completedSteps: string[];
+  completedSteps!: string[];
 
   @Expose()
   @ApiProperty({ type: Object })
-  answers: Record<string, unknown>;
+  answers!: Record<string, unknown>;
 
   @Expose()
   @ApiProperty()
-  version: number;
+  version!: number;
 
   @Expose()
   @ApiProperty({ nullable: true })
@@ -49,11 +49,11 @@ export class OnboardingSessionResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<OnboardingSessionResponseDto>) {
     Object.assign(this, partial);

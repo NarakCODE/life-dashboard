@@ -107,9 +107,9 @@ export class GoalsService {
     // Validate goal type consistency
     const type = dto.type ?? existingGoal.type;
     const linkedTasks =
-      dto.linkedTasks ?? existingGoal.linkedTasks.map((t) => t.toString());
+      dto.linkedTasks ?? existingGoal.linkedTasks.map((t: Types.ObjectId) => t.toString());
     const linkedHabits =
-      dto.linkedHabits ?? existingGoal.linkedHabits.map((h) => h.toString());
+      dto.linkedHabits ?? existingGoal.linkedHabits.map((h: Types.ObjectId) => h.toString());
     this.validateGoalTypeConsistency(type, linkedTasks, linkedHabits);
 
     const goal = await this.goalsRepo.updateByIdAndUser(id, scope, dto);

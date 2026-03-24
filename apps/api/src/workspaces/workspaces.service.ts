@@ -131,7 +131,7 @@ export class WorkspacesService {
     const enriched = await this.enrichWorkspacesWithUserDetails([
       workspace.toObject(),
     ]);
-    return enriched[0];
+    return enriched[0]!;
   }
 
   async findAllForUser(userId: string): Promise<WorkspaceWithDetails[]> {
@@ -168,7 +168,7 @@ export class WorkspacesService {
     if (!workspace) throw new NotFoundException('Workspace not found');
 
     const enriched = await this.enrichWorkspacesWithUserDetails([workspace]);
-    return enriched[0];
+    return enriched[0]!;
   }
 
   /**
@@ -256,7 +256,7 @@ export class WorkspacesService {
     if (!workspace) throw new NotFoundException('Workspace not found');
 
     const enriched = await this.enrichWorkspacesWithUserDetails([workspace]);
-    return enriched[0];
+    return enriched[0]!;
   }
 
   async delete(id: string): Promise<void> {

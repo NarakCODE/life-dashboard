@@ -23,18 +23,18 @@ export class CreateTransactionDto {
   @ApiProperty({ example: 99.99 })
   @IsNumber()
   @Min(0)
-  amount: number;
+  amount!: number;
 
   @ApiProperty({ enum: TransactionType, example: 'expense' })
   @IsEnum(TransactionType)
-  type: TransactionType;
+  type!: TransactionType;
 
   @ApiProperty({
     enum: TransactionCategory,
     default: TransactionCategory.OTHER,
   })
   @IsEnum(TransactionCategory)
-  category: TransactionCategory;
+  category!: TransactionCategory;
 
   @ApiPropertyOptional({ example: 'Grocery shopping' })
   @IsString()
@@ -45,7 +45,7 @@ export class CreateTransactionDto {
   @ApiProperty({ example: '2026-03-20T00:00:00Z' })
   @IsDate()
   @Type(() => Date)
-  date: Date;
+  date!: Date;
 
   @ApiPropertyOptional({ example: 'USD', default: 'USD' })
   @IsString()

@@ -18,7 +18,7 @@ export class CreateGoalDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional({ example: 'Training for the marathon' })
   @IsString()
@@ -29,7 +29,7 @@ export class CreateGoalDto {
   @ApiProperty({ example: 100 })
   @IsNumber()
   @Min(0)
-  targetValue: number;
+  targetValue!: number;
 
   @ApiPropertyOptional({ example: 'km' })
   @IsString()

@@ -27,10 +27,10 @@ export class Transaction {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
@@ -39,29 +39,29 @@ export class Transaction {
   budgetId?: Types.ObjectId;
 
   @Prop({ required: true, min: 0 })
-  amount: number;
+  amount!: number;
 
   @Prop({ required: true, enum: Object.values(TransactionType) })
-  type: TransactionType;
+  type!: TransactionType;
 
   @Prop({
     required: true,
     enum: Object.values(TransactionCategory),
     default: TransactionCategory.OTHER,
   })
-  category: TransactionCategory;
+  category!: TransactionCategory;
 
   @Prop({ trim: true })
   description?: string;
 
   @Prop({ required: true, index: true })
-  date: Date;
+  date!: Date;
 
   @Prop({ default: 'USD', uppercase: true, length: 3 })
-  currency: string;
+  currency!: string;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

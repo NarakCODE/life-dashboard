@@ -23,13 +23,13 @@ export enum WorkspaceRole {
 @Schema({ _id: false })
 export class WorkspaceMember {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({
     required: true,
     enum: Object.values(WorkspaceRole),
   })
-  role: WorkspaceRole;
+  role!: WorkspaceRole;
 }
 
 export const WorkspaceMemberSchema =
@@ -38,13 +38,13 @@ export const WorkspaceMemberSchema =
 @Schema({ timestamps: true, collection: 'workspaces' })
 export class Workspace {
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  ownerId: Types.ObjectId;
+  ownerId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({
     required: true,
@@ -52,7 +52,7 @@ export class Workspace {
     default: WorkspaceType.COLLABORATIVE,
     index: true,
   })
-  type: WorkspaceType;
+  type!: WorkspaceType;
 
   @Prop({
     required: true,
@@ -60,7 +60,7 @@ export class Workspace {
     default: WorkspaceStatus.ACTIVE,
     index: true,
   })
-  status: WorkspaceStatus;
+  status!: WorkspaceStatus;
 
   @Prop({
     type: Types.ObjectId,
@@ -72,10 +72,10 @@ export class Workspace {
   defaultForUserId?: Types.ObjectId | null;
 
   @Prop({ type: [WorkspaceMemberSchema], default: [] })
-  members: WorkspaceMember[];
+  members!: WorkspaceMember[];
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const WorkspaceSchema = SchemaFactory.createForClass(Workspace);

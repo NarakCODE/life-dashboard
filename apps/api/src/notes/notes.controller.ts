@@ -25,7 +25,7 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { QueryNoteDto } from './dto/query-note.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { NotesResultDto, NoteResponseDto } from './dto/note-response.dto';
+import { NoteResponseDto, NotesListDataDto } from './dto/note-response.dto';
 import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
 import { WorkspacePermissionGuard } from '../workspaces/guards/workspace-permission.guard';
 import { WorkspaceContext } from '../workspaces/decorators/workspace-context.decorator';
@@ -34,7 +34,7 @@ import { RequireWorkspacePermission } from '../workspaces/decorators/require-wor
 import { WorkspacePermission } from '../workspaces/workspace-permissions';
 
 @ApiTags('notes')
-@ApiExtraModels(NotesResultDto, NoteResponseDto)
+@ApiExtraModels(NotesListDataDto, NoteResponseDto)
 @ApiBearerAuth('access-token')
 @ApiHeader({
   name: 'x-workspace-id',
@@ -65,7 +65,7 @@ export class NotesController {
   @ApiOperation({ summary: 'Get notes by project ID' })
   @ApiOkResponse({
     description: 'List of notes for the project',
-    type: NotesResultDto,
+    type: NotesListDataDto,
   })
   findByProject(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
@@ -80,7 +80,7 @@ export class NotesController {
   @ApiOperation({ summary: 'Get all notes with pagination and filtering' })
   @ApiOkResponse({
     description: 'List of matching notes and total count',
-    type: NotesResultDto,
+    type: NotesListDataDto,
   })
   findAll(
     @WorkspaceContext() workspace: WorkspaceRequestContext,

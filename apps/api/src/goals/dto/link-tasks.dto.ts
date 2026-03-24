@@ -10,5 +10,5 @@ export class LinkTasksDto {
   @IsArray()
   @IsString({ each: true })
   @ArrayMinSize(1)
-  taskIds: string[];
+  taskIds!: string[];
 }

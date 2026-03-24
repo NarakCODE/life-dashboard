@@ -12,6 +12,9 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ProfileService } from './services/profile.service';
+import { AccountService } from './services/account.service';
+import { EmailVerificationService } from './services/email-verification.service';
 import { jwtConfig } from './config/jwt.config';
 
 @Module({
@@ -35,6 +38,9 @@ import { jwtConfig } from './config/jwt.config';
   ],
   providers: [
     AuthService,
+    ProfileService,
+    AccountService,
+    EmailVerificationService,
     JwtStrategy,
     JwtRefreshStrategy,
     JwtAuthGuard,

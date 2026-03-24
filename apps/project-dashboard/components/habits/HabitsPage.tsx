@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader, PageToolbar } from "@/components/page-layout";
+import { PageHeader, PageToolbar, PageLayout } from "@/components/page-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
@@ -200,7 +200,7 @@ function HabitFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -656,15 +656,11 @@ export function HabitsPage() {
     deleteHabitMutation.isPending;
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+    <PageLayout>
       <PageHeader
         title="Habits"
         actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsCreateDialogOpen(true)}
-          >
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             New Habit
           </Button>
@@ -787,6 +783,6 @@ export function HabitsPage() {
         habitName={deletingHabit?.name ?? ""}
         isDeleting={deleteHabitMutation.isPending}
       />
-    </div>
+    </PageLayout>
   );
 }

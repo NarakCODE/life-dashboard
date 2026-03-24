@@ -20,13 +20,13 @@ export enum ProjectPriority {
 
 @Schema({ timestamps: false })
 export class ProjectWorkstream {
-  _id: Types.ObjectId;
+  _id!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({ default: 0, min: 0 })
-  order: number;
+  order!: number;
 
   @Prop({ type: Date, default: null })
   archivedAt?: Date | null;
@@ -38,33 +38,33 @@ export const ProjectWorkstreamSchema =
 @Schema({ timestamps: true, collection: 'projects' })
 export class Project {
   @Prop({ type: Types.ObjectId, ref: 'Workspace', required: true, index: true })
-  workspaceId: Types.ObjectId;
+  workspaceId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  ownerUserId: Types.ObjectId;
+  ownerUserId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, trim: true })
-  name: string;
+  name!: string;
 
   @Prop({
     required: true,
     enum: Object.values(ProjectStatus),
     default: ProjectStatus.ACTIVE,
   })
-  status: ProjectStatus;
+  status!: ProjectStatus;
 
   @Prop({
     required: true,
     enum: Object.values(ProjectPriority),
     default: ProjectPriority.MEDIUM,
   })
-  priority: ProjectPriority;
+  priority!: ProjectPriority;
 
   @Prop({ trim: true })
   typeLabel?: string;
@@ -73,13 +73,13 @@ export class Project {
   durationLabel?: string;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  memberUserIds: Types.ObjectId[];
+  memberUserIds!: Types.ObjectId[];
 
   @Prop({ type: [ProjectWorkstreamSchema], default: [] })
-  workstreams: ProjectWorkstream[];
+  workstreams!: ProjectWorkstream[];
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

@@ -9,25 +9,25 @@ export class HabitLog {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'Habit', required: true, index: true })
-  habitId: Types.ObjectId;
+  habitId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  actorUserId: Types.ObjectId;
+  actorUserId!: Types.ObjectId;
 
   @Prop({ required: true })
-  loggedDate: Date;
+  loggedDate!: Date;
 
   @Prop({ min: 1, default: 1 })
-  count: number;
+  count!: number;
 
   @Prop({ trim: true })
   notes?: string;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const HabitLogSchema = SchemaFactory.createForClass(HabitLog);

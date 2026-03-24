@@ -9,10 +9,10 @@ export class InviteMemberDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({ enum: WorkspaceRole, default: WorkspaceRole.MEMBER })
   @IsEnum(WorkspaceRole)
   @IsNotEmpty()
-  role: WorkspaceRole;
+  role!: WorkspaceRole;
 }

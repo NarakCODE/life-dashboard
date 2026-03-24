@@ -24,7 +24,12 @@ import {
   TaskQuickCreateModal,
   type CreateTaskContext,
 } from "@/components/tasks/TaskQuickCreateModal";
-import { PageHeader, PageToolbar, AiButton } from "@/components/page-layout";
+import {
+  PageHeader,
+  PageToolbar,
+  AiButton,
+  PageLayout,
+} from "@/components/page-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskProjectsQuery } from "@/lib/projects/projects-query";
 import {
@@ -367,11 +372,11 @@ export function MyTasksPage() {
   const isEmpty = !isPending && groups.length === 0;
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-background rounded-lg min-w-0">
+    <PageLayout>
       <PageHeader
         title="Tasks"
         actions={
-          <Button size="sm" variant="ghost" onClick={() => openCreateTask()}>
+          <Button onClick={() => openCreateTask()}>
             <Plus className="mr-1.5 h-4 w-4" />
             New Task
           </Button>
@@ -493,6 +498,6 @@ export function MyTasksPage() {
         context={editingTask ? undefined : createContext}
         editingTask={editingTask}
       />
-    </div>
+    </PageLayout>
   );
 }

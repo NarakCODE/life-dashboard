@@ -12,7 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { PageHeader, PageToolbarResponsive } from "@/components/page-layout";
+import { PageHeader, PageToolbar, PageToolbarResponsive, PageLayout } from "@/components/page-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   AlertDialog,
@@ -720,13 +720,12 @@ export function BudgetsPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+    <PageLayout>
       <PageHeader
         title="Budgets"
         actions={
           <Button
-            size="sm"
-            variant="ghost"
+
             onClick={() => setIsCreateDialogOpen(true)}
           >
             <Plus className="mr-1.5 h-4 w-4" />
@@ -1054,6 +1053,6 @@ export function BudgetsPage() {
         budgetName={deletingBudget?.name ?? ""}
         isDeleting={deleteBudgetMutation.isPending}
       />
-    </div>
+    </PageLayout>
   );
 }

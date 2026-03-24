@@ -6,7 +6,7 @@ import { NotificationType } from '../schemas/notification.schema';
 export class NotificationResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty({ required: false, nullable: true })
@@ -14,7 +14,7 @@ export class NotificationResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty({ required: false, nullable: true })
@@ -26,35 +26,35 @@ export class NotificationResponseDto {
 
   @Expose()
   @ApiProperty({ enum: NotificationType })
-  type: NotificationType;
+  type!: NotificationType;
 
   @Expose()
   @ApiProperty()
-  title: string;
+  title!: string;
 
   @Expose()
   @ApiProperty()
-  body: string;
+  body!: string;
 
   @Expose()
   @ApiProperty()
-  data: Record<string, unknown>;
+  data!: Record<string, unknown>;
 
   @Expose()
   @ApiProperty()
-  isRead: boolean;
+  isRead!: boolean;
 
   @Expose()
   @ApiProperty({ nullable: true })
-  readAt: Date | null;
+  readAt!: Date | null;
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<NotificationResponseDto>) {
     Object.assign(this, partial);

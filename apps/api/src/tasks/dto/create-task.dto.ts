@@ -16,13 +16,13 @@ export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: 'project-fintech-redesign' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  projectId: string;
+  projectId!: string;
 
   @ApiPropertyOptional({ example: 'ws-discovery' })
   @IsString()

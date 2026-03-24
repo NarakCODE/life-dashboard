@@ -1,14 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
-import {
-  NotesResultDto,
-  NoteResponseDto,
-} from './dto/note-response.dto';
 import { NotesRepository } from './notes.repository';
 import { NoteDocument, NoteStatus, NoteType } from './schemas/note.schema';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { QueryNoteDto } from './dto/query-note.dto';
+import { NoteResponseDto, NotesListDataDto } from './dto/note-response.dto';
 import { UsersService } from '../users/users.service';
 import { ProjectsService } from '../projects/projects.service';
 import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
@@ -73,7 +70,7 @@ export class NotesService {
     workspace: WorkspaceRequestContext,
     projectId: string,
     query: QueryNoteDto,
-  ): Promise<NotesResultDto> {
+  ): Promise<NotesListDataDto> {
     const { items, total, page, limit, totalPages } =
       await this.notesRepo.findByProject(
         {
@@ -85,14 +82,12 @@ export class NotesService {
       );
 
     return {
-      data: {
-        notes: items.map((note) => this.toNoteResponse(note)),
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-        },
+      notes: items.map((note) => this.toNoteResponse(note)),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
       },
     };
   }
@@ -100,7 +95,7 @@ export class NotesService {
   async findMany(
     workspace: WorkspaceRequestContext,
     query: QueryNoteDto,
-  ): Promise<NotesResultDto> {
+  ): Promise<NotesListDataDto> {
     const { items, total, page, limit, totalPages } =
       await this.notesRepo.findWithPagination(
         {
@@ -111,14 +106,12 @@ export class NotesService {
       );
 
     return {
-      data: {
-        notes: items.map((note) => this.toNoteResponse(note)),
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-        },
+      notes: items.map((note) => this.toNoteResponse(note)),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
       },
     };
   }
@@ -163,11 +156,15 @@ export class NotesService {
     }
 
     // Handle project change
-    if (dto.projectId !== undefined && dto.projectId !== existingNote.projectId) {
-      const projectContext = await this.projectsService.resolveTaskProjectContext(
-        workspace,
-        dto.projectId,
-      );
+    if (
+      dto.projectId !== undefined &&
+      dto.projectId !== existingNote.projectId
+    ) {
+      const projectContext =
+        await this.projectsService.resolveTaskProjectContext(
+          workspace,
+          dto.projectId,
+        );
       updatePayload.projectId = projectContext.projectId;
       updatePayload.projectName = projectContext.projectName;
     }

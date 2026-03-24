@@ -13,13 +13,13 @@ export class CreateNoteDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @ApiProperty({ example: 'project-fintech-redesign' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  projectId: string;
+  projectId!: string;
 
   @ApiPropertyOptional({
     example: 'Discussed key requirements and timeline...',

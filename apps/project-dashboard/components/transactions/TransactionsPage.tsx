@@ -130,7 +130,9 @@ function createDefaultFormState(): TransactionFormState {
   };
 }
 
-function transactionToFormState(transaction: Transaction): TransactionFormState {
+function transactionToFormState(
+  transaction: Transaction,
+): TransactionFormState {
   return {
     amount: String(transaction.amount),
     type: transaction.type,
@@ -141,7 +143,9 @@ function transactionToFormState(transaction: Transaction): TransactionFormState 
   };
 }
 
-function formStateToInput(formState: TransactionFormState): CreateTransactionInput {
+function formStateToInput(
+  formState: TransactionFormState,
+): CreateTransactionInput {
   return {
     amount: Math.max(0, Number(formState.amount) || 0),
     type: formState.type,
@@ -216,12 +220,15 @@ function CategoryBreakdownCard({
             <p className="text-sm text-muted-foreground">No data available</p>
           ) : (
             items.slice(0, 5).map((item) => {
-              const percentage = total > 0 ? (item.totalAmount / total) * 100 : 0;
+              const percentage =
+                total > 0 ? (item.totalAmount / total) * 100 : 0;
               return (
                 <div key={item.category} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2">
-                      <span>{getCategoryIcon(item.category as TransactionCategory)}</span>
+                      <span>
+                        {getCategoryIcon(item.category as TransactionCategory)}
+                      </span>
                       <span className="capitalize">
                         {getCategoryLabel(item.category as TransactionCategory)}
                       </span>
@@ -264,7 +271,9 @@ function TransactionFormDialog({
 }) {
   const isEditing = Boolean(transaction);
   const [formState, setFormState] = useState<TransactionFormState>(
-    transaction ? transactionToFormState(transaction) : createDefaultFormState()
+    transaction
+      ? transactionToFormState(transaction)
+      : createDefaultFormState(),
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -275,7 +284,7 @@ function TransactionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -333,7 +342,10 @@ function TransactionFormDialog({
                   placeholder="0.00"
                   value={formState.amount}
                   onChange={(e) =>
-                    setFormState((prev) => ({ ...prev, amount: e.target.value }))
+                    setFormState((prev) => ({
+                      ...prev,
+                      amount: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -406,13 +418,17 @@ function TransactionFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !formState.amount || Number(formState.amount) <= 0}
+              disabled={
+                isSubmitting ||
+                !formState.amount ||
+                Number(formState.amount) <= 0
+              }
             >
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                ? "Save changes"
-                : "Add transaction"}
+                  ? "Save changes"
+                  : "Add transaction"}
             </Button>
           </DialogFooter>
         </form>
@@ -441,14 +457,15 @@ function TransactionCard({
             <div
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full text-lg",
-                isIncome ? "bg-emerald-100" : "bg-rose-100"
+                isIncome ? "bg-emerald-100" : "bg-rose-100",
               )}
             >
               {getCategoryIcon(transaction.category)}
             </div>
             <div className="space-y-1">
               <p className="font-medium text-foreground">
-                {transaction.description || getCategoryLabel(transaction.category)}
+                {transaction.description ||
+                  getCategoryLabel(transaction.category)}
               </p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="muted" className="capitalize">
@@ -466,7 +483,7 @@ function TransactionCard({
             <p
               className={cn(
                 "text-lg font-semibold",
-                isIncome ? "text-emerald-600" : "text-rose-600"
+                isIncome ? "text-emerald-600" : "text-rose-600",
               )}
             >
               {isIncome ? "+" : "-"}
@@ -557,10 +574,16 @@ export function TransactionsPage() {
   const { workspaceId } = useWorkspaceScope();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | TransactionType>("all");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | TransactionCategory>("all");
+  const [categoryFilter, setCategoryFilter] = useState<
+    "all" | TransactionCategory
+  >("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
-  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | undefined>();
+  const [editingTransaction, setEditingTransaction] = useState<
+    Transaction | undefined
+  >();
+  const [deletingTransaction, setDeletingTransaction] = useState<
+    Transaction | undefined
+  >();
 
   const query = useMemo(
     () => ({
@@ -572,7 +595,7 @@ export function TransactionsPage() {
       ...(typeFilter !== "all" && { type: typeFilter }),
       ...(categoryFilter !== "all" && { category: categoryFilter }),
     }),
-    [categoryFilter, search, typeFilter]
+    [categoryFilter, search, typeFilter],
   );
 
   const isQueryEnabled =
@@ -589,15 +612,15 @@ export function TransactionsPage() {
 
   const createTransactionMutation = useCreateTransactionMutation(
     workspaceId ?? "",
-    query
+    query,
   );
   const updateTransactionMutation = useUpdateTransactionMutation(
     workspaceId ?? "",
-    query
+    query,
   );
   const deleteTransactionMutation = useDeleteTransactionMutation(
     workspaceId ?? "",
-    query
+    query,
   );
 
   const transactions = transactionsData?.data.items ?? [];
@@ -610,7 +633,7 @@ export function TransactionsPage() {
       setIsCreateDialogOpen(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add transaction"
+        error instanceof Error ? error.message : "Failed to add transaction",
       );
     }
   };
@@ -626,7 +649,7 @@ export function TransactionsPage() {
       setEditingTransaction(undefined);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update transaction"
+        error instanceof Error ? error.message : "Failed to update transaction",
       );
     }
   };
@@ -639,7 +662,7 @@ export function TransactionsPage() {
       setDeletingTransaction(undefined);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete transaction"
+        error instanceof Error ? error.message : "Failed to delete transaction",
       );
     }
   };
@@ -652,11 +675,7 @@ export function TransactionsPage() {
       <PageHeader
         title="Transactions"
         actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsCreateDialogOpen(true)}
-          >
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             Add transaction
           </Button>
@@ -731,7 +750,7 @@ export function TransactionsPage() {
                 title="Total Income"
                 value={formatCurrency(
                   summaryData?.totalIncome ?? 0,
-                  primaryCurrency
+                  primaryCurrency,
                 )}
                 icon={TrendingUp}
                 tone="income"
@@ -740,7 +759,7 @@ export function TransactionsPage() {
                 title="Total Expenses"
                 value={formatCurrency(
                   summaryData?.totalExpense ?? 0,
-                  primaryCurrency
+                  primaryCurrency,
                 )}
                 icon={TrendingDown}
                 tone="expense"
@@ -749,7 +768,7 @@ export function TransactionsPage() {
                 title="Net Balance"
                 value={formatCurrency(
                   summaryData?.netAmount ?? 0,
-                  primaryCurrency
+                  primaryCurrency,
                 )}
                 icon={Wallet}
                 tone="net"
@@ -802,7 +821,7 @@ export function TransactionsPage() {
                     title="Expenses by Category"
                     items={
                       summaryData?.byCategory.filter(
-                        (item) => item.category !== "income"
+                        (item) => item.category !== "income",
                       ) ?? []
                     }
                     total={summaryData?.totalExpense ?? 0}
@@ -838,10 +857,12 @@ export function TransactionsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete transaction</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the transaction
-              &quot;{deletingTransaction?.description ||
-                getCategoryLabel(deletingTransaction?.category || TransactionCategory.OTHER)}&quot;.
-              This action cannot be undone.
+              This will permanently delete the transaction &quot;
+              {deletingTransaction?.description ||
+                getCategoryLabel(
+                  deletingTransaction?.category || TransactionCategory.OTHER,
+                )}
+              &quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -856,9 +877,7 @@ export function TransactionsPage() {
                 void handleDeleteTransaction();
               }}
             >
-              {deleteTransactionMutation.isPending
-                ? "Deleting..."
-                : "Delete"}
+              {deleteTransactionMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

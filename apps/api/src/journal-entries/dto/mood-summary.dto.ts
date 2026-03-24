@@ -52,16 +52,16 @@ export class MoodSummaryQueryDto {
  */
 export class MoodCountDto {
   @ApiPropertyOptional()
-  mood: MoodLevel;
+  mood!: MoodLevel;
 
   @ApiPropertyOptional()
-  label: string;
+  label!: string;
 
   @ApiPropertyOptional()
-  count: number;
+  count!: number;
 
   @ApiPropertyOptional()
-  percentage: number;
+  percentage!: number;
 }
 
 /**
@@ -69,13 +69,13 @@ export class MoodCountDto {
  */
 export class MoodTrendPointDto {
   @ApiPropertyOptional()
-  date: string;
+  date!: string;
 
   @ApiPropertyOptional()
-  avgMood: number;
+  avgMood!: number;
 
   @ApiPropertyOptional()
-  entryCount: number;
+  entryCount!: number;
 }
 
 /**
@@ -83,23 +83,23 @@ export class MoodTrendPointDto {
  */
 export class MoodSummaryResponseDto {
   @ApiPropertyOptional()
-  totalEntries: number;
+  totalEntries!: number;
 
   @ApiPropertyOptional()
-  entriesWithMood: number;
+  entriesWithMood!: number;
 
   @ApiPropertyOptional()
-  averageMood: number | null;
+  averageMood!: number | null;
 
   @ApiPropertyOptional({ type: [MoodCountDto] })
-  moodDistribution: MoodCountDto[];
+  moodDistribution!: MoodCountDto[];
 
   @ApiPropertyOptional({ type: [MoodTrendPointDto] })
-  trend: MoodTrendPointDto[];
+  trend!: MoodTrendPointDto[];
 
   @ApiPropertyOptional()
-  periodStart: Date;
+  periodStart!: Date;
 
   @ApiPropertyOptional()
-  periodEnd: Date;
+  periodEnd!: Date;
 }

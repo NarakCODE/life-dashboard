@@ -28,22 +28,22 @@ export class JournalEntry {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  authorUserId: Types.ObjectId;
+  authorUserId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   updatedBy?: Types.ObjectId | null;
 
   @Prop({ required: true, default: () => new Date() })
-  entryDate: Date;
+  entryDate!: Date;
 
   @Prop({ trim: true })
   title?: string;
 
   @Prop({ required: true })
-  content: string;
+  content!: string;
 
   @Prop({
     min: MoodLevel.VERY_BAD,
@@ -53,10 +53,10 @@ export class JournalEntry {
   mood?: MoodLevel;
 
   @Prop({ type: [String], default: [] })
-  tags: string[];
+  tags!: string[];
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const JournalEntrySchema = SchemaFactory.createForClass(JournalEntry);

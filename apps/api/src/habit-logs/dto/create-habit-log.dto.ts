@@ -14,12 +14,12 @@ export class CreateHabitLogDto {
   @ApiProperty({ example: '507f1f77bcf86cd799439011' })
   @IsString()
   @IsNotEmpty()
-  habitId: string;
+  habitId!: string;
 
   @ApiProperty({ example: '2026-03-20T00:00:00Z' })
   @IsDate()
   @Type(() => Date)
-  loggedDate: Date;
+  loggedDate!: Date;
 
   @ApiPropertyOptional({ example: 1, default: 1 })
   @IsNumber()

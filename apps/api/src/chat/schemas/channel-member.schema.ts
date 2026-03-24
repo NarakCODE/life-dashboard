@@ -6,10 +6,10 @@ export type ChannelMemberDocument = HydratedDocument<ChannelMember>;
 @Schema({ timestamps: true, collection: 'chat_channel_members' })
 export class ChannelMember {
   @Prop({ type: Types.ObjectId, ref: 'Channel', required: true, index: true })
-  channelId: Types.ObjectId;
+  channelId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   lastReadMessageId?: Types.ObjectId;
@@ -18,13 +18,13 @@ export class ChannelMember {
   lastReadAt?: Date;
 
   @Prop({ type: Number, default: 0 })
-  unreadCount: number;
+  unreadCount!: number;
 
   @Prop({ type: Date, default: Date.now })
-  joinedAt: Date;
+  joinedAt!: Date;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const ChannelMemberSchema = SchemaFactory.createForClass(ChannelMember);

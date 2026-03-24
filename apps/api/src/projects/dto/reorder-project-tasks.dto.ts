@@ -10,5 +10,5 @@ export class ReorderProjectTasksDto {
   @ArrayNotEmpty()
   @IsString({ each: true })
   @MaxLength(100, { each: true })
-  taskIds: string[];
+  taskIds!: string[];
 }

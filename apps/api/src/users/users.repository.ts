@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 
 /**
@@ -36,6 +36,7 @@ export class UsersRepository {
       passwordHash: dto.passwordHash,
       displayName: dto.displayName,
       isEmailVerified: false,
+      roles: [UserRole.MEMBER],
     });
     return user.save();
   }
@@ -60,6 +61,61 @@ export class UsersRepository {
     await this.userModel
       .findByIdAndUpdate(id, { isEmailVerified: true })
       .exec();
+  }
+
+  async updatePassword(
+    id: string | Types.ObjectId,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.userModel
+      .findByIdAndUpdate(id, { passwordHash, refreshTokenHash: null })
+      .exec();
+  }
+
+  async updateEmail(
+    id: string | Types.ObjectId,
+    email: string,
+  ): Promise<void> {
+    await this.userModel
+      .findByIdAndUpdate(id, {
+        email: email.toLowerCase(),
+        isEmailVerified: false,
+        refreshTokenHash: null,
+      })
+      .exec();
+  }
+
+  async setLastLogin(
+    id: string | Types.ObjectId,
+    timestamp?: Date,
+  ): Promise<void> {
+    await this.userModel
+      .findByIdAndUpdate(id, { lastLogin: timestamp ?? new Date() })
+      .exec();
+  }
+
+  async incrementTokenVersion(
+    id: string | Types.ObjectId,
+    delta = 1,
+  ): Promise<number> {
+    const user = await this.userModel
+      .findByIdAndUpdate(
+        id,
+        { $inc: { tokenVersion: delta } },
+        { new: true, select: 'tokenVersion' },
+      )
+      .exec();
+
+    return user?.tokenVersion ?? 0;
+  }
+
+  async markDeleted(id: string | Types.ObjectId): Promise<void> {
+    await this.userModel.findByIdAndUpdate(id, {
+      status: UserStatus.DELETED,
+      deletedAt: new Date(),
+      refreshTokenHash: null,
+      isEmailVerified: false,
+    });
   }
 
   async updateWorkspacePreferences(
@@ -91,6 +147,7 @@ export class UsersRepository {
     update: {
       displayName?: string;
       avatarUrl?: string | null;
+      profileMetadata?: Record<string, string>;
     },
   ): Promise<void> {
     const updateData: Record<string, unknown> = {};
@@ -101,9 +158,12 @@ export class UsersRepository {
     if (update.avatarUrl !== undefined) {
       updateData.avatarUrl = update.avatarUrl;
     }
+    if (update.profileMetadata !== undefined) {
+      updateData.profileMetadata = update.profileMetadata;
+    }
 
     if (Object.keys(updateData).length > 0) {
-      await this.userModel.findByIdAndUpdate(id, updateData).exec();
+      await this.userModel.findByIdAndUpdate(id, { $set: updateData }).exec();
     }
   }
 

@@ -9,11 +9,11 @@ import {
 export class TransactionResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
@@ -21,15 +21,15 @@ export class TransactionResponseDto {
 
   @Expose()
   @ApiProperty()
-  amount: number;
+  amount!: number;
 
   @Expose()
   @ApiProperty({ enum: TransactionType })
-  type: TransactionType;
+  type!: TransactionType;
 
   @Expose()
   @ApiProperty({ enum: TransactionCategory })
-  category: TransactionCategory;
+  category!: TransactionCategory;
 
   @Expose()
   @ApiProperty()
@@ -37,19 +37,19 @@ export class TransactionResponseDto {
 
   @Expose()
   @ApiProperty()
-  date: Date;
+  date!: Date;
 
   @Expose()
   @ApiProperty()
-  currency: string;
+  currency!: string;
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<TransactionResponseDto>) {
     Object.assign(this, partial);

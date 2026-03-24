@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ClipboardList,
@@ -10,10 +10,10 @@ import {
   Plus,
   Sparkles,
   Trash2,
-} from "lucide-react"
+} from "lucide-react";
 
-import { PageHeader, PageToolbarResponsive } from "@/components/page-layout"
-import { EmptyState } from "@/components/ui/empty-state"
+import { PageHeader, PageToolbarResponsive } from "@/components/page-layout";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,10 +23,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -34,39 +34,39 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
-import { useAuth } from "@/hooks/use-auth"
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useCreateHabitLogMutation,
   useDeleteHabitLogMutation,
   useHabitLogsByHabitQuery,
   useHabitLogsQuery,
   useUpdateHabitLogMutation,
-} from "@/lib/habit-logs/habit-logs-query"
-import type { CreateHabitLogInput, HabitLog } from "@/lib/habit-logs/types"
-import { useHabitsQuery } from "@/lib/habits/habits-query"
-import type { Habit } from "@/lib/habits/types"
-import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
-import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+} from "@/lib/habit-logs/habit-logs-query";
+import type { CreateHabitLogInput, HabitLog } from "@/lib/habit-logs/types";
+import { useHabitsQuery } from "@/lib/habits/habits-query";
+import type { Habit } from "@/lib/habits/types";
+import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface HabitLogFormState {
-  habitId: string
-  loggedDate: string
-  count: string
-  notes: string
+  habitId: string;
+  loggedDate: string;
+  count: string;
+  notes: string;
 }
 
 function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions) {
@@ -75,25 +75,29 @@ function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions) {
     day: "numeric",
     year: "numeric",
     ...options,
-  }).format(new Date(dateString))
+  }).format(new Date(dateString));
 }
 
 function formatRelativeDay(dateString: string) {
-  const today = new Date()
-  const target = new Date(dateString)
-  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  const today = new Date();
+  const target = new Date(dateString);
+  const todayUtc = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
   const targetUtc = Date.UTC(
     target.getFullYear(),
     target.getMonth(),
     target.getDate(),
-  )
+  );
 
-  const diffDays = Math.round((todayUtc - targetUtc) / 86400000)
+  const diffDays = Math.round((todayUtc - targetUtc) / 86400000);
 
-  if (diffDays === 0) return "Today"
-  if (diffDays === 1) return "Yesterday"
-  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`
-  return formatDate(dateString)
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+  return formatDate(dateString);
 }
 
 function createDefaultFormState(preferredHabitId?: string): HabitLogFormState {
@@ -102,7 +106,7 @@ function createDefaultFormState(preferredHabitId?: string): HabitLogFormState {
     loggedDate: new Date().toISOString().slice(0, 10),
     count: "1",
     notes: "",
-  }
+  };
 }
 
 function logToFormState(log: HabitLog): HabitLogFormState {
@@ -111,7 +115,7 @@ function logToFormState(log: HabitLog): HabitLogFormState {
     loggedDate: log.loggedDate.slice(0, 10),
     count: String(log.count),
     notes: log.notes ?? "",
-  }
+  };
 }
 
 function formStateToInput(form: HabitLogFormState): CreateHabitLogInput {
@@ -120,13 +124,13 @@ function formStateToInput(form: HabitLogFormState): CreateHabitLogInput {
     loggedDate: `${form.loggedDate}T00:00:00.000Z`,
     count: Math.max(1, Number(form.count) || 1),
     notes: form.notes.trim() || undefined,
-  }
+  };
 }
 
 function buildHabitLogQuery(options: {
-  search: string
-  startDate: string
-  endDate: string
+  search: string;
+  startDate: string;
+  endDate: string;
 }) {
   return {
     page: 1,
@@ -137,10 +141,8 @@ function buildHabitLogQuery(options: {
     ...(options.startDate
       ? { startDate: `${options.startDate}T00:00:00.000Z` }
       : {}),
-    ...(options.endDate
-      ? { endDate: `${options.endDate}T23:59:59.999Z` }
-      : {}),
-  }
+    ...(options.endDate ? { endDate: `${options.endDate}T23:59:59.999Z` } : {}),
+  };
 }
 
 function SummaryCard({
@@ -148,9 +150,9 @@ function SummaryCard({
   value,
   detail,
 }: {
-  title: string
-  value: string
-  detail: string
+  title: string;
+  value: string;
+  detail: string;
 }) {
   return (
     <Card className="border-border/60 bg-card/70">
@@ -162,7 +164,7 @@ function SummaryCard({
         <p className="text-sm text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function HabitLogsSkeleton() {
@@ -180,7 +182,10 @@ function HabitLogsSkeleton() {
       <Card className="border-border/60 md:col-span-3">
         <CardContent className="space-y-4 p-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="space-y-2 rounded-2xl border border-border/60 p-4">
+            <div
+              key={index}
+              className="space-y-2 rounded-2xl border border-border/60 p-4"
+            >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-3 w-full" />
@@ -189,7 +194,7 @@ function HabitLogsSkeleton() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 function HabitLogFormDialog({
@@ -201,47 +206,50 @@ function HabitLogFormDialog({
   preferredHabitId,
   isSubmitting,
 }: {
-  open: boolean
-  onClose: () => void
-  onSubmit: (input: CreateHabitLogInput) => Promise<void>
-  habits: Habit[]
-  initialLog?: HabitLog
-  preferredHabitId?: string
-  isSubmitting: boolean
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (input: CreateHabitLogInput) => Promise<void>;
+  habits: Habit[];
+  initialLog?: HabitLog;
+  preferredHabitId?: string;
+  isSubmitting: boolean;
 }) {
   const [formState, setFormState] = useState<HabitLogFormState>(
     createDefaultFormState(preferredHabitId),
-  )
+  );
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
     if (initialLog) {
-      setFormState(logToFormState(initialLog))
-      return
+      setFormState(logToFormState(initialLog));
+      return;
     }
 
-    setFormState(createDefaultFormState(preferredHabitId ?? habits[0]?.id))
-  }, [habits, initialLog, open, preferredHabitId])
+    setFormState(createDefaultFormState(preferredHabitId ?? habits[0]?.id));
+  }, [habits, initialLog, open, preferredHabitId]);
 
-  const isEditing = Boolean(initialLog)
+  const isEditing = Boolean(initialLog);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    if (!formState.habitId || !formState.loggedDate) return
+    if (!formState.habitId || !formState.loggedDate) return;
 
-    await onSubmit(formStateToInput(formState))
-  }
+    await onSubmit(formStateToInput(formState));
+  };
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <form className="space-y-5" onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit habit log" : "Log habit progress"}</DialogTitle>
+            <DialogTitle>
+              {isEditing ? "Edit habit log" : "Log habit progress"}
+            </DialogTitle>
             <DialogDescription>
-              Capture the day, count, and a short note so your habit history stays useful.
+              Capture the day, count, and a short note so your habit history
+              stays useful.
             </DialogDescription>
           </DialogHeader>
 
@@ -316,7 +324,12 @@ function HabitLogFormDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button
@@ -328,25 +341,31 @@ function HabitLogFormDialog({
                 Number(formState.count) < 1
               }
             >
-              {isSubmitting ? "Saving..." : isEditing ? "Save changes" : "Create log"}
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Save changes"
+                  : "Create log"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 export function HabitLogsPage() {
-  const auth = useAuth()
-  const { workspaceId } = useWorkspaceScope()
-  const [selectedHabitId, setSelectedHabitId] = useState("all")
-  const [search, setSearch] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingLog, setEditingLog] = useState<HabitLog | undefined>(undefined)
-  const [deletingLog, setDeletingLog] = useState<HabitLog | undefined>(undefined)
+  const auth = useAuth();
+  const { workspaceId } = useWorkspaceScope();
+  const [selectedHabitId, setSelectedHabitId] = useState("all");
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<HabitLog | undefined>(undefined);
+  const [deletingLog, setDeletingLog] = useState<HabitLog | undefined>(
+    undefined,
+  );
 
   const habitQuery = useMemo(
     () => ({
@@ -356,91 +375,97 @@ export function HabitLogsPage() {
       sortOrder: "desc" as const,
     }),
     [],
-  )
+  );
   const habitLogQuery = useMemo(
     () => buildHabitLogQuery({ search, startDate, endDate }),
     [endDate, search, startDate],
-  )
+  );
   const isQueryEnabled =
-    auth.hasHydrated && auth.isAuthenticated && Boolean(workspaceId)
+    auth.hasHydrated && auth.isAuthenticated && Boolean(workspaceId);
 
   const { data: habitsData } = useHabitsQuery(
     workspaceId ?? "",
     habitQuery,
     isQueryEnabled,
-  )
+  );
   const habits = useMemo(
     () => habitsData?.data.items ?? [],
     [habitsData?.data.items],
-  )
+  );
 
   const listQuery = useHabitLogsQuery(
     workspaceId ?? "",
     habitLogQuery,
     isQueryEnabled && selectedHabitId === "all",
-  )
+  );
   const byHabitQuery = useHabitLogsByHabitQuery(
     workspaceId ?? "",
     selectedHabitId,
     habitLogQuery,
     isQueryEnabled && selectedHabitId !== "all",
-  )
+  );
 
   const createMutation = useCreateHabitLogMutation(workspaceId ?? "", {
     ...habitLogQuery,
     ...(selectedHabitId !== "all" ? { habitId: selectedHabitId } : {}),
-  })
+  });
   const updateMutation = useUpdateHabitLogMutation(workspaceId ?? "", {
     ...habitLogQuery,
     ...(selectedHabitId !== "all" ? { habitId: selectedHabitId } : {}),
-  })
+  });
   const deleteMutation = useDeleteHabitLogMutation(workspaceId ?? "", {
     ...habitLogQuery,
     ...(selectedHabitId !== "all" ? { habitId: selectedHabitId } : {}),
-  })
+  });
 
-  const activeQuery = selectedHabitId === "all" ? listQuery : byHabitQuery
-  const logs = useMemo(() => activeQuery.data?.data.logs ?? [], [activeQuery.data?.data.logs])
-  const pagination = activeQuery.data?.data.pagination
-  const isPending = activeQuery.isPending
-  const error = activeQuery.error
+  const activeQuery = selectedHabitId === "all" ? listQuery : byHabitQuery;
+  const logs = useMemo(
+    () => activeQuery.data?.data.logs ?? [],
+    [activeQuery.data?.data.logs],
+  );
+  const pagination = activeQuery.data?.data.pagination;
+  const isPending = activeQuery.isPending;
+  const error = activeQuery.error;
   const habitMap = useMemo(
     () => new Map(habits.map((habit) => [habit.id, habit])),
     [habits],
-  )
+  );
 
   const stats = useMemo(() => {
-    const totalCount = logs.reduce((sum, log) => sum + log.count, 0)
-    const uniqueHabits = new Set(logs.map((log) => log.habitId)).size
-    const latestLog = logs[0]?.loggedDate
+    const totalCount = logs.reduce((sum, log) => sum + log.count, 0);
+    const uniqueHabits = new Set(logs.map((log) => log.habitId)).size;
+    const latestLog = logs[0]?.loggedDate;
 
     return {
       totalLogs: pagination?.total ?? logs.length,
       totalCount,
       uniqueHabits,
       latestLog,
-    }
-  }, [logs, pagination?.total])
+    };
+  }, [logs, pagination?.total]);
 
   const selectedHabit =
-    selectedHabitId === "all" ? undefined : habitMap.get(selectedHabitId)
-  const canCreateLog = habits.length > 0
+    selectedHabitId === "all" ? undefined : habitMap.get(selectedHabitId);
+  const canCreateLog = habits.length > 0;
   const isMutating =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    deleteMutation.isPending;
 
   const handleCreate = async (input: CreateHabitLogInput) => {
     try {
-      await createMutation.mutateAsync(input)
-      toast.success("Habit log created")
-      setIsCreateOpen(false)
+      await createMutation.mutateAsync(input);
+      toast.success("Habit log created");
+      setIsCreateOpen(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create habit log"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to create habit log";
+      toast.error(message);
     }
-  }
+  };
 
   const handleUpdate = async (input: CreateHabitLogInput) => {
-    if (!editingLog) return
+    if (!editingLog) return;
 
     try {
       await updateMutation.mutateAsync({
@@ -450,34 +475,36 @@ export function HabitLogsPage() {
           count: input.count,
           notes: input.notes,
         },
-      })
-      toast.success("Habit log updated")
-      setEditingLog(undefined)
+      });
+      toast.success("Habit log updated");
+      setEditingLog(undefined);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update habit log"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to update habit log";
+      toast.error(message);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!deletingLog) return
+    if (!deletingLog) return;
 
     try {
-      await deleteMutation.mutateAsync(deletingLog.id)
-      toast.success("Habit log deleted")
-      setDeletingLog(undefined)
+      await deleteMutation.mutateAsync(deletingLog.id);
+      toast.success("Habit log deleted");
+      setDeletingLog(undefined);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete habit log"
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to delete habit log";
+      toast.error(message);
     }
-  }
+  };
 
   const clearFilters = () => {
-    setSelectedHabitId("all")
-    setSearch("")
-    setStartDate("")
-    setEndDate("")
-  }
+    setSelectedHabitId("all");
+    setSearch("");
+    setStartDate("");
+    setEndDate("");
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-background mx-2 my-2 min-w-0">
@@ -485,8 +512,6 @@ export function HabitLogsPage() {
         title="Habit Logs"
         actions={
           <Button
-            size="sm"
-            variant="ghost"
             onClick={() => setIsCreateOpen(true)}
             disabled={!canCreateLog}
           >
@@ -508,7 +533,10 @@ export function HabitLogsPage() {
                   />
                 </div>
 
-                <Select value={selectedHabitId} onValueChange={setSelectedHabitId}>
+                <Select
+                  value={selectedHabitId}
+                  onValueChange={setSelectedHabitId}
+                >
                   <SelectTrigger className="w-full lg:w-[220px]">
                     <SelectValue placeholder="All habits" />
                   </SelectTrigger>
@@ -554,9 +582,13 @@ export function HabitLogsPage() {
         ) : error ? (
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="space-y-2 p-5">
-              <p className="font-medium text-foreground">Unable to load habit logs</p>
+              <p className="font-medium text-foreground">
+                Unable to load habit logs
+              </p>
               <p className="text-sm text-muted-foreground">
-                {error instanceof Error ? error.message : "Something went wrong"}
+                {error instanceof Error
+                  ? error.message
+                  : "Something went wrong"}
               </p>
             </CardContent>
           </Card>
@@ -582,7 +614,10 @@ export function HabitLogsPage() {
             description="Try a different date range, clear the habit filter, or add a new log."
             icon={ClipboardList}
             action={
-              <Button onClick={() => setIsCreateOpen(true)} disabled={!canCreateLog}>
+              <Button
+                onClick={() => setIsCreateOpen(true)}
+                disabled={!canCreateLog}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add a log
               </Button>
@@ -608,7 +643,9 @@ export function HabitLogsPage() {
               />
               <SummaryCard
                 title="Latest entry"
-                value={stats.latestLog ? formatRelativeDay(stats.latestLog) : "None"}
+                value={
+                  stats.latestLog ? formatRelativeDay(stats.latestLog) : "None"
+                }
                 detail={
                   stats.latestLog
                     ? formatDate(stats.latestLog, {
@@ -625,10 +662,13 @@ export function HabitLogsPage() {
               <CardHeader className="border-b border-border/60 bg-muted/20 px-4 py-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">Recent log history</CardTitle>
+                    <CardTitle className="text-lg">
+                      Recent log history
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {stats.uniqueHabits} habit{stats.uniqueHabits === 1 ? "" : "s"} represented
-                      in this view.
+                      {stats.uniqueHabits} habit
+                      {stats.uniqueHabits === 1 ? "" : "s"} represented in this
+                      view.
                     </p>
                   </div>
                   {pagination ? (
@@ -642,7 +682,7 @@ export function HabitLogsPage() {
               <CardContent className="p-4">
                 <div className="space-y-3">
                   {logs.map((log) => {
-                    const habit = habitMap.get(log.habitId)
+                    const habit = habitMap.get(log.habitId);
 
                     return (
                       <div
@@ -655,7 +695,8 @@ export function HabitLogsPage() {
                               <div
                                 className="h-2.5 w-2.5 rounded-full"
                                 style={{
-                                  backgroundColor: habit?.color ?? "var(--muted-foreground)",
+                                  backgroundColor:
+                                    habit?.color ?? "var(--muted-foreground)",
                                 }}
                               />
                               <p className="font-medium text-foreground">
@@ -709,7 +750,7 @@ export function HabitLogsPage() {
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </CardContent>
@@ -723,7 +764,9 @@ export function HabitLogsPage() {
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreate}
         habits={habits}
-        preferredHabitId={selectedHabitId === "all" ? undefined : selectedHabitId}
+        preferredHabitId={
+          selectedHabitId === "all" ? undefined : selectedHabitId
+        }
         isSubmitting={createMutation.isPending}
       />
 
@@ -736,12 +779,16 @@ export function HabitLogsPage() {
         isSubmitting={updateMutation.isPending}
       />
 
-      <AlertDialog open={Boolean(deletingLog)} onOpenChange={(open) => !open && setDeletingLog(undefined)}>
+      <AlertDialog
+        open={Boolean(deletingLog)}
+        onOpenChange={(open) => !open && setDeletingLog(undefined)}
+      >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete habit log</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the selected log entry permanently. The associated habit stays intact.
+              This removes the selected log entry permanently. The associated
+              habit stays intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -757,5 +804,5 @@ export function HabitLogsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -6,16 +6,16 @@ import { OtpType } from '../schemas/otp-code.schema';
 export class CreateOtpCodeDto {
   @ApiProperty({ enum: OtpType })
   @IsEnum(OtpType)
-  type: OtpType;
+  type!: OtpType;
 
   @ApiProperty({ example: '123456' })
   @IsString()
   @IsNotEmpty()
   @Length(6, 6)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: '2026-03-21T12:00:00Z' })
   @IsDate()
   @Type(() => Date)
-  expiresAt: Date;
+  expiresAt!: Date;
 }

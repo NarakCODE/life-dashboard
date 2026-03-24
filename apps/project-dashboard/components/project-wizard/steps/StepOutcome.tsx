@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, parse } from "date-fns";
 import { ProjectData, SuccessType, DeadlineType, ProjectDeliverable, ProjectMetric } from "../types";
-import { ProjectDescriptionEditor } from "../ProjectDescriptionEditor";
+import { LexicalDescriptionEditor } from "../LexicalDescriptionEditor";
 import { RadioGroup, RadioGroupItem } from "../../ui/radio-group";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
@@ -328,14 +328,17 @@ export function StepOutcome({ data, updateData }: StepOutcomeProps) {
       </div>
 
       {/* Project Description / Brief block */}
-      <div className={cn("space-y-3 rounded-2xl bg-muted text-sm", editorFocused ? "p-0" : "p-4")}>
-
-        <ProjectDescriptionEditor
-          value={data.description}
-          onChange={(html) => updateData({ description: html })}
-          onFocusChange={setEditorFocused}
-          placeholder="Briefly describe the goal, scope, and key outcomes for this project..."
-        />
+      <div className="space-y-3">
+        <Label className="text-sm text-muted-foreground">Project description</Label>
+        <div className={cn("rounded-2xl overflow-hidden", editorFocused ? "ring-2 ring-primary ring-offset-2" : "")}>
+          <LexicalDescriptionEditor
+            value={data.description}
+            onChange={(html) => updateData({ description: html })}
+            onFocusChange={setEditorFocused}
+            placeholder="Briefly describe the goal, scope, and key outcomes for this project..."
+            minHeight="200px"
+          />
+        </div>
       </div>
 
       <div className="space-y-4">

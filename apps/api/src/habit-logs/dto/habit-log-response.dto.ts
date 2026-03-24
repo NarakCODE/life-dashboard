@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class HabitLogResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
@@ -13,19 +13,19 @@ export class HabitLogResponseDto {
 
   @Expose()
   @ApiProperty()
-  habitId: string;
+  habitId!: string;
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
-  loggedDate: Date;
+  loggedDate!: Date;
 
   @Expose()
   @ApiProperty()
-  count: number;
+  count!: number;
 
   @Expose()
   @ApiProperty()
@@ -33,11 +33,11 @@ export class HabitLogResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<HabitLogResponseDto>) {
     Object.assign(this, partial);

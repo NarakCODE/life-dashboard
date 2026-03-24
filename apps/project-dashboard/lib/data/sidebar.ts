@@ -12,6 +12,7 @@ export type NavItemId =
     | "habit-logs"
     | "journal"
     | "goals"
+    | "chat"
 
 export type SidebarFooterItemId = "settings" | "templates" | "help"
 
@@ -41,6 +42,7 @@ export const navItems: NavItem[] = [
     { id: "habit-logs", label: "Habit Logs" },
     { id: "journal", label: "Journal" },
     { id: "goals", label: "Goals" },
+    { id: "chat", label: "Chat" },
 ]
 
 export const footerItems: SidebarFooterItem[] = [

@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CaretRight, CaretUpDown, ArrowDown, ArrowUp, DotsThreeVertical, Plus, MagnifyingGlass, Folder } from "@phosphor-icons/react/dist/ssr"
-import { PageHeader } from "@/components/page-layout"
+import { PageHeader, PageLayout } from "@/components/page-layout"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -239,7 +239,7 @@ export function ClientsContent() {
   })()
 
   return (
-    <div className="flex flex-1 flex-col min-w-0">
+    <PageLayout>
       <PageHeader
         title="Clients"
         actions={
@@ -621,6 +621,6 @@ export function ClientsContent() {
         <ClientWizard mode="create" onClose={() => setIsWizardOpen(false)} />
       )}
       <ClientDetailsDrawer clientId={activeClientId} onClose={() => setActiveClientId(null)} />
-    </div>
+    </PageLayout>
   )
 }

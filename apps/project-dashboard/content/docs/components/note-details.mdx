@@ -1,0 +1,211 @@
+---
+title: Note Details
+description: Display and manage note details with a slide-out sheet component.
+---
+
+import { Markdown } from "@/components/ui/typography";
+import CopyCommandButton from "@/components/copy-command-button";
+import InstallationCommands from "@/components/installation-commands";
+import ComponentPreview from "@/components/component-preview";
+
+<div className="flex flex-col md:flex-row items-center justify-end gap-2 mb-2">
+  <CopyCommandButton
+    copyCommand="pnpm dlx shadcn@latest add sheet"
+    command="pnpm dlx shadcn@latest add sheet"
+  />
+</div>
+
+<ComponentPreview title="Note Details Sheet" name="note-details">
+  <div className="text-sm text-muted-foreground">
+    Click on a note card to open the details sheet with full content,
+    transcripts, and AI insights.
+  </div>
+</ComponentPreview>
+
+## Overview
+
+The Note Details component uses a **Sheet** component instead of Dialog or Modal for displaying note content. This provides:
+
+- **Better screen real estate**: The sheet slides in from the right, providing more horizontal space
+- **Context preservation**: Users can still see the underlying page content
+- **Smooth animations**: Built-in slide animations from Radix UI
+- **Responsive design**: Adapts to different screen sizes
+
+## Installation
+
+---
+
+<InstallationCommands packageName="sheet" />
+
+## Usage
+
+---
+
+### Note Details Sheet
+
+```tsx
+import { NoteDetailsSheet } from "@/components/projects/note-details-sheet";
+```
+
+```tsx
+<NoteDetailsSheet
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  note={selectedNote}
+  onDelete={handleDelete}
+/>
+```
+
+### Note Create/Edit Sheet
+
+```tsx
+import { NoteCreateSheet } from "@/components/projects/note-create-sheet";
+```
+
+```tsx
+<NoteCreateSheet
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  currentUser={currentUser}
+  editingNote={editingNote}
+  onCreateNote={handleCreate}
+  onUpdateNote={handleUpdate}
+  onUploadAudio={handleUpload}
+/>
+```
+
+## Features
+
+---
+
+### Audio Notes Support
+
+For audio notes, the sheet displays:
+
+- AI-generated summary
+- Key points extraction
+- Insights and action items
+- Full transcript with speaker detection
+- Audio player with waveform visualization
+
+### General Notes
+
+For text notes, the sheet shows:
+
+- Note title with edit capability
+- Creation date and time
+- Full note content
+- Share and export options
+
+### Responsive Layout
+
+The sheet uses a two-column layout for audio notes:
+
+- **Left column (65%)**: AI summary, key points, insights
+- **Right column (35%)**: Audio player and full transcript
+
+## Markdown Rendering
+
+---
+
+The note content is rendered using the `Markdown` component, which provides proper HTML rendering with shadcn typography styling:
+
+```tsx
+import { Markdown } from "@/components/ui/typography";
+
+<Markdown content={note.content} size="sm" className="text-muted-foreground" />;
+```
+
+### Heading Hierarchy Example
+
+The `Markdown` component properly renders heading hierarchies for dashboard documentation when the source content is authored as native MDX:
+
+> In dashboard UX/UI design, the choice of headings is governed by **Information Hierarchy** and **Accessibility**. Since a dashboard is a dense information environment, your headings act as the "map" for the user's eyes.
+
+Here is the standard structural approach for a dashboard page.
+
+#### 1. The Page Title (`h1`)
+
+There should be only **one** `h1` per page. This is usually the name of the view or the high-level summary of the dashboard.
+
+- **Location:** Top left or top center of the main content area.
+- **Example:** "Overview", "Sales Analytics", or "Welcome back, Channarak".
+- **UI Tip:** Keep it static or use it as the primary breadcrumb.
+
+#### 2. Main Section Headings (`h2`)
+
+Use `h2` for the major functional blocks of your dashboard. These define the "zones" of your layout.
+
+- **Location:** Above a group of related widgets or a large data table.
+- **Example:** "Key Performance Indicators", "Recent Activity", or "User Management".
+- **UI Tip:** Often accompanied by a "View All" or "Filter" action on the far right of the same row.
+
+#### 3. Widget or Card Titles (`h3`)
+
+Most dashboard elements are contained within "Cards." The title inside these cards should be an `h3`.
+
+- **Location:** The header of a white card/container.
+- **Example:** "Monthly Revenue", "Active Users", or "System Health".
+- **UI Tip:** Use a smaller font size than `h2` but maintain high contrast (for example, bold at 16px).
+
+#### 4. Sub-sections or Table Headers (`h4`)
+
+If a card has nested data or specific categories, use `h4`.
+
+- **Location:** Inside a card to separate different data points.
+- **Example:** Inside a "Growth" card, you might have `h4` tags for "Organic Search" and "Direct Traffic".
+
+### Summary Table of Sizes & Usage
+
+| Level  | Role          | Recommended Size (Tailwind) | Usage Case                                  |
+| :----- | :------------ | :-------------------------- | :------------------------------------------ |
+| **H1** | Page Context  | `text-2xl` or `text-3xl`    | The name of the dashboard page.             |
+| **H2** | Section Group | `text-xl`                   | Grouping cards (for example, "Financials"). |
+| **H3** | Card Title    | `text-base` or `text-lg`    | The title of a single chart or list.        |
+| **H4** | Sub-header    | `text-sm font-bold`         | Specific labels inside a widget.            |
+
+#### Design Best Practices
+
+- **Semantic HTML:** Even if you style an `h3` to look small, ensure you use the actual `<h3>` tag for screen readers.
+- **Consistency:** Never skip levels. Do not go from `h1` directly to `h3`, because it confuses the document outline for accessibility.
+- **Scanability:** Dashboard users scan rather than read. Use **bold** weights for `h2` and `h3` to help them find information quickly.
+
+### Typography Components
+
+Individual typography components are also available:
+
+```tsx
+import { Heading, Text, Blockquote, Prose } from "@/components/ui/typography"
+
+<Heading as="h1">Page Title</Heading>
+<Text variant="lead">Introduction paragraph</Text>
+<Blockquote>A quoted statement</Blockquote>
+<Prose>{/* Rich content */}</Prose>
+```
+
+## Props
+
+---
+
+### NoteDetailsSheet
+
+| Prop           | Type                          | Description                         |
+| -------------- | ----------------------------- | ----------------------------------- |
+| `open`         | `boolean`                     | Controls sheet visibility           |
+| `onOpenChange` | `(open: boolean) => void`     | Callback when open state changes    |
+| `note`         | `ProjectNote \| null`         | The note to display                 |
+| `onDelete`     | `(noteId: string) => void`    | Optional callback for delete action |
+| `onEdit`       | `(note: ProjectNote) => void` | Optional callback for edit action   |
+
+### NoteCreateSheet
+
+| Prop            | Type                                                       | Description                         |
+| --------------- | ---------------------------------------------------------- | ----------------------------------- |
+| `open`          | `boolean`                                                  | Controls sheet visibility           |
+| `onOpenChange`  | `(open: boolean) => void`                                  | Callback when open state changes    |
+| `currentUser`   | `User`                                                     | Current user information            |
+| `editingNote`   | `ProjectNote \| null`                                      | Note being edited (null for create) |
+| `onCreateNote`  | `(title: string, content: string) => void`                 | Create callback                     |
+| `onUpdateNote`  | `(noteId: string, title: string, content: string) => void` | Update callback                     |
+| `onUploadAudio` | `() => void`                                               | Audio upload callback               |
+| `isPending`     | `boolean`                                                  | Loading state                       |

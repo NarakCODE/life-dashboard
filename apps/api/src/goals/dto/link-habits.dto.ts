@@ -10,5 +10,5 @@ export class LinkHabitsDto {
   @IsArray()
   @IsString({ each: true })
   @ArrayMinSize(1)
-  habitIds: string[];
+  habitIds!: string[];
 }

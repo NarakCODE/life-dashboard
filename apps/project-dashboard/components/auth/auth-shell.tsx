@@ -32,7 +32,7 @@ export function ProtectedAppShell({ children }: ProtectedAppShellProps) {
         <WorkspaceRouteBoundary>
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="bg-background mx-2 my-2 border border-border rounded-lg min-w-0">
+            <SidebarInset className="min-w-0">
               {children}
             </SidebarInset>
           </SidebarProvider>

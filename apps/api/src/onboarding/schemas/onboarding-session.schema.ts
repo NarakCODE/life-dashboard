@@ -20,7 +20,7 @@ export enum OnboardingStep {
 @Schema({ timestamps: true, collection: 'onboarding_sessions' })
 export class OnboardingSession {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })
   workspaceId?: Types.ObjectId | null;
@@ -31,23 +31,23 @@ export class OnboardingSession {
     default: OnboardingStatus.IN_PROGRESS,
     index: true,
   })
-  status: OnboardingStatus;
+  status!: OnboardingStatus;
 
   @Prop({
     required: true,
     enum: Object.values(OnboardingStep),
     default: OnboardingStep.PROFILE,
   })
-  currentStep: OnboardingStep;
+  currentStep!: OnboardingStep;
 
   @Prop({ type: [String], default: [] })
-  completedSteps: string[];
+  completedSteps!: string[];
 
   @Prop({ type: Object, default: {} })
-  answers: Record<string, unknown>;
+  answers!: Record<string, unknown>;
 
   @Prop({ required: true, default: 1 })
-  version: number;
+  version!: number;
 
   @Prop({ type: Date, default: null })
   startedAt?: Date | null;
@@ -55,8 +55,8 @@ export class OnboardingSession {
   @Prop({ type: Date, default: null })
   completedAt?: Date | null;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const OnboardingSessionSchema =

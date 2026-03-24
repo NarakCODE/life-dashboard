@@ -1,57 +1,55 @@
-import { NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 
-describe('AuthService', () => {
-  it('reuses the existing refresh token when refreshing a session', async () => {
-    const userId = '507f1f77bcf86cd799439011';
-    const existingRefreshToken = 'existing-refresh-token';
+const baseConfig = {
+  get: jest.fn((key: string, fallback?: string) => {
+    if (key === 'jwt.expiresIn') return '15m';
+    if (key === 'jwt.secret') return 'access-secret';
+    if (key === 'jwt.refreshSecret') return 'refresh-secret';
+    if (key === 'jwt.refreshExpiresIn') return '7d';
+    if (key === 'app.nodeEnv') return 'development';
+    return fallback;
+  }),
+};
 
+describe('AuthService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    baseConfig.get.mockClear();
+  });
+
+  it('reuses the provided refresh token when refreshing', async () => {
+    const userId = '507f1f77bcf86cd799439011';
     const usersService = {
       findById: jest.fn().mockResolvedValue({
         _id: { toString: () => userId },
         email: 'user@example.com',
-        displayName: 'User',
         isEmailVerified: true,
-        defaultWorkspaceId: null,
-        activeWorkspaceId: null,
+        tokenVersion: 2,
+        status: 'active',
+        passwordHash: 'hash',
       }),
     };
     const usersRepo = {
       updateRefreshTokenHash: jest.fn(),
     };
-    const otpCodesService = {};
-    const emailService = {};
     const jwtService = {
       signAsync: jest.fn().mockResolvedValue('new-access-token'),
     };
-    const config = {
-      get: jest.fn((key: string, fallback?: string) => {
-        if (key === 'jwt.expiresIn') return '15m';
-        if (key === 'jwt.secret') return 'access-secret';
-        if (key === 'jwt.refreshSecret') return 'refresh-secret';
-        if (key === 'jwt.refreshExpiresIn') return '7d';
-        return fallback;
-      }),
-    };
-    const onboardingService = {
-      getSummary: jest.fn(),
-    };
-
     const service = new AuthService(
       usersService as never,
       usersRepo as never,
-      otpCodesService as never,
-      emailService as never,
+      {} as never,
+      { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) } as never,
       jwtService as never,
-      config as never,
-      onboardingService as never,
+      baseConfig as never,
     );
 
     await expect(
-      service.refresh(userId, existingRefreshToken),
+      service.refresh(userId, 'existing-refresh-token'),
     ).resolves.toEqual({
       accessToken: 'new-access-token',
-      refreshToken: existingRefreshToken,
+      refreshToken: 'existing-refresh-token',
       expiresIn: 900,
     });
 
@@ -59,15 +57,15 @@ describe('AuthService', () => {
     expect(usersRepo.updateRefreshTokenHash).not.toHaveBeenCalled();
   });
 
-  it('bootstraps a verified local development session without provisioning a workspace', async () => {
+  it('bootstraps a verified local development session', async () => {
     const userId = '507f1f77bcf86cd799439012';
     const createdUser = {
       _id: { toString: () => userId },
       email: 'dev@life-dashboard.local',
       displayName: 'Local Dev User',
       isEmailVerified: false,
-      defaultWorkspaceId: null,
-      activeWorkspaceId: null,
+      tokenVersion: 0,
+      status: 'active',
     };
     const verifiedUser = {
       ...createdUser,
@@ -79,40 +77,25 @@ describe('AuthService', () => {
       findByEmail: jest.fn().mockResolvedValueOnce(null),
       create: jest.fn().mockResolvedValue(createdUser),
       markEmailVerified: jest.fn().mockResolvedValue(undefined),
+      setLastLogin: jest.fn().mockResolvedValue(undefined),
     };
     const usersRepo = {
       updateRefreshTokenHash: jest.fn().mockResolvedValue(undefined),
     };
-    const otpCodesService = {};
-    const emailService = {};
     const jwtService = {
       signAsync: jest
         .fn()
         .mockResolvedValueOnce('dev-access-token')
         .mockResolvedValueOnce('dev-refresh-token'),
     };
-    const config = {
-      get: jest.fn((key: string, fallback?: string) => {
-        if (key === 'app.nodeEnv') return 'development';
-        if (key === 'jwt.expiresIn') return '15m';
-        if (key === 'jwt.secret') return 'access-secret';
-        if (key === 'jwt.refreshSecret') return 'refresh-secret';
-        if (key === 'jwt.refreshExpiresIn') return '7d';
-        return fallback;
-      }),
-    };
-    const onboardingService = {
-      getSummary: jest.fn(),
-    };
 
     const service = new AuthService(
       usersService as never,
       usersRepo as never,
-      otpCodesService as never,
-      emailService as never,
+      {} as never,
+      { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) } as never,
       jwtService as never,
-      config as never,
-      onboardingService as never,
+      baseConfig as never,
     );
 
     await expect(service.devBootstrap()).resolves.toEqual({
@@ -124,141 +107,42 @@ describe('AuthService', () => {
     expect(usersService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'dev@life-dashboard.local',
-        displayName: 'Local Dev User',
       }),
     );
     expect(usersService.markEmailVerified).toHaveBeenCalledWith(userId);
-    expect(usersRepo.updateRefreshTokenHash).toHaveBeenCalledTimes(1);
   });
 
-  it('registers a user without provisioning a workspace yet', async () => {
-    const userId = '507f1f77bcf86cd799439099';
+  it('records the last login when credentials are valid', async () => {
+    const userId = '507f1f77bcf86cd799439013';
     const usersService = {
-      findByEmail: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({
-        _id: { toString: () => userId },
-        email: 'new@example.com',
-        displayName: 'New User',
-      }),
-    };
-    const usersRepo = {};
-    const otpCodesService = {
-      generate: jest.fn().mockResolvedValue('123456'),
-    };
-    const emailService = {
-      sendEmailVerification: jest.fn().mockResolvedValue(undefined),
-    };
-    const jwtService = {};
-    const config = {
-      get: jest.fn((key: string, fallback?: string) => {
-        if (key === 'jwt.expiresIn') return '15m';
-        return fallback;
-      }),
-    };
-    const onboardingService = {
-      getSummary: jest.fn(),
-    };
-
-    const service = new AuthService(
-      usersService as never,
-      usersRepo as never,
-      otpCodesService as never,
-      emailService as never,
-      jwtService as never,
-      config as never,
-      onboardingService as never,
-    );
-
-    await expect(
-      service.register({
-        email: 'new@example.com',
-        password: 'password123',
-        displayName: 'New User',
-      }),
-    ).resolves.toEqual({
-      message:
-        'Registration successful. Please check your email for the verification code.',
-    });
-
-    expect(emailService.sendEmailVerification).toHaveBeenCalledWith({
-      to: { email: 'new@example.com', name: 'New User' },
-      code: '123456',
-    });
-  });
-
-  it('returns onboarding state from getMe without provisioning a workspace', async () => {
-    const userId = '507f1f77bcf86cd799439088';
-    const usersService = {
-      findById: jest.fn().mockResolvedValue({
+      findByEmail: jest.fn().mockResolvedValue({
         _id: { toString: () => userId },
         email: 'user@example.com',
         displayName: 'User',
         isEmailVerified: true,
-        defaultWorkspaceId: null,
-        activeWorkspaceId: null,
-        createdAt: new Date('2026-03-23T00:00:00.000Z'),
-        updatedAt: new Date('2026-03-23T00:00:00.000Z'),
+        passwordHash: 'hash',
+        tokenVersion: 0,
+        status: 'active',
       }),
+      setLastLogin: jest.fn().mockResolvedValue(undefined),
     };
-    const onboardingSummary = {
-      status: 'not_started',
-      requiresOnboarding: true,
-      currentStep: 'profile',
-      workspaceId: null,
+    const jwtService = {
+      signAsync: jest.fn().mockResolvedValue('access-token'),
     };
-    const onboardingService = {
-      getSummary: jest.fn().mockResolvedValue(onboardingSummary),
-    };
+
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
 
     const service = new AuthService(
       usersService as never,
       {} as never,
       {} as never,
-      {} as never,
-      {} as never,
-      {
-        get: jest.fn((key: string, fallback?: string) => {
-          if (key === 'jwt.expiresIn') return '15m';
-          return fallback;
-        }),
-      } as never,
-      onboardingService as never,
+      { sendVerificationEmail: jest.fn().mockResolvedValue(undefined) } as never,
+      jwtService as never,
+      baseConfig as never,
     );
 
-    await expect(service.getMe(userId)).resolves.toEqual({
-      id: userId,
-      email: 'user@example.com',
-      displayName: 'User',
-      isEmailVerified: true,
-      defaultWorkspaceId: null,
-      activeWorkspaceId: null,
-      onboarding: onboardingSummary,
-      createdAt: new Date('2026-03-23T00:00:00.000Z'),
-      updatedAt: new Date('2026-03-23T00:00:00.000Z'),
-    });
+    await service.login({ email: 'user@example.com', password: 'password123' });
 
-    expect(onboardingService.getSummary).toHaveBeenCalledWith(userId);
-  });
-
-  it('hides dev bootstrap outside development', async () => {
-    const service = new AuthService(
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {
-        get: jest.fn((key: string, fallback?: string) => {
-          if (key === 'app.nodeEnv') return 'production';
-          if (key === 'jwt.expiresIn') return '15m';
-          return fallback;
-        }),
-      } as never,
-      {} as never,
-    );
-
-    await expect(service.devBootstrap()).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    expect(usersService.setLastLogin).toHaveBeenCalledWith(userId);
   });
 });

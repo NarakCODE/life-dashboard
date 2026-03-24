@@ -7,11 +7,11 @@ import { TaskPriority, TaskStatus } from '../../tasks/schemas/task.schema';
 export class ProjectDetailsUserDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -30,19 +30,19 @@ export class ProjectDetailsUserDto {
 export class ProjectDetailsMetaDto {
   @Expose()
   @ApiProperty()
-  priorityLabel: string;
+  priorityLabel!: string;
 
   @Expose()
   @ApiProperty()
-  locationLabel: string;
+  locationLabel!: string;
 
   @Expose()
   @ApiProperty()
-  sprintLabel: string;
+  sprintLabel!: string;
 
   @Expose()
   @ApiProperty()
-  lastSyncLabel: string;
+  lastSyncLabel!: string;
 
   constructor(partial: Partial<ProjectDetailsMetaDto>) {
     Object.assign(this, partial);
@@ -53,11 +53,11 @@ export class ProjectDetailsMetaDto {
 export class ProjectDetailsScopeDto {
   @Expose()
   @ApiProperty({ type: [String] })
-  inScope: string[];
+  inScope!: string[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  outOfScope: string[];
+  outOfScope!: string[];
 
   constructor(partial: Partial<ProjectDetailsScopeDto>) {
     Object.assign(this, partial);
@@ -68,15 +68,15 @@ export class ProjectDetailsScopeDto {
 export class ProjectDetailsKeyFeaturesDto {
   @Expose()
   @ApiProperty({ type: [String] })
-  p0: string[];
+  p0!: string[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  p1: string[];
+  p1!: string[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  p2: string[];
+  p2!: string[];
 
   constructor(partial: Partial<ProjectDetailsKeyFeaturesDto>) {
     Object.assign(this, partial);
@@ -87,23 +87,23 @@ export class ProjectDetailsKeyFeaturesDto {
 export class ProjectDetailsTimelineTaskDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty()
-  startDate: Date;
+  startDate!: Date;
 
   @Expose()
   @ApiProperty()
-  endDate: Date;
+  endDate!: Date;
 
   @Expose()
   @ApiProperty({ enum: ['planned', 'in-progress', 'done'] })
-  status: 'planned' | 'in-progress' | 'done';
+  status!: 'planned' | 'in-progress' | 'done';
 
   constructor(partial: Partial<ProjectDetailsTimelineTaskDto>) {
     Object.assign(this, partial);
@@ -114,15 +114,15 @@ export class ProjectDetailsTimelineTaskDto {
 export class ProjectDetailsWorkstreamTaskDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty({ enum: TaskStatus })
-  status: TaskStatus;
+  status!: TaskStatus;
 
   @Expose()
   @ApiPropertyOptional()
@@ -170,19 +170,19 @@ export class ProjectDetailsWorkstreamTaskDto {
 export class ProjectDetailsProjectTaskDto extends ProjectDetailsWorkstreamTaskDto {
   @Expose()
   @ApiProperty()
-  projectId: string;
+  projectId!: string;
 
   @Expose()
   @ApiProperty()
-  projectName: string;
+  projectName!: string;
 
   @Expose()
   @ApiProperty()
-  workstreamId: string;
+  workstreamId!: string;
 
   @Expose()
   @ApiProperty()
-  workstreamName: string;
+  workstreamName!: string;
 
   constructor(partial: Partial<ProjectDetailsProjectTaskDto>) {
     super(partial);
@@ -194,20 +194,20 @@ export class ProjectDetailsProjectTaskDto extends ProjectDetailsWorkstreamTaskDt
 export class ProjectDetailsWorkstreamDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty()
-  order: number;
+  order!: number;
 
   @Expose()
   @Type(() => ProjectDetailsWorkstreamTaskDto)
   @ApiProperty({ type: [ProjectDetailsWorkstreamTaskDto] })
-  tasks: ProjectDetailsWorkstreamTaskDto[];
+  tasks!: ProjectDetailsWorkstreamTaskDto[];
 
   constructor(partial: Partial<ProjectDetailsWorkstreamDto>) {
     Object.assign(this, partial);
@@ -218,19 +218,19 @@ export class ProjectDetailsWorkstreamDto {
 export class ProjectDetailsTimeSummaryDto {
   @Expose()
   @ApiProperty()
-  estimateLabel: string;
+  estimateLabel!: string;
 
   @Expose()
   @ApiProperty()
-  dueDate: Date;
+  dueDate!: Date;
 
   @Expose()
   @ApiProperty()
-  daysRemainingLabel: string;
+  daysRemainingLabel!: string;
 
   @Expose()
   @ApiProperty()
-  progressPercent: number;
+  progressPercent!: number;
 
   constructor(partial: Partial<ProjectDetailsTimeSummaryDto>) {
     Object.assign(this, partial);
@@ -243,24 +243,24 @@ export class ProjectDetailsBacklogSummaryDto {
   @ApiProperty({
     enum: ['Active', 'Backlog', 'Planned', 'Completed', 'Cancelled'],
   })
-  statusLabel: 'Active' | 'Backlog' | 'Planned' | 'Completed' | 'Cancelled';
+  statusLabel!: 'Active' | 'Backlog' | 'Planned' | 'Completed' | 'Cancelled';
 
   @Expose()
   @ApiProperty()
-  groupLabel: string;
+  groupLabel!: string;
 
   @Expose()
   @ApiProperty()
-  priorityLabel: string;
+  priorityLabel!: string;
 
   @Expose()
   @ApiProperty()
-  labelBadge: string;
+  labelBadge!: string;
 
   @Expose()
   @Type(() => ProjectDetailsUserDto)
   @ApiProperty({ type: [ProjectDetailsUserDto] })
-  picUsers: ProjectDetailsUserDto[];
+  picUsers!: ProjectDetailsUserDto[];
 
   @Expose()
   @Type(() => ProjectDetailsUserDto)
@@ -276,23 +276,23 @@ export class ProjectDetailsBacklogSummaryDto {
 export class ProjectDetailsQuickLinkDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty({ enum: ['pdf', 'zip', 'fig', 'doc', 'file'] })
-  type: 'pdf' | 'zip' | 'fig' | 'doc' | 'file';
+  type!: 'pdf' | 'zip' | 'fig' | 'doc' | 'file';
 
   @Expose()
   @ApiProperty()
-  sizeMB: number;
+  sizeMB!: number;
 
   @Expose()
   @ApiProperty()
-  url: string;
+  url!: string;
 
   constructor(partial: Partial<ProjectDetailsQuickLinkDto>) {
     Object.assign(this, partial);
@@ -304,11 +304,11 @@ export class ProjectDetailsFileDto extends ProjectDetailsQuickLinkDto {
   @Expose()
   @Type(() => ProjectDetailsUserDto)
   @ApiProperty({ type: ProjectDetailsUserDto })
-  addedBy: ProjectDetailsUserDto;
+  addedBy!: ProjectDetailsUserDto;
 
   @Expose()
   @ApiProperty()
-  addedDate: Date;
+  addedDate!: Date;
 
   @Expose()
   @ApiPropertyOptional()
@@ -333,19 +333,19 @@ export class ProjectDetailsFileDto extends ProjectDetailsQuickLinkDto {
 export class ProjectDetailsTranscriptSegmentDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  speaker: string;
+  speaker!: string;
 
   @Expose()
   @ApiProperty()
-  timestamp: string;
+  timestamp!: string;
 
   @Expose()
   @ApiProperty()
-  text: string;
+  text!: string;
 
   constructor(partial: Partial<ProjectDetailsTranscriptSegmentDto>) {
     Object.assign(this, partial);
@@ -356,28 +356,28 @@ export class ProjectDetailsTranscriptSegmentDto {
 export class ProjectDetailsAudioNoteDataDto {
   @Expose()
   @ApiProperty()
-  duration: string;
+  duration!: string;
 
   @Expose()
   @ApiProperty()
-  fileName: string;
+  fileName!: string;
 
   @Expose()
   @ApiProperty()
-  aiSummary: string;
+  aiSummary!: string;
 
   @Expose()
   @ApiProperty({ type: [String] })
-  keyPoints: string[];
+  keyPoints!: string[];
 
   @Expose()
   @ApiProperty({ type: [String] })
-  insights: string[];
+  insights!: string[];
 
   @Expose()
   @Type(() => ProjectDetailsTranscriptSegmentDto)
   @ApiProperty({ type: [ProjectDetailsTranscriptSegmentDto] })
-  transcript: ProjectDetailsTranscriptSegmentDto[];
+  transcript!: ProjectDetailsTranscriptSegmentDto[];
 
   constructor(partial: Partial<ProjectDetailsAudioNoteDataDto>) {
     Object.assign(this, partial);
@@ -388,11 +388,11 @@ export class ProjectDetailsAudioNoteDataDto {
 export class ProjectDetailsNoteDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  title: string;
+  title!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -400,20 +400,20 @@ export class ProjectDetailsNoteDto {
 
   @Expose()
   @ApiProperty({ enum: ['general', 'meeting', 'audio'] })
-  noteType: 'general' | 'meeting' | 'audio';
+  noteType!: 'general' | 'meeting' | 'audio';
 
   @Expose()
   @ApiProperty({ enum: ['completed', 'processing'] })
-  status: 'completed' | 'processing';
+  status!: 'completed' | 'processing';
 
   @Expose()
   @ApiProperty()
-  addedDate: Date;
+  addedDate!: Date;
 
   @Expose()
   @Type(() => ProjectDetailsUserDto)
   @ApiProperty({ type: ProjectDetailsUserDto })
-  addedBy: ProjectDetailsUserDto;
+  addedBy!: ProjectDetailsUserDto;
 
   @Expose()
   @Type(() => ProjectDetailsAudioNoteDataDto)
@@ -429,23 +429,23 @@ export class ProjectDetailsNoteDto {
 export class ProjectDetailsResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  workspaceId: string;
+  workspaceId!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty({ enum: ProjectStatus })
-  status: ProjectStatus;
+  status!: ProjectStatus;
 
   @Expose()
   @ApiProperty({ enum: ProjectPriority })
-  priority: ProjectPriority;
+  priority!: ProjectPriority;
 
   @Expose()
   @ApiPropertyOptional()
@@ -457,66 +457,66 @@ export class ProjectDetailsResponseDto {
 
   @Expose()
   @ApiProperty()
-  description: string;
+  description!: string;
 
   @Expose()
   @Type(() => ProjectDetailsMetaDto)
   @ApiProperty({ type: ProjectDetailsMetaDto })
-  meta: ProjectDetailsMetaDto;
+  meta!: ProjectDetailsMetaDto;
 
   @Expose()
   @Type(() => ProjectDetailsScopeDto)
   @ApiProperty({ type: ProjectDetailsScopeDto })
-  scope: ProjectDetailsScopeDto;
+  scope!: ProjectDetailsScopeDto;
 
   @Expose()
   @ApiProperty({ type: [String] })
-  outcomes: string[];
+  outcomes!: string[];
 
   @Expose()
   @Type(() => ProjectDetailsKeyFeaturesDto)
   @ApiProperty({ type: ProjectDetailsKeyFeaturesDto })
-  keyFeatures: ProjectDetailsKeyFeaturesDto;
+  keyFeatures!: ProjectDetailsKeyFeaturesDto;
 
   @Expose()
   @Type(() => ProjectDetailsTimelineTaskDto)
   @ApiProperty({ type: [ProjectDetailsTimelineTaskDto] })
-  timelineTasks: ProjectDetailsTimelineTaskDto[];
+  timelineTasks!: ProjectDetailsTimelineTaskDto[];
 
   @Expose()
   @Type(() => ProjectDetailsWorkstreamDto)
   @ApiProperty({ type: [ProjectDetailsWorkstreamDto] })
-  workstreams: ProjectDetailsWorkstreamDto[];
+  workstreams!: ProjectDetailsWorkstreamDto[];
 
   @Expose()
   @Type(() => ProjectDetailsProjectTaskDto)
   @ApiProperty({ type: [ProjectDetailsProjectTaskDto] })
-  projectTasks: ProjectDetailsProjectTaskDto[];
+  projectTasks!: ProjectDetailsProjectTaskDto[];
 
   @Expose()
   @Type(() => ProjectDetailsTimeSummaryDto)
   @ApiProperty({ type: ProjectDetailsTimeSummaryDto })
-  time: ProjectDetailsTimeSummaryDto;
+  time!: ProjectDetailsTimeSummaryDto;
 
   @Expose()
   @Type(() => ProjectDetailsBacklogSummaryDto)
   @ApiProperty({ type: ProjectDetailsBacklogSummaryDto })
-  backlog: ProjectDetailsBacklogSummaryDto;
+  backlog!: ProjectDetailsBacklogSummaryDto;
 
   @Expose()
   @Type(() => ProjectDetailsQuickLinkDto)
   @ApiProperty({ type: [ProjectDetailsQuickLinkDto] })
-  quickLinks: ProjectDetailsQuickLinkDto[];
+  quickLinks!: ProjectDetailsQuickLinkDto[];
 
   @Expose()
   @Type(() => ProjectDetailsFileDto)
   @ApiProperty({ type: [ProjectDetailsFileDto] })
-  files: ProjectDetailsFileDto[];
+  files!: ProjectDetailsFileDto[];
 
   @Expose()
   @Type(() => ProjectDetailsNoteDto)
   @ApiProperty({ type: [ProjectDetailsNoteDto] })
-  notes: ProjectDetailsNoteDto[];
+  notes!: ProjectDetailsNoteDto[];
 
   constructor(partial: Partial<ProjectDetailsResponseDto>) {
     Object.assign(this, partial);

@@ -1,31 +1,35 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { Plus, Spinner } from "@phosphor-icons/react/dist/ssr"
-import { toast } from "sonner"
+import { useMemo, useState } from "react";
+import { PlusIcon, Spinner } from "@phosphor-icons/react/dist/ssr";
+import { toast } from "sonner";
 
-import type { ProjectNote } from "@/lib/data/project-details"
-import { Button } from "@/components/ui/button"
-import { NoteCard } from "@/components/projects/NoteCard"
-import { NotesTable } from "@/components/projects/NotesTable"
-import { CreateNoteModal } from "@/components/projects/CreateNoteModal"
-import { UploadAudioModal } from "@/components/projects/UploadAudioModal"
-import { NotePreviewModal } from "@/components/projects/NotePreviewModal"
+import type { ProjectNote } from "@/lib/data/project-details";
+import { Button } from "@/components/ui/button";
+import { NoteCard } from "@/components/projects/NoteCard";
+import { NotesTable } from "@/components/projects/NotesTable";
+import { NoteCreateSheet } from "@/components/projects/note-create-sheet";
+import { NoteDetailsSheet } from "@/components/projects/note-details-sheet";
+import { UploadAudioModal } from "@/components/projects/UploadAudioModal";
 import {
   useNotesByProjectQuery,
   useCreateNoteMutation,
   useUpdateNoteMutation,
   useDeleteNoteMutation,
-} from "@/lib/notes/notes-query"
-import type { NotesQuery, CreateNoteInput } from "@/lib/notes/types"
+} from "@/lib/notes/notes-query";
+import type { NotesQuery, CreateNoteInput } from "@/lib/notes/types";
 
 type NotesTabProps = {
-  workspaceId: string
-  projectId: string
-  isActive?: boolean
-}
+  workspaceId: string;
+  projectId: string;
+  isActive?: boolean;
+};
 
-export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabProps) {
+export function NotesTab({
+  workspaceId,
+  projectId,
+  isActive = false,
+}: NotesTabProps) {
   // Query params for fetching notes
   const queryParams: NotesQuery = useMemo(
     () => ({
@@ -36,34 +40,33 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
       sortOrder: "desc",
     }),
     [projectId],
-  )
+  );
 
   // Fetch notes from BFF API - only when tab is active
-  const { data: notesData, isLoading, error } = useNotesByProjectQuery(
-    workspaceId,
-    projectId,
-    queryParams,
-    isActive,
-  )
+  const {
+    data: notesData,
+    isLoading,
+    error,
+  } = useNotesByProjectQuery(workspaceId, projectId, queryParams, isActive);
 
   // Mutations
-  const createNoteMutation = useCreateNoteMutation(workspaceId)
-  const updateNoteMutation = useUpdateNoteMutation(workspaceId)
-  const deleteNoteMutation = useDeleteNoteMutation(workspaceId)
+  const createNoteMutation = useCreateNoteMutation(workspaceId);
+  const updateNoteMutation = useUpdateNoteMutation(workspaceId);
+  const deleteNoteMutation = useDeleteNoteMutation(workspaceId);
 
-  const notes = notesData?.data.notes ?? []
-  const recentNotes = notes.slice(0, 8)
+  const notes = notesData?.data.notes ?? [];
+  const recentNotes = notes.slice(0, 8);
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
-  const [selectedNote, setSelectedNote] = useState<ProjectNote | null>(null)
-  const [editingNote, setEditingNote] = useState<ProjectNote | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<ProjectNote | null>(null);
+  const [editingNote, setEditingNote] = useState<ProjectNote | null>(null);
 
   const handleAddNote = () => {
-    setEditingNote(null)
-    setIsCreateModalOpen(true)
-  }
+    setEditingNote(null);
+    setIsCreateModalOpen(true);
+  };
 
   const handleCreateNote = async (title: string, content: string) => {
     try {
@@ -72,72 +75,79 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
         projectId,
         content,
         noteType: "general",
-      }
-      await createNoteMutation.mutateAsync(input)
-      toast.success("Note created successfully")
-      setIsCreateModalOpen(false)
+      };
+      await createNoteMutation.mutateAsync(input);
+      toast.success("Note created successfully");
+      setIsCreateModalOpen(false);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create note"
-      toast.error(message)
+      const message =
+        err instanceof Error ? err.message : "Failed to create note";
+      toast.error(message);
     }
-  }
+  };
 
   const handleUploadAudio = () => {
-    setIsUploadModalOpen(true)
-  }
+    setIsUploadModalOpen(true);
+  };
 
   const handleFileSelect = (fileName: string) => {
     // Close both modals
-    setIsUploadModalOpen(false)
-    setIsCreateModalOpen(false)
+    setIsUploadModalOpen(false);
+    setIsCreateModalOpen(false);
 
     // Simulate processing the uploaded file into a note
-    toast(`Processing "${fileName}" into a note...`)
+    toast(`Processing "${fileName}" into a note...`);
 
     // TODO: Implement actual audio upload and processing
     setTimeout(() => {
-      toast.success(`Note created from "${fileName}"`)
-    }, 5000)
-  }
+      toast.success(`Note created from "${fileName}"`);
+    }, 5000);
+  };
 
   const handleNoteClick = (note: ProjectNote) => {
-    setSelectedNote(note)
-    setIsPreviewModalOpen(true)
-  }
+    setSelectedNote(note);
+    setIsPreviewModalOpen(true);
+  };
 
   const handleEditNote = (note: ProjectNote) => {
-    setEditingNote(note)
-    setIsCreateModalOpen(true)
-  }
+    setEditingNote(note);
+    setIsCreateModalOpen(true);
+  };
 
-  const handleUpdateNote = async (noteId: string, title: string, content: string) => {
+  const handleUpdateNote = async (
+    noteId: string,
+    title: string,
+    content: string,
+  ) => {
     try {
       await updateNoteMutation.mutateAsync({
         noteId,
         input: { title, content },
-      })
-      toast.success("Note updated successfully")
-      setIsCreateModalOpen(false)
-      setEditingNote(null)
+      });
+      toast.success("Note updated successfully");
+      setIsCreateModalOpen(false);
+      setEditingNote(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update note"
-      toast.error(message)
+      const message =
+        err instanceof Error ? err.message : "Failed to update note";
+      toast.error(message);
     }
-  }
+  };
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      await deleteNoteMutation.mutateAsync(noteId)
-      toast.success("Note deleted successfully")
+      await deleteNoteMutation.mutateAsync(noteId);
+      toast.success("Note deleted successfully");
       if (selectedNote?.id === noteId) {
-        setIsPreviewModalOpen(false)
-        setSelectedNote(null)
+        setIsPreviewModalOpen(false);
+        setSelectedNote(null);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete note"
-      toast.error(message)
+      const message =
+        err instanceof Error ? err.message : "Failed to delete note";
+      toast.error(message);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -146,7 +156,7 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
           <Spinner className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </section>
-    )
+    );
   }
 
   if (error) {
@@ -162,7 +172,7 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
           Retry
         </Button>
       </section>
-    )
+    );
   }
 
   return (
@@ -173,7 +183,7 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
             Recent notes
           </h2>
           <Button variant="ghost" size="sm" onClick={handleAddNote}>
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
             Add notes
           </Button>
         </div>
@@ -186,7 +196,7 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
             </Button>
           </div>
         ) : (
-          <>
+          <div className="space-y-8">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {recentNotes.map((note) => (
                 <NoteCard
@@ -207,22 +217,22 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
                 notes={notes}
                 onAddNote={handleAddNote}
                 onEditNote={(noteId) => {
-                  const note = notes.find((n) => n.id === noteId)
-                  if (note) handleEditNote(note)
+                  const note = notes.find((n) => n.id === noteId);
+                  if (note) handleEditNote(note);
                 }}
                 onDeleteNote={handleDeleteNote}
                 onNoteClick={handleNoteClick}
               />
             </section>
-          </>
+          </div>
         )}
       </section>
 
-      <CreateNoteModal
+      <NoteCreateSheet
         open={isCreateModalOpen}
         onOpenChange={(open) => {
-          setIsCreateModalOpen(open)
-          if (!open) setEditingNote(null)
+          setIsCreateModalOpen(open);
+          if (!open) setEditingNote(null);
         }}
         currentUser={{ id: "user", name: "User" }}
         editingNote={editingNote}
@@ -238,12 +248,13 @@ export function NotesTab({ workspaceId, projectId, isActive = false }: NotesTabP
         onFileSelect={handleFileSelect}
       />
 
-      <NotePreviewModal
+      <NoteDetailsSheet
         open={isPreviewModalOpen}
         onOpenChange={setIsPreviewModalOpen}
         note={selectedNote}
         onDelete={handleDeleteNote}
+        onUpdate={handleUpdateNote}
       />
     </div>
-  )
+  );
 }

@@ -4,6 +4,7 @@ import { HydratedDocument, Types } from 'mongoose';
 export type NotificationDocument = HydratedDocument<Notification>;
 
 export enum NotificationType {
+  TASK_ASSIGNED = 'task_assigned',
   TASK_DUE = 'task_due',
   HABIT_REMINDER = 'habit_reminder',
   GOAL_MILESTONE = 'goal_milestone',
@@ -17,34 +18,34 @@ export class Notification {
   workspaceId?: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
+  userId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  recipientUserId: Types.ObjectId;
+  recipientUserId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   createdBy?: Types.ObjectId | null;
 
   @Prop({ required: true, enum: Object.values(NotificationType) })
-  type: NotificationType;
+  type!: NotificationType;
 
   @Prop({ required: true, trim: true })
-  title: string;
+  title!: string;
 
   @Prop({ required: true, trim: true })
-  body: string;
+  body!: string;
 
   @Prop({ type: Object, default: {} })
-  data: Record<string, unknown>;
+  data!: Record<string, unknown>;
 
   @Prop({ default: false, index: true })
-  isRead: boolean;
+  isRead!: boolean;
 
   @Prop({ type: Date, default: null })
-  readAt: Date | null;
+  readAt!: Date | null;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);

@@ -7,7 +7,7 @@ export class VerifyEmailDto {
     description: 'The email address to verify',
   })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     example: '482910',
@@ -18,7 +18,7 @@ export class VerifyEmailDto {
   @IsString()
   @IsNotEmpty()
   @Length(6, 6)
-  code: string;
+  code!: string;
 }
 
 export class ResendVerificationDto {
@@ -27,5 +27,5 @@ export class ResendVerificationDto {
     description: 'Email address to resend the verification code to',
   })
   @IsEmail()
-  email: string;
+  email!: string;
 }

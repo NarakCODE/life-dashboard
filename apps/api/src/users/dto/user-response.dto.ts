@@ -10,19 +10,19 @@ import { OnboardingSummaryDto } from '../../onboarding/dto/onboarding-summary.dt
 export class UserResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  email: string;
+  email!: string;
 
   @Expose()
   @ApiProperty()
-  displayName: string;
+  displayName!: string;
 
   @Expose()
   @ApiProperty({ description: 'Whether the user has verified their email' })
-  isEmailVerified: boolean;
+  isEmailVerified!: boolean;
 
   @Expose()
   @ApiProperty({ required: false, nullable: true })
@@ -34,15 +34,15 @@ export class UserResponseDto {
 
   @Expose()
   @ApiProperty({ type: () => OnboardingSummaryDto })
-  onboarding: OnboardingSummaryDto;
+  onboarding!: OnboardingSummaryDto;
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);

@@ -6,7 +6,7 @@ import { HabitFrequency } from '../schemas/habit.schema';
 export class HabitResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
@@ -14,11 +14,11 @@ export class HabitResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty()
@@ -26,27 +26,27 @@ export class HabitResponseDto {
 
   @Expose()
   @ApiProperty({ enum: HabitFrequency })
-  frequency: HabitFrequency;
+  frequency!: HabitFrequency;
 
   @Expose()
   @ApiProperty()
-  customDays: number[];
+  customDays!: number[];
 
   @Expose()
   @ApiProperty()
-  targetCount: number;
+  targetCount!: number;
 
   @Expose()
   @ApiProperty()
-  color: string;
+  color!: string;
 
   @Expose()
   @ApiProperty()
-  status: string;
+  status!: string;
 
   @Expose()
   @ApiProperty()
-  startDate: Date;
+  startDate!: Date;
 
   @Expose()
   @ApiProperty()
@@ -58,23 +58,23 @@ export class HabitResponseDto {
 
   @Expose()
   @ApiProperty()
-  currentStreak: number;
+  currentStreak!: number;
 
   @Expose()
   @ApiProperty()
-  longestStreak: number;
+  longestStreak!: number;
 
   @Expose()
   @ApiProperty()
-  isActive: boolean;
+  isActive!: boolean;
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<HabitResponseDto>) {
     Object.assign(this, partial);

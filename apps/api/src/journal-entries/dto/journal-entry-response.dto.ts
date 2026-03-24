@@ -6,7 +6,7 @@ import { MoodLevel } from '../schemas/journal-entry.schema';
 export class JournalEntryResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty({ required: false, nullable: true })
@@ -14,7 +14,7 @@ export class JournalEntryResponseDto {
 
   @Expose()
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @Expose()
   @ApiProperty({ required: false, nullable: true })
@@ -26,7 +26,7 @@ export class JournalEntryResponseDto {
 
   @Expose()
   @ApiProperty()
-  entryDate: Date;
+  entryDate!: Date;
 
   @Expose()
   @ApiProperty()
@@ -34,7 +34,7 @@ export class JournalEntryResponseDto {
 
   @Expose()
   @ApiProperty()
-  content: string;
+  content!: string;
 
   @Expose()
   @ApiProperty({ enum: MoodLevel })
@@ -42,15 +42,15 @@ export class JournalEntryResponseDto {
 
   @Expose()
   @ApiProperty({ type: [String] })
-  tags: string[];
+  tags!: string[];
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<JournalEntryResponseDto>) {
     Object.assign(this, partial);

@@ -40,13 +40,13 @@ export class EnvironmentVariables {
   THROTTLE_LIMIT: number = 100;
 
   @IsString()
-  MONGODB_URI: string;
+  MONGODB_URI!: string;
 
   @IsString()
-  JWT_SECRET: string;
+  JWT_SECRET!: string;
 
   @IsString()
-  JWT_REFRESH_SECRET: string;
+  JWT_REFRESH_SECRET!: string;
 
   @IsString()
   @IsOptional()

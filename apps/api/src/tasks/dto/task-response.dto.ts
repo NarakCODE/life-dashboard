@@ -6,11 +6,11 @@ import { TaskPriority, TaskStatus } from '../schemas/task.schema';
 export class TaskAssigneeResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -29,27 +29,27 @@ export class TaskAssigneeResponseDto {
 export class TaskResponseDto {
   @Expose()
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @Expose()
   @ApiProperty()
-  workspaceId: string;
+  workspaceId!: string;
 
   @Expose()
   @ApiProperty()
-  name: string;
+  name!: string;
 
   @Expose()
   @ApiProperty({ enum: TaskStatus })
-  status: TaskStatus;
+  status!: TaskStatus;
 
   @Expose()
   @ApiProperty()
-  projectId: string;
+  projectId!: string;
 
   @Expose()
   @ApiProperty()
-  projectName: string;
+  projectName!: string;
 
   @Expose()
   @ApiPropertyOptional()
@@ -90,11 +90,11 @@ export class TaskResponseDto {
 
   @Expose()
   @ApiProperty()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Expose()
   @ApiProperty()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   constructor(partial: Partial<TaskResponseDto>) {
     Object.assign(this, partial);
@@ -103,16 +103,16 @@ export class TaskResponseDto {
 
 export class TaskPaginationDto {
   @ApiProperty()
-  total: number;
+  total!: number;
 
   @ApiProperty()
-  page: number;
+  page!: number;
 
   @ApiProperty()
-  limit: number;
+  limit!: number;
 
   @ApiProperty()
-  totalPages: number;
+  totalPages!: number;
 }
 
 export class TaskFilterCountsDto {
@@ -143,21 +143,21 @@ export class TaskFilterCountsDto {
 
 export class MyTasksDataDto {
   @ApiProperty({ type: [TaskResponseDto] })
-  tasks: TaskResponseDto[];
+  tasks!: TaskResponseDto[];
 
   @ApiProperty({ type: TaskPaginationDto })
-  pagination: TaskPaginationDto;
+  pagination!: TaskPaginationDto;
 }
 
 export class MyTasksMetaDto {
   @ApiProperty({ type: TaskFilterCountsDto })
-  filterCounts: TaskFilterCountsDto;
+  filterCounts!: TaskFilterCountsDto;
 }
 
 export class MyTasksResultDto {
   @ApiProperty({ type: MyTasksDataDto })
-  data: MyTasksDataDto;
+  data!: MyTasksDataDto;
 
   @ApiProperty({ type: MyTasksMetaDto })
-  meta: MyTasksMetaDto;
+  meta!: MyTasksMetaDto;
 }
