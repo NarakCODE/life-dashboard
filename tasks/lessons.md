@@ -1,5 +1,26 @@
 # Lessons Learned
 
+## Date: 2026-03-24
+
+### Lesson: Mongoose Typed Filters Need Null-Safe Sentinels
+
+**Context**: Implemented persistent project/workstream task ordering for the new project-details BFF and project-scoped reorder endpoints.
+
+**Mistake/Risk Avoided**:
+- I first queried unassigned workstream tasks with `{ $in: [null, undefined] }` on the typed `workstreamId` field.
+- That passed the intent but failed TypeScript/Mongoose overload checks during test compilation because `undefined` is not a valid member of the inferred `$in` array for that string field.
+
+**Root Cause**:
+- I treated an ORM query convenience as if it were type-safe across both runtime and compile-time behavior.
+- For optional string fields, the typed query contract is narrower than the loose runtime Mongo semantics.
+
+**Preventative Rule**:
+1. Use explicit null-safe sentinels like `null` or `''` in typed `$in` filters for optional string fields.
+2. Prefer building the branch-specific filter object up front instead of mixing `undefined` into a generic query literal.
+3. Run the relevant package test/typecheck immediately after adding new repository helpers because Mongoose overload errors surface there first.
+
+**Applied In**: `apps/api/src/tasks/tasks.repository.ts` now computes the workstream-order query filter without `undefined` in the `$in` clause.
+
 ## Date: 2026-03-23
 
 ### Lesson: Edit Flows Should Not Resend Unchanged Relational Fields

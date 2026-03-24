@@ -1,3 +1,71 @@
+# Project Details Implementation Plan
+
+## Status: COMPLETE
+
+### 1. Backend
+- [x] Add a `GET /projects/:id/details` BFF endpoint backed by real project/task data
+- [x] Add project-scoped task mutation endpoints for patch, move, and reorder flows
+- [x] Persist stable task ordering fields so workstream/task order survives reloads
+
+### 2. Frontend
+- [x] Replace the project-details mock builder with a real project-details query client
+- [x] Wire workstream/task interactions to the new backend mutations
+
+### 3. Verification
+- [x] Run focused backend verification for the new project details and task endpoints
+- [x] Run focused frontend verification for the touched project details files
+
+## Review / Results
+- Added a real project-details BFF path in `apps/api/src/projects/projects.controller.ts` and `apps/api/src/projects/projects.service.ts` at `GET /projects/:id/details`. It now aggregates the project, workstreams, project tasks, timeline bars, and right-panel summary data from the existing `projects` and `tasks` collections instead of relying on `buildProjectDetailsFromSummary(...)`.
+- Added project-scoped task interaction endpoints under `projects` for:
+- `PATCH /projects/:id/tasks/:taskId`
+- `PATCH /projects/:id/tasks/:taskId/move`
+- `PATCH /projects/:id/workstreams/:workstreamId/tasks/reorder`
+- `PATCH /projects/:id/tasks/reorder`
+- Extended `apps/api/src/tasks/schemas/task.schema.ts` and `apps/api/src/tasks/tasks.repository.ts` with persistent `projectOrder` and `workstreamOrder` fields plus the repository helpers needed for project-scoped reads and reorder operations.
+- Added the focused project details DTO/mutation DTOs in `apps/api/src/projects/dto/` and a regression spec in `apps/api/src/projects/projects.service.spec.ts`.
+- Replaced the frontend mock project-details builder path with a real query client in `apps/project-dashboard/lib/projects/project-details-client.ts`, then wired the page and tabs through `apps/project-dashboard/components/projects/ProjectDetailsPage.tsx`, `WorkstreamTab.tsx`, and `ProjectTasksTab.tsx`.
+- `apps/project-dashboard/lib/data/project-details.ts` now supports API-backed flat task ordering through `projectTasks` while preserving the old derived fallback.
+- Verification:
+- `pnpm exec eslint src/projects/projects.controller.ts src/projects/projects.module.ts src/projects/projects.service.ts src/projects/projects.service.spec.ts src/projects/dto/project-details-response.dto.ts src/projects/dto/move-project-task.dto.ts src/projects/dto/reorder-project-tasks.dto.ts src/tasks/tasks.module.ts src/tasks/tasks.repository.ts src/tasks/schemas/task.schema.ts` in `apps/api` ✅
+- `pnpm test -- projects.service.spec.ts` in `apps/api` ✅
+- `pnpm exec eslint components/projects/ProjectDetailsPage.tsx components/projects/WorkstreamTab.tsx components/projects/ProjectTasksTab.tsx lib/projects/projects-query.ts lib/projects/project-details-client.ts lib/data/project-details.ts` in `apps/project-dashboard` ✅
+- `pnpm exec tsc --noEmit --pretty false 2>&1 | rg "src/(projects|tasks)/"` in `apps/api` returned no matches ✅
+- `pnpm exec tsc --noEmit --pretty false 2>&1 | rg "(components/projects/ProjectDetailsPage|components/projects/WorkstreamTab|components/projects/ProjectTasksTab|lib/projects/projects-query|lib/projects/project-details-client|lib/data/project-details)"` in `apps/project-dashboard` returned no matches ✅
+- Remaining follow-up:
+- notes, audio processing, and assets/files still use placeholder empty-state data because this repo does not yet have dedicated backend persistence modules for those domains
+- there are unrelated pre-existing worktree changes in `apps/project-dashboard/components/settings/*` and `apps/project-dashboard/components/ui/dialog.tsx` that were not touched for this task
+
+# Project Details API Design Plan
+
+## Status: COMPLETE
+
+### 1. Audit
+- [x] Inspect `ProjectDetailsPage` and its tab components to extract the page-level aggregate state and local interactions
+- [x] Identify nested entity relationships, async workflows, and permission-sensitive mutations
+
+### 2. Design
+- [x] Define a production-ready domain model for projects, workstreams, tasks, notes, assets, clients, and users
+- [x] Specify a BFF aggregate endpoint plus resource endpoints for interactive mutations
+
+### 3. Deliverable
+- [x] Map frontend actions to backend operations
+- [x] Document non-functional recommendations for caching, optimistic UI, and async processing
+
+## Review / Results
+- Audited the current project details page flow in `apps/project-dashboard/components/projects/ProjectDetailsPage.tsx` and its tab children. The page is currently fed by a thin `ProjectSummary` query and then inflated client-side by `buildProjectDetailsFromSummary(...)`, which is the main source of BFF pressure.
+- Confirmed the interactive hotspots that require first-class backend support:
+- nested project -> workstream -> task state with same-lane reorder and cross-workstream move in `WorkstreamTab`
+- project-wide task filtering and drag reorder in `ProjectTasksTab`
+- timeline rendering from scheduled task spans in `TimelineGantt`
+- async audio note upload/processing with AI output expectations in `NotesTab`, `UploadAudioModal`, and `NotePreviewModal`
+- assets/files creation with both direct uploads and link-based records in `AssetsFilesTab` and `AddFileModal`
+- Produced a production-ready API design centered on a single `GET /projects/:id/details` aggregate endpoint plus focused resource endpoints for task patching, move/reorder operations, notes, assets, and audio-processing jobs.
+- Verification:
+- checked the proposed domain and endpoints against the actual frontend state contracts in the audited project details components and `apps/project-dashboard/lib/data/project-details.ts`
+- checked permission alignment against `apps/api/src/workspaces/workspace-permissions.ts`
+- checked existing backend model compatibility against `apps/api/src/projects/schemas/project.schema.ts` and `apps/api/src/tasks/dto/task-response.dto.ts`
+
 # Settings Sidebar Layout Plan
 
 ## Status: COMPLETE

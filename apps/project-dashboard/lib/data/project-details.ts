@@ -1,7 +1,11 @@
 import type { Project as ProjectListItem } from "@/lib/data/projects"
 import { projects } from "@/lib/data/projects"
 import { getAvatarUrl } from "@/lib/assets/avatars"
-import type { ProjectSummary } from "@/lib/projects/projects-client"
+import type {
+  ProjectPriority,
+  ProjectStatus,
+  ProjectSummary,
+} from "@/lib/projects/projects-client"
 
 function addDays(base: Date, days: number): Date {
   const d = new Date(base)
@@ -66,6 +70,7 @@ export type WorkstreamTask = {
 export type WorkstreamGroup = {
   id: string
   name: string
+  order?: number
   tasks: WorkstreamTask[]
 }
 
@@ -140,7 +145,12 @@ export type ProjectNote = {
 
 export type ProjectDetails = {
   id: string
+  workspaceId?: string
   name: string
+  status?: ProjectStatus
+  priority?: ProjectPriority
+  typeLabel?: string
+  durationLabel?: string
   description: string
   meta: ProjectMeta
   scope: ProjectScope
@@ -148,6 +158,7 @@ export type ProjectDetails = {
   keyFeatures: KeyFeatures
   timelineTasks: TimelineTask[]
   workstreams: WorkstreamGroup[]
+  projectTasks?: ProjectTask[]
   time: TimeSummary
   backlog: BacklogSummary
   quickLinks: QuickLink[]
@@ -157,6 +168,10 @@ export type ProjectDetails = {
 }
 
 export function getProjectTasks(details: ProjectDetails): ProjectTask[] {
+  if (details.projectTasks?.length) {
+    return details.projectTasks
+  }
+
   const workstreams = details.workstreams ?? []
 
   return workstreams.flatMap((group) =>

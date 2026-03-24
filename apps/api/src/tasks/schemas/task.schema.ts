@@ -87,6 +87,12 @@ export class Task {
   @Prop({ type: TaskAssigneeSnapshotSchema, default: null })
   assignee?: TaskAssigneeSnapshot | null;
 
+  @Prop({ type: Number, min: 0, default: 0, index: true })
+  projectOrder: number;
+
+  @Prop({ type: Number, min: 0, default: 0, index: true })
+  workstreamOrder: number;
+
   @Prop()
   startDate?: Date;
 
@@ -115,6 +121,13 @@ TaskSchema.index({ userId: 1, status: 1 });
 TaskSchema.index({ workspaceId: 1, status: 1 });
 TaskSchema.index({ userId: 1, projectId: 1 });
 TaskSchema.index({ workspaceId: 1, projectId: 1 });
+TaskSchema.index({ workspaceId: 1, projectId: 1, projectOrder: 1 });
+TaskSchema.index({
+  workspaceId: 1,
+  projectId: 1,
+  workstreamId: 1,
+  workstreamOrder: 1,
+});
 TaskSchema.index({ userId: 1, startDate: 1 });
 TaskSchema.index({ workspaceId: 1, startDate: 1 });
 TaskSchema.index({ userId: 1, dueDate: 1 });

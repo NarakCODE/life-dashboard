@@ -29,9 +29,15 @@ import { cn } from "@/lib/utils"
 
 type ProjectTasksTabProps = {
   project: ProjectDetails
+  onToggleTask?: (taskId: string, nextStatus: "todo" | "done") => Promise<void> | void
+  onReorderTasks?: (taskIds: string[]) => Promise<void> | void
 }
 
-export function ProjectTasksTab({ project }: ProjectTasksTabProps) {
+export function ProjectTasksTab({
+  project,
+  onToggleTask,
+  onReorderTasks,
+}: ProjectTasksTabProps) {
   const [tasks, setTasks] = useState<ProjectTask[]>(() => getProjectTasks(project))
   const [filters, setFilters] = useState<FilterChipType[]>([])
 
@@ -47,6 +53,9 @@ export function ProjectTasksTab({ project }: ProjectTasksTabProps) {
   )
 
   const toggleTask = (taskId: string) => {
+    const currentTask = tasks.find((task) => task.id === taskId)
+    const nextStatus = currentTask?.status === "done" ? "todo" : "done"
+
     setTasks((prev) =>
       prev.map((task) =>
         task.id === taskId
@@ -57,6 +66,10 @@ export function ProjectTasksTab({ project }: ProjectTasksTabProps) {
           : task,
       ),
     )
+
+    if (currentTask && (nextStatus === "todo" || nextStatus === "done")) {
+      void onToggleTask?.(taskId, nextStatus)
+    }
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -66,7 +79,9 @@ export function ProjectTasksTab({ project }: ProjectTasksTabProps) {
       setTasks((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id)
         const newIndex = items.findIndex((item) => item.id === over.id)
-        return arrayMove(items, oldIndex, newIndex)
+        const next = arrayMove(items, oldIndex, newIndex)
+        void onReorderTasks?.(next.map((task) => task.id))
+        return next
       })
     }
   }

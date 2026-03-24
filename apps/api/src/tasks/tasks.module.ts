@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Task, TaskSchema } from './schemas/task.schema';
 import { TasksRepository } from './tasks.repository';
@@ -11,7 +11,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
 @Module({
   imports: [
     UsersModule,
-    ProjectsModule,
+    forwardRef(() => ProjectsModule),
     WorkspacesModule,
     MongooseModule.forFeature([{ name: Task.name, schema: TaskSchema }]),
   ],

@@ -45,6 +45,11 @@ export type TaskListResult = {
   filterCounts: TaskFilterCounts;
 };
 
+export type TaskOrderValues = {
+  projectOrder: number;
+  workstreamOrder: number;
+};
+
 type TaskQueryFilter = Record<string, any>;
 
 /**
@@ -60,6 +65,12 @@ export class TasksRepository {
     scope: WorkspaceScope,
     input: TaskPersistenceInput,
   ): Promise<TaskDocument> {
+    const orders = await this.getNextProjectOrders(
+      scope.workspaceId,
+      input.projectId,
+      input.workstreamId,
+    );
+
     const createdTask = new this.taskModel({
       ...input,
       workspaceId: toObjectId(scope.workspaceId),
@@ -68,6 +79,8 @@ export class TasksRepository {
       updatedBy: toObjectId(scope.userId),
       completedBy: input.completedAt ? toObjectId(scope.userId) : null,
       assigneeId: input.assignee?.id ? toObjectId(input.assignee.id) : null,
+      projectOrder: orders.projectOrder,
+      workstreamOrder: orders.workstreamOrder,
     });
 
     return createdTask.save();
@@ -169,6 +182,143 @@ export class TasksRepository {
       .exec();
 
     return result.deletedCount > 0;
+  }
+
+  async findByIdInProject(
+    id: string | Types.ObjectId,
+    scope: WorkspaceScope,
+    projectId: string,
+  ): Promise<TaskDocument | null> {
+    const taskId = toObjectIdOrNull(id);
+    if (!taskId) {
+      return null;
+    }
+
+    return this.taskModel
+      .findOne({
+        _id: taskId,
+        projectId,
+        ...buildWorkspaceScopedFilter(scope, {}),
+      })
+      .exec();
+  }
+
+  async findByProject(
+    scope: WorkspaceScope,
+    projectId: string,
+  ): Promise<TaskDocument[]> {
+    return this.taskModel
+      .find({
+        projectId,
+        ...buildWorkspaceScopedFilter(scope, {}),
+      })
+      .sort({
+        projectOrder: 1,
+        workstreamOrder: 1,
+        createdAt: 1,
+      })
+      .exec();
+  }
+
+  async updateByIdInProject(
+    id: string | Types.ObjectId,
+    scope: WorkspaceScope,
+    projectId: string,
+    updateData: UpdateQuery<TaskDocument>,
+  ): Promise<TaskDocument | null> {
+    const taskId = toObjectIdOrNull(id);
+    if (!taskId) {
+      return null;
+    }
+
+    const nextSet = { ...(updateData.$set ?? {}) } as Record<string, unknown>;
+    nextSet.updatedBy = toObjectId(scope.userId);
+
+    if ('assignee' in nextSet) {
+      const assignee = nextSet.assignee as TaskAssigneeSnapshot | null;
+      nextSet.assigneeId = assignee?.id ? toObjectId(assignee.id) : null;
+    }
+
+    return this.taskModel
+      .findOneAndUpdate(
+        {
+          _id: taskId,
+          projectId,
+          ...buildWorkspaceScopedFilter(scope, {}),
+        },
+        {
+          ...updateData,
+          $set: nextSet,
+        },
+        { new: true },
+      )
+      .exec();
+  }
+
+  async reorderProjectTasks(
+    scope: WorkspaceScope,
+    projectId: string,
+    orderedTaskIds: string[],
+  ): Promise<void> {
+    const taskObjectIds = orderedTaskIds
+      .map((taskId) => toObjectIdOrNull(taskId))
+      .filter((taskId): taskId is Types.ObjectId => taskId !== null);
+
+    if (!taskObjectIds.length) {
+      return;
+    }
+
+    await this.taskModel.bulkWrite(
+      taskObjectIds.map((taskId, index) => ({
+        updateOne: {
+          filter: {
+            _id: taskId,
+            projectId,
+            ...buildWorkspaceScopedFilter(scope, {}),
+          },
+          update: {
+            $set: {
+              projectOrder: index,
+              updatedBy: toObjectId(scope.userId),
+            },
+          },
+        },
+      })),
+    );
+  }
+
+  async reorderWorkstreamTasks(
+    scope: WorkspaceScope,
+    projectId: string,
+    workstreamId: string,
+    orderedTaskIds: string[],
+  ): Promise<void> {
+    const taskObjectIds = orderedTaskIds
+      .map((taskId) => toObjectIdOrNull(taskId))
+      .filter((taskId): taskId is Types.ObjectId => taskId !== null);
+
+    if (!taskObjectIds.length) {
+      return;
+    }
+
+    await this.taskModel.bulkWrite(
+      taskObjectIds.map((taskId, index) => ({
+        updateOne: {
+          filter: {
+            _id: taskId,
+            projectId,
+            workstreamId,
+            ...buildWorkspaceScopedFilter(scope, {}),
+          },
+          update: {
+            $set: {
+              workstreamOrder: index,
+              updatedBy: toObjectId(scope.userId),
+            },
+          },
+        },
+      })),
+    );
   }
 
   async getTaskOverview(scope: WorkspaceScope): Promise<{
@@ -455,5 +605,52 @@ export class TasksRepository {
     }
 
     return value;
+  }
+
+  private async getNextProjectOrders(
+    workspaceId: string | Types.ObjectId,
+    projectId: string,
+    workstreamId?: string,
+  ): Promise<TaskOrderValues> {
+    const workstreamFilter =
+      workstreamId !== undefined
+        ? workstreamId
+        : ({ $in: [null, ''] } as const);
+
+    const [projectTask] = await this.taskModel
+      .find({
+        projectId,
+        ...this.buildWorkspaceOnlyFilter(workspaceId),
+      })
+      .sort({ projectOrder: -1, createdAt: -1 })
+      .limit(1)
+      .exec();
+
+    const [workstreamTask] = await this.taskModel
+      .find({
+        projectId,
+        workstreamId: workstreamFilter,
+        ...this.buildWorkspaceOnlyFilter(workspaceId),
+      })
+      .sort({ workstreamOrder: -1, createdAt: -1 })
+      .limit(1)
+      .exec();
+
+    return {
+      projectOrder: (projectTask?.projectOrder ?? -1) + 1,
+      workstreamOrder: (workstreamTask?.workstreamOrder ?? -1) + 1,
+    };
+  }
+
+  private buildWorkspaceOnlyFilter(
+    workspaceId: string | Types.ObjectId,
+  ): Record<string, unknown> {
+    return {
+      $or: [
+        { workspaceId: toObjectId(workspaceId) },
+        { workspaceId: { $exists: false } },
+        { workspaceId: null },
+      ],
+    };
   }
 }

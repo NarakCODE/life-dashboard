@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { CaretDown, DotsSixVertical, Plus } from "@phosphor-icons/react/dist/ssr"
 import {
   DndContext,
@@ -33,15 +33,34 @@ import { TaskRowBase } from "@/components/tasks/TaskRowBase"
 
 type WorkstreamTabProps = {
   workstreams: WorkstreamGroup[] | undefined
+  onToggleTask?: (taskId: string, nextStatus: "todo" | "done") => Promise<void> | void
+  onMoveTask?: (
+    taskId: string,
+    targetWorkstreamId: string,
+    targetOrder: number,
+  ) => Promise<void> | void
+  onReorderTasks?: (workstreamId: string, taskIds: string[]) => Promise<void> | void
 }
 
-export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
+export function WorkstreamTab({
+  workstreams,
+  onToggleTask,
+  onMoveTask,
+  onReorderTasks,
+}: WorkstreamTabProps) {
   const [state, setState] = useState<WorkstreamGroup[]>(() => workstreams ?? [])
   const [openValues, setOpenValues] = useState<string[]>(() =>
     workstreams?.[0] ? [workstreams[0].id] : [],
   )
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [overTaskId, setOverTaskId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setState(workstreams ?? [])
+    if (workstreams?.[0]) {
+      setOpenValues((current) => (current.length > 0 ? current : [workstreams[0]!.id]))
+    }
+  }, [workstreams])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -63,6 +82,11 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
   const activeTask = findTaskById(activeTaskId)
 
   const toggleTask = (groupId: string, taskId: string) => {
+    const currentTask = state
+      .find((group) => group.id === groupId)
+      ?.tasks.find((task) => task.id === taskId)
+    const nextStatus = currentTask?.status === "done" ? "todo" : "done"
+
     setState((prev) =>
       prev.map((group) =>
         group.id === groupId
@@ -80,6 +104,10 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
           : group,
       ),
     )
+
+    if (currentTask && (nextStatus === "todo" || nextStatus === "done")) {
+      void onToggleTask?.(taskId, nextStatus)
+    }
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -109,67 +137,63 @@ export function WorkstreamTab({ workstreams }: WorkstreamTabProps) {
 
     const activeId = String(active.id)
     const overId = String(over.id)
+    let sourceGroupIndex = -1
+    let sourceTaskIndex = -1
+    let targetGroupIndex = -1
+    let targetTaskIndex = -1
 
-    setState((prev) => {
-      let sourceGroupIndex = -1
-      let sourceTaskIndex = -1
-      let targetGroupIndex = -1
-      let targetTaskIndex = -1
-
-      prev.forEach((group, groupIndex) => {
-        const aIndex = group.tasks.findIndex((task) => task.id === activeId)
-        if (aIndex !== -1) {
-          sourceGroupIndex = groupIndex
-          sourceTaskIndex = aIndex
-        }
-
-        const oIndex = group.tasks.findIndex((task) => task.id === overId)
-        if (oIndex !== -1) {
-          targetGroupIndex = groupIndex
-          targetTaskIndex = oIndex
-        }
-      })
-
-      // If we didn't land on a task but on a group container, allow dropping into empty lists
-      if (targetGroupIndex === -1 && overId.startsWith("group:")) {
-        const groupId = overId.slice("group:".length)
-        targetGroupIndex = prev.findIndex((group) => group.id === groupId)
-        const targetGroup = targetGroupIndex === -1 ? undefined : prev[targetGroupIndex]
-        if (targetGroup) {
-          targetTaskIndex = targetGroup.tasks.length
-        }
+    state.forEach((group, groupIndex) => {
+      const activeIndex = group.tasks.findIndex((task) => task.id === activeId)
+      if (activeIndex !== -1) {
+        sourceGroupIndex = groupIndex
+        sourceTaskIndex = activeIndex
       }
 
-      if (sourceGroupIndex === -1 || targetGroupIndex === -1) return prev
-
-      const next = [...prev]
-      const sourceGroup = next[sourceGroupIndex]
-      const targetGroup = next[targetGroupIndex]
-      if (!sourceGroup || !targetGroup) return prev
-
-      const insertionIndex =
-        targetTaskIndex === -1 ? targetGroup.tasks.length : targetTaskIndex
-
-      // Reorder within the same workstream
-      if (sourceGroupIndex === targetGroupIndex) {
-        const reordered = arrayMove(sourceGroup.tasks, sourceTaskIndex, insertionIndex)
-        next[sourceGroupIndex] = { ...sourceGroup, tasks: reordered }
-        return next
+      const overIndex = group.tasks.findIndex((task) => task.id === overId)
+      if (overIndex !== -1) {
+        targetGroupIndex = groupIndex
+        targetTaskIndex = overIndex
       }
-
-      // Move across workstreams
-      const sourceTasks = [...sourceGroup.tasks]
-      const [moved] = sourceTasks.splice(sourceTaskIndex, 1)
-      if (!moved) return prev
-
-      const targetTasks = [...targetGroup.tasks]
-      targetTasks.splice(insertionIndex, 0, moved)
-
-      next[sourceGroupIndex] = { ...sourceGroup, tasks: sourceTasks }
-      next[targetGroupIndex] = { ...targetGroup, tasks: targetTasks }
-
-      return next
     })
+
+    if (targetGroupIndex === -1 && overId.startsWith("group:")) {
+      const groupId = overId.slice("group:".length)
+      targetGroupIndex = state.findIndex((group) => group.id === groupId)
+      const targetGroup = targetGroupIndex === -1 ? undefined : state[targetGroupIndex]
+      if (targetGroup) {
+        targetTaskIndex = targetGroup.tasks.length
+      }
+    }
+
+    if (sourceGroupIndex === -1 || targetGroupIndex === -1) return
+
+    const next = [...state]
+    const sourceGroup = next[sourceGroupIndex]
+    const targetGroup = next[targetGroupIndex]
+    if (!sourceGroup || !targetGroup) return
+
+    const insertionIndex =
+      targetTaskIndex === -1 ? targetGroup.tasks.length : targetTaskIndex
+
+    if (sourceGroupIndex === targetGroupIndex) {
+      const reordered = arrayMove(sourceGroup.tasks, sourceTaskIndex, insertionIndex)
+      next[sourceGroupIndex] = { ...sourceGroup, tasks: reordered }
+      setState(next)
+      void onReorderTasks?.(sourceGroup.id, reordered.map((task) => task.id))
+      return
+    }
+
+    const sourceTasks = [...sourceGroup.tasks]
+    const [moved] = sourceTasks.splice(sourceTaskIndex, 1)
+    if (!moved) return
+
+    const targetTasks = [...targetGroup.tasks]
+    targetTasks.splice(insertionIndex, 0, moved)
+
+    next[sourceGroupIndex] = { ...sourceGroup, tasks: sourceTasks }
+    next[targetGroupIndex] = { ...targetGroup, tasks: targetTasks }
+    setState(next)
+    void onMoveTask?.(activeId, targetGroup.id, insertionIndex)
   }
 
   const handleDragCancel = () => {

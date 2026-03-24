@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { AnimatePresence, motion } from "motion/react"
 import { cn } from "@/lib/utils"
 
-import { buildProjectDetailsFromSummary } from "@/lib/data/project-details"
 import { Breadcrumbs } from "@/components/projects/Breadcrumbs"
 import { ProjectHeader } from "@/components/projects/ProjectHeader"
 import { ScopeColumns } from "@/components/projects/ScopeColumns"
@@ -25,7 +24,14 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
-import { useProjectQuery, useUpdateProjectMutation } from "@/lib/projects/projects-query"
+import {
+  useMoveProjectTaskMutation,
+  usePatchProjectTaskMutation,
+  useProjectDetailsQuery,
+  useReorderProjectTasksMutation,
+  useReorderProjectWorkstreamTasksMutation,
+  useUpdateProjectMutation,
+} from "@/lib/projects/projects-query"
 import type { ProjectInput } from "@/lib/projects/projects-client"
 
 type ProjectDetailsPageProps = {
@@ -35,12 +41,26 @@ type ProjectDetailsPageProps = {
 export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
   const { workspaceId, workspaceContext, isPending: isWorkspacePending } =
     useWorkspaceScope()
-  const { data: projectSummary, isPending: isProjectPending } = useProjectQuery(
+  const { data: project, isPending: isProjectPending } = useProjectDetailsQuery(
     workspaceId ?? "",
     projectId,
     Boolean(workspaceId),
   )
   const updateProjectMutation = useUpdateProjectMutation(workspaceId ?? "")
+  const patchProjectTaskMutation = usePatchProjectTaskMutation(
+    workspaceId ?? "",
+    projectId,
+  )
+  const moveProjectTaskMutation = useMoveProjectTaskMutation(
+    workspaceId ?? "",
+    projectId,
+  )
+  const reorderProjectWorkstreamTasksMutation =
+    useReorderProjectWorkstreamTasksMutation(workspaceId ?? "", projectId)
+  const reorderProjectTasksMutation = useReorderProjectTasksMutation(
+    workspaceId ?? "",
+    projectId,
+  )
   const [showMeta, setShowMeta] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
@@ -58,11 +78,27 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
     }
   }, [])
 
-  const project = useMemo(
-    () => (projectSummary ? buildProjectDetailsFromSummary(projectSummary) : null),
-    [projectSummary],
-  )
   const projectName = project?.name ?? ""
+  const projectSummary = useMemo(
+    () =>
+      project
+        ? {
+            id: project.id,
+            workspaceId: project.workspaceId ?? workspaceId ?? "",
+            name: project.name,
+            status: project.status ?? "active",
+            priority: project.priority ?? "medium",
+            typeLabel: project.typeLabel,
+            durationLabel: project.durationLabel,
+            workstreams: project.workstreams.map((workstream, index) => ({
+              id: workstream.id,
+              name: workstream.name,
+              order: workstream.order ?? index,
+            })),
+          }
+        : null,
+    [project, workspaceId],
+  )
 
   const breadcrumbs = useMemo(
     () => [
@@ -94,6 +130,62 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
       setIsEditOpen(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update project"
+      toast.error(message)
+    }
+  }
+
+  const handleToggleTask = async (
+    taskId: string,
+    nextStatus: "todo" | "done",
+  ) => {
+    try {
+      await patchProjectTaskMutation.mutateAsync({
+        taskId,
+        input: { status: nextStatus },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update task"
+      toast.error(message)
+    }
+  }
+
+  const handleMoveTask = async (
+    taskId: string,
+    targetWorkstreamId: string,
+    targetOrder: number,
+  ) => {
+    try {
+      await moveProjectTaskMutation.mutateAsync({
+        taskId,
+        targetWorkstreamId,
+        targetOrder,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to move task"
+      toast.error(message)
+    }
+  }
+
+  const handleReorderWorkstreamTasks = async (
+    workstreamId: string,
+    taskIds: string[],
+  ) => {
+    try {
+      await reorderProjectWorkstreamTasksMutation.mutateAsync({
+        workstreamId,
+        taskIds,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to reorder workstream tasks"
+      toast.error(message)
+    }
+  }
+
+  const handleReorderProjectTasks = async (taskIds: string[]) => {
+    try {
+      await reorderProjectTasksMutation.mutateAsync(taskIds)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to reorder project tasks"
       toast.error(message)
     }
   }
@@ -163,11 +255,20 @@ export function ProjectDetailsPage({ projectId }: ProjectDetailsPageProps) {
                   </TabsContent>
 
                   <TabsContent value="workstream">
-                    <WorkstreamTab workstreams={project.workstreams} />
+                    <WorkstreamTab
+                      workstreams={project.workstreams}
+                      onToggleTask={handleToggleTask}
+                      onMoveTask={handleMoveTask}
+                      onReorderTasks={handleReorderWorkstreamTasks}
+                    />
                   </TabsContent>
 
                   <TabsContent value="tasks">
-                    <ProjectTasksTab project={project} />
+                    <ProjectTasksTab
+                      project={project}
+                      onToggleTask={handleToggleTask}
+                      onReorderTasks={handleReorderProjectTasks}
+                    />
                   </TabsContent>
 
                   <TabsContent value="notes">

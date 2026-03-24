@@ -61,25 +61,25 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 w-full max-w-[720px] -translate-x-1/2 -translate-y-1/2 outline-none",
+          "fixed top-[50%] left-[50%] z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 outline-none",
           className
         )}
         {...props}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
-          className="rounded-3xl bg-background shadow-2xl border border-border overflow-hidden"
+          initial={{ opacity: 0, scale: 0.96, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 10 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-2xl bg-background shadow-xl border border-border/60 overflow-hidden"
         >
-          <div className="flex flex-col p-4 gap-3.5">
+          <div className="flex flex-col p-6">
             {children}
           </div>
           {showCloseButton && (
             <DialogPrimitive.Close
               data-slot="dialog-close"
-              className="absolute top-4 right-4 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+              className="absolute top-4 right-4 rounded-lg p-2 text-muted-foreground opacity-70 transition-all hover:opacity-100 hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none"
             >
               <XIcon className="h-4 w-4" />
               <span className="sr-only">Close</span>
