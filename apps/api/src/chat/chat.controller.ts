@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -28,15 +29,19 @@ import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-cont
 import { ChannelsService } from './services/channels.service';
 import { MessagesService } from './services/messages.service';
 import { UnreadService } from './services/unread.service';
+import { ChatConfigService } from './services/chat-config.service';
 
 import {
   CreateChannelDto,
   SendMessageDto,
   QueryMessagesDto,
   MarkReadDto,
+  MessageResponseDto,
+  ChannelResponseDto,
+  UpdateMessageDto,
+  UpdateChatConfigDto,
+  ChatConfigResponseDto,
 } from './dto';
-import { Channel } from './schemas/channel.schema';
-import { Message } from './schemas/message.schema';
 
 @ApiTags('chat')
 @ApiBearerAuth('access-token')
@@ -52,7 +57,52 @@ export class ChatController {
     private readonly channelsService: ChannelsService,
     private readonly messagesService: MessagesService,
     private readonly unreadService: UnreadService,
+    private readonly chatConfigService: ChatConfigService,
   ) {}
+
+  /**
+   * Transform Channel document to ChannelResponseDto
+   */
+  private toChannelResponse(channel: any): ChannelResponseDto {
+    const raw = channel.toObject ? channel.toObject() : channel;
+
+    return new ChannelResponseDto({
+      id: raw._id?.toString() ?? raw.id,
+      workspaceId: raw.workspaceId?.toString() ?? null,
+      type: raw.type,
+      name: raw.name,
+      description: raw.description,
+      memberIds: (raw.memberIds || []).map((id: any) => id.toString?.() ?? id),
+      unreadCount: 0,
+      lastMessageId: raw.lastMessageId?.toString() ?? null,
+      lastMessageAt: raw.lastMessageAt?.toISOString() ?? null,
+      createdBy: raw.createdBy?.toString() ?? raw.createdBy,
+      createdAt: raw.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: raw.updatedAt?.toISOString() ?? new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Transform Message document to MessageResponseDto
+   */
+  private toMessageResponse(message: any): MessageResponseDto {
+    const raw = message.toObject ? message.toObject() : message;
+
+    return new MessageResponseDto({
+      id: raw._id?.toString() ?? raw.id,
+      channelId: raw.channelId?.toString() ?? raw.channelId,
+      workspaceId: raw.workspaceId?.toString() ?? null,
+      authorId: raw.authorId?.toString() ?? raw.authorId,
+      content: raw.content,
+      mentionIds: (raw.mentionIds || []).map(
+        (id: any) => id.toString?.() ?? id,
+      ),
+      editedAt: raw.editedAt?.toISOString() ?? null,
+      deletedAt: raw.deletedAt?.toISOString() ?? null,
+      createdAt: raw.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: raw.updatedAt?.toISOString() ?? new Date().toISOString(),
+    });
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Channels
@@ -60,32 +110,41 @@ export class ChatController {
 
   @Post('channels')
   @ApiOperation({ summary: 'Create a new channel' })
-  @ApiCreatedResponse({ description: 'Channel created successfully' })
-  createChannel(
+  @ApiCreatedResponse({
+    type: ChannelResponseDto,
+    description: 'Channel created successfully',
+  })
+  async createChannel(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: CreateChannelDto,
-  ): Promise<Channel> {
-    return this.channelsService.create(workspace, dto);
+  ): Promise<ChannelResponseDto> {
+    const channel = await this.channelsService.create(workspace, dto);
+    return this.toChannelResponse(channel);
   }
 
   @Get('channels')
   @ApiOperation({ summary: 'Get all channels for the user' })
-  @ApiOkResponse({ description: 'List of channels' })
-  findChannels(
+  @ApiOkResponse({
+    type: [ChannelResponseDto],
+    description: 'List of channels',
+  })
+  async findChannels(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
-  ): Promise<Channel[]> {
-    return this.channelsService.findMany(workspace);
+  ): Promise<ChannelResponseDto[]> {
+    const channels = await this.channelsService.findMany(workspace);
+    return channels.map((channel) => this.toChannelResponse(channel));
   }
 
   @Get('channels/:id')
   @ApiOperation({ summary: 'Get a specific channel by ID' })
   @ApiParam({ name: 'id', description: 'Channel ID' })
-  @ApiOkResponse({ description: 'Channel details' })
-  findChannelById(
+  @ApiOkResponse({ type: ChannelResponseDto, description: 'Channel details' })
+  async findChannelById(
     @Param('id') id: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
-  ): Promise<Channel> {
-    return this.channelsService.findById(id, workspace);
+  ): Promise<ChannelResponseDto> {
+    const channel = await this.channelsService.findById(id, workspace);
+    return this.toChannelResponse(channel);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -94,22 +153,31 @@ export class ChatController {
 
   @Post('messages')
   @ApiOperation({ summary: 'Send a message to a channel' })
-  @ApiCreatedResponse({ description: 'Message sent successfully' })
-  sendMessage(
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Message sent successfully',
+  })
+  async sendMessage(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Body() dto: SendMessageDto,
-  ): Promise<Message> {
-    return this.messagesService.create(workspace, dto);
+  ): Promise<MessageResponseDto> {
+    const message = await this.messagesService.create(workspace, dto);
+    return this.toMessageResponse(message);
   }
 
   @Get('messages')
   @ApiOperation({ summary: 'Get messages with pagination' })
   @ApiOkResponse({ description: 'Paginated messages' })
-  findMessages(
+  async findMessages(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() query: QueryMessagesDto,
-  ): Promise<{ items: Message[]; total: number; hasMore: boolean }> {
-    return this.messagesService.findMany(workspace, query);
+  ): Promise<{ items: MessageResponseDto[]; total: number; hasMore: boolean }> {
+    const result = await this.messagesService.findMany(workspace, query);
+    return {
+      items: result.items.map((message) => this.toMessageResponse(message)),
+      total: result.total,
+      hasMore: result.hasMore,
+    };
   }
 
   @Get('channels/:channelId/messages')
@@ -120,14 +188,22 @@ export class ChatController {
     @Param('channelId') channelId: string,
     @WorkspaceContext() workspace: WorkspaceRequestContext,
     @Query() query: QueryMessagesDto,
-  ): Promise<{ items: Message[]; total: number; hasMore: boolean }> {
+  ): Promise<{ items: MessageResponseDto[]; total: number; hasMore: boolean }> {
     // Verify access first
     await this.channelsService.findById(channelId, workspace);
 
     // Create query with channelId included
     const queryWithChannel = { ...query, channelId };
 
-    return this.messagesService.findMany(workspace, queryWithChannel as any);
+    const result = await this.messagesService.findMany(
+      workspace,
+      queryWithChannel as any,
+    );
+    return {
+      items: result.items.map((message) => this.toMessageResponse(message)),
+      total: result.total,
+      hasMore: result.hasMore,
+    };
   }
 
   @Delete('messages/:id')
@@ -140,6 +216,24 @@ export class ChatController {
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<void> {
     return this.messagesService.delete(id, workspace);
+  }
+
+  @Patch('messages/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a message (edit)' })
+  @ApiParam({ name: 'id', description: 'Message ID' })
+  @ApiOkResponse({ type: MessageResponseDto, description: 'Message updated' })
+  async updateMessage(
+    @Param('id') id: string,
+    @Body() dto: UpdateMessageDto,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ): Promise<MessageResponseDto> {
+    const message = await this.messagesService.update(
+      id,
+      workspace,
+      dto.content,
+    );
+    return this.toMessageResponse(message);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -181,16 +275,101 @@ export class ChatController {
   @Get('unread-summary')
   @ApiOperation({ summary: 'Get unread summary by channel' })
   @ApiOkResponse({ description: 'Unread summary' })
-  getUnreadSummary(
+  async getUnreadSummary(
     @WorkspaceContext() workspace: WorkspaceRequestContext,
   ): Promise<{
     totalUnread: number;
     channelUnreads: Array<{
       channelId: string;
       unreadCount: number;
-      lastReadAt?: Date;
+      lastReadAt?: string;
     }>;
   }> {
-    return this.unreadService.getUnreadSummary(workspace);
+    const result = await this.unreadService.getUnreadSummary(workspace);
+    return {
+      totalUnread: result.totalUnread,
+      channelUnreads: result.channelUnreads.map((c) => ({
+        channelId: c.channelId,
+        unreadCount: c.unreadCount,
+        lastReadAt: c.lastReadAt?.toISOString(),
+      })),
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Chat Configuration (Auto-delete settings)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @Get('config')
+  @ApiOperation({ summary: 'Get chat configuration for the workspace' })
+  @ApiOkResponse({
+    type: ChatConfigResponseDto,
+    description: 'Chat configuration',
+  })
+  async getChatConfig(
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ): Promise<ChatConfigResponseDto> {
+    const config = await this.chatConfigService.getConfig(
+      workspace.workspaceId,
+    );
+    return new ChatConfigResponseDto({
+      id: (config as any)._id.toString(),
+      workspaceId: config.workspaceId.toString(),
+      autoDeletePreset: config.autoDeletePreset,
+      autoDeleteCustomSeconds: config.autoDeleteCustomSeconds,
+      autoDeleteForAllUsers: config.autoDeleteForAllUsers,
+      notifyBeforeDeletion: config.notifyBeforeDeletion,
+      autoDeleteSeconds: this.calculateAutoDeleteSeconds(config),
+      createdAt: config.createdAt.toISOString(),
+      updatedAt: config.updatedAt.toISOString(),
+    });
+  }
+
+  @Patch('config')
+  @ApiOperation({ summary: 'Update chat configuration for the workspace' })
+  @ApiOkResponse({
+    type: ChatConfigResponseDto,
+    description: 'Updated chat configuration',
+  })
+  async updateChatConfig(
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+    @Body() dto: UpdateChatConfigDto,
+  ): Promise<ChatConfigResponseDto> {
+    const config = await this.chatConfigService.updateConfig(
+      workspace.workspaceId,
+      dto,
+    );
+    return new ChatConfigResponseDto({
+      id: (config as any)._id.toString(),
+      workspaceId: config.workspaceId.toString(),
+      autoDeletePreset: config.autoDeletePreset,
+      autoDeleteCustomSeconds: config.autoDeleteCustomSeconds,
+      autoDeleteForAllUsers: config.autoDeleteForAllUsers,
+      notifyBeforeDeletion: config.notifyBeforeDeletion,
+      autoDeleteSeconds: this.calculateAutoDeleteSeconds(config),
+      createdAt: config.createdAt.toISOString(),
+      updatedAt: config.updatedAt.toISOString(),
+    });
+  }
+
+  /**
+   * Calculate auto-delete seconds from preset
+   */
+  private calculateAutoDeleteSeconds(config: any): number | null {
+    if (config.autoDeletePreset === 'off') {
+      return null;
+    }
+    if (config.autoDeletePreset === 'custom') {
+      return config.autoDeleteCustomSeconds || null;
+    }
+    
+    const presetSeconds: Record<string, number> = {
+      '1h': 3600,
+      '1d': 86400,
+      '7d': 604800,
+      '30d': 2592000,
+    };
+    
+    return presetSeconds[config.autoDeletePreset] || null;
   }
 }

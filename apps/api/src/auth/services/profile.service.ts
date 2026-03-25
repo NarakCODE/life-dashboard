@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { OnboardingService } from '../../onboarding/onboarding.service';
 import { OnboardingSummaryDto } from '../../onboarding/dto/onboarding-summary.dto';
 import { UsersService } from '../../users/users.service';
+import { UploadService, type FileUpload } from '../../upload/upload.service';
+import { UploadType } from '../../upload/types/upload.types';
 import { AccountMetadataDto, IdentityDto, MeResponseDto, ProfileDto } from '../dto/me-response.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { UserStatus, UserDocument } from '../../users/schemas/user.schema';
@@ -11,6 +13,7 @@ export class ProfileService {
   constructor(
     private readonly usersService: UsersService,
     private readonly onboardingService: OnboardingService,
+    private readonly uploadService: UploadService,
   ) {}
 
   async getProfile(userId: string): Promise<MeResponseDto> {
@@ -50,6 +53,26 @@ export class ProfileService {
     }
 
     await this.usersService.updateProfile(userId, updatePayload);
+  }
+
+  /**
+   * Upload and update user avatar
+   */
+  async uploadAvatar(userId: string, file: FileUpload): Promise<string> {
+    // Validate file
+    if (!file || file.size === 0) {
+      throw new BadRequestException('No file provided or file is empty');
+    }
+
+    // Upload to Cloudinary
+    const result = await this.uploadService.uploadAvatar(file);
+
+    // Update user's avatarUrl in database
+    await this.usersService.updateProfile(userId, {
+      avatarUrl: result.url,
+    });
+
+    return result.url;
   }
 
   private toResponseDto(user: UserDocument, onboarding: OnboardingSummaryDto) {

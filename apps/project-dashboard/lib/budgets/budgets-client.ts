@@ -9,6 +9,40 @@ import type {
   UpdateBudgetInput,
 } from "@/lib/budgets/types"
 
+/**
+ * Backend BudgetResponseDto structure
+ */
+interface BackendBudget {
+  id: string
+  workspaceId?: string | null
+  userId: string
+  name: string
+  amount: number
+  category?: string
+  period: "weekly" | "monthly" | "quarterly" | "yearly" | "custom"
+  startDate?: string
+  endDate?: string
+  currency: string
+  isActive: boolean
+  actualSpending?: number
+  remainingAmount?: number
+  percentUsed?: number
+  isOverBudget?: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * Transform backend BudgetResponseDto to frontend Budget format
+ */
+function transformBackendBudget(budget: BackendBudget): Budget {
+  return {
+    ...budget,
+    startDate: budget.startDate ?? null,
+    endDate: budget.endDate ?? null,
+  } as Budget
+}
+
 function buildQueryString(query: BudgetsQuery) {
   const params = new URLSearchParams()
 
@@ -30,7 +64,7 @@ export async function getBudgets(
   query: BudgetsQuery,
 ): Promise<BudgetsResponse> {
   const payload = await apiRequestEnvelope<
-    BudgetsResponseData,
+    { items: BackendBudget[]; pagination: { total: number; page: number; limit: number; totalPages: number } },
     Record<string, unknown>
   >({
     path: `/budgets${buildQueryString(query)}`,
@@ -39,7 +73,10 @@ export async function getBudgets(
   })
 
   return {
-    data: payload.data,
+    data: {
+      items: payload.data.items.map(transformBackendBudget),
+      pagination: payload.data.pagination,
+    },
     meta: payload.meta ?? {},
   }
 }
@@ -48,11 +85,12 @@ export async function getBudget(
   workspaceId: string,
   budgetId: string,
 ): Promise<Budget> {
-  return apiRequest<Budget>({
+  const budget = await apiRequest<BackendBudget>({
     path: `/budgets/${budgetId}`,
     auth: "required",
     workspaceId,
   })
+  return transformBackendBudget(budget)
 }
 
 export async function getBudgetSummary(
@@ -70,13 +108,14 @@ export async function createBudget(
   workspaceId: string,
   input: CreateBudgetInput,
 ): Promise<Budget> {
-  return apiRequest<Budget>({
+  const budget = await apiRequest<BackendBudget>({
     path: "/budgets",
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   })
+  return transformBackendBudget(budget)
 }
 
 export async function updateBudget(
@@ -84,13 +123,14 @@ export async function updateBudget(
   budgetId: string,
   input: UpdateBudgetInput,
 ): Promise<Budget> {
-  return apiRequest<Budget>({
+  const budget = await apiRequest<BackendBudget>({
     path: `/budgets/${budgetId}`,
     method: "PATCH",
     body: input,
     auth: "required",
     workspaceId,
   })
+  return transformBackendBudget(budget)
 }
 
 export async function deleteBudget(

@@ -6,6 +6,7 @@ import { ChannelMember } from '../schemas/channel-member.schema';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
 import { WorkspaceRequestContext } from '../../workspaces/interfaces/workspace-context.interface';
+import { ChatConfigService } from './chat-config.service';
 
 export interface PaginatedMessages {
   items: Message[];
@@ -18,18 +19,24 @@ export class MessagesService {
   constructor(
     @InjectModel(Message.name) private readonly messageModel: Model<MessageDocument>,
     @InjectModel(ChannelMember.name) private readonly channelMemberModel: Model<ChannelMember>,
+    private readonly chatConfigService: ChatConfigService,
   ) {}
 
   async create(
     workspace: WorkspaceRequestContext,
     dto: SendMessageDto,
   ): Promise<Message> {
+    // Get chat config to calculate expiration
+    const config = await this.chatConfigService.getConfig(workspace.workspaceId);
+    const expiresAt = this.chatConfigService.calculateExpirationDate(config);
+
     const message = new this.messageModel({
       channelId: new Types.ObjectId(dto.channelId),
       workspaceId: workspace.workspaceId ? new Types.ObjectId(workspace.workspaceId) : null,
       authorId: new Types.ObjectId(workspace.actorUserId),
       content: dto.content.trim(),
       mentionIds: (dto.mentionIds || []).map(id => new Types.ObjectId(id)),
+      expiresAt,
     });
 
     const saved = await message.save();
@@ -113,6 +120,32 @@ export class MessagesService {
     if (!result) {
       throw new NotFoundException('Message not found or access denied');
     }
+  }
+
+  async update(
+    id: string,
+    workspace: WorkspaceRequestContext,
+    content: string,
+  ): Promise<Message> {
+    const result = await this.messageModel.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        authorId: new Types.ObjectId(workspace.actorUserId),
+        workspaceId: workspace.workspaceId ? new Types.ObjectId(workspace.workspaceId) : null,
+        deletedAt: null,
+      },
+      {
+        content: content.trim(),
+        editedAt: new Date(),
+      },
+      { new: true },
+    ).exec();
+
+    if (!result) {
+      throw new NotFoundException('Message not found or access denied');
+    }
+
+    return result;
   }
 
   private async incrementUnreadCount(

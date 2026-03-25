@@ -28,10 +28,13 @@ interface MessageListProps {
   messages: Message[];
   currentUser?: ChatUser;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
   onDeleteMessage?: (messageId: string) => void;
   onEditMessage?: (messageId: string, content: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  members?: Record<string, any>[];
 }
 
 function MessageItem({
@@ -39,19 +42,30 @@ function MessageItem({
   currentUser,
   showHeader,
   onDelete,
+  members,
 }: {
   message: Message;
   currentUser?: ChatUser;
   showHeader: boolean;
   onDelete?: (messageId: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  members?: Record<string, any>[];
 }) {
   const isOwnMessage = message.authorId === currentUser?.id;
   const isTemp = message.id.startsWith("temp-");
-  const authorName = isOwnMessage
-    ? currentUser?.displayName ?? "You"
-    : `User ${message.authorId.slice(0, 6)}`;
+
+  // Try to resolve name from members list first
+  const memberRecord = members?.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (m: Record<string, any>) => m.userId === message.authorId,
+  );
+  const resolvedName: string =
+    isOwnMessage
+      ? (currentUser?.displayName ?? "You")
+      : (memberRecord?.user?.displayName ?? `User ${message.authorId.slice(0, 6)}`);
+
   const authorInitials =
-    authorName
+    resolvedName
       .split(" ")
       .map((part) => part.charAt(0))
       .join("")
@@ -77,7 +91,7 @@ function MessageItem({
       <div className="min-w-0 flex-1">
         {showHeader && (
           <div className="mb-0.5 flex items-center gap-2">
-            <span className="font-medium text-sm">{authorName}</span>
+            <span className="font-medium text-sm">{resolvedName}</span>
             <span className="text-muted-foreground text-xs">
               {format(new Date(message.createdAt), "MMM d, h:mm a")}
             </span>
@@ -131,9 +145,11 @@ export function MessageList({
   messages,
   currentUser,
   isLoading,
+  isLoadingMore,
   hasMore,
   onLoadMore,
   onDeleteMessage,
+  members,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -185,9 +201,9 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
+    <div className="flex flex-1 flex-col bg-background h-full">
+      {/* Channel header */}
+      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">
             {getChannelIcon(channel.type)}
@@ -210,9 +226,9 @@ export function MessageList({
                 variant="ghost"
                 size="sm"
                 onClick={onLoadMore}
-                disabled={isLoading}
+                disabled={isLoadingMore || isLoading}
               >
-                {isLoading ? (
+                {isLoadingMore ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
                 Load more messages
@@ -241,6 +257,7 @@ export function MessageList({
                   currentUser={currentUser}
                   showHeader={shouldShowHeader(message, index)}
                   onDelete={onDeleteMessage}
+                  members={members}
                 />
               ))}
               <div ref={bottomRef} />

@@ -1,8 +1,7 @@
 {
   "info": {
-    "_postman_id": "chat-api-collection-v1",
-    "name": "13 - Chat API",
-    "description": "Workspace chat API - Channels, Messages, WebSocket",
+    "name": "13 - Chat",
+    "description": "Channels, messages, and unread status management.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -10,7 +9,7 @@
       "name": "Channels",
       "item": [
         {
-          "name": "Create Public Channel",
+          "name": "Create Channel",
           "request": {
             "method": "POST",
             "header": [
@@ -29,81 +28,22 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"public\",\n  \"name\": \"General\",\n  \"description\": \"General discussion for the team\"\n}"
+              "raw": "{\n  \"type\": \"public\",\n  \"name\": \"general-discussion\",\n  \"description\": \"Project-wide general talk\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/chat/channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels"]
-            },
-            "description": "Create a public channel that everyone can join"
-          },
-          "response": []
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "channels"
+              ]
+            }
+          }
         },
         {
-          "name": "Create Private Channel",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"private\",\n  \"name\": \"Engineering Team\",\n  \"description\": \"Private channel for engineers\",\n  \"memberIds\": [\"{{userId2}}\", \"{{userId3}}\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chat/channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels"]
-            },
-            "description": "Create a private channel with specific members"
-          },
-          "response": []
-        },
-        {
-          "name": "Create DM Channel",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"dm\",\n  \"memberIds\": [\"{{userId2}}\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chat/channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels"]
-            },
-            "description": "Create a DM channel with exactly 2 members"
-          },
-          "response": []
-        },
-        {
-          "name": "List Channels",
+          "name": "Get My Channels",
           "request": {
             "method": "GET",
             "header": [
@@ -118,12 +58,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/chat/channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels"]
-            },
-            "description": "Get all channels the user has access to"
-          },
-          "response": []
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "channels"
+              ]
+            }
+          }
         },
         {
           "name": "Get Channel by ID",
@@ -141,12 +84,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/chat/channels/{{channelId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels", "{{channelId}}"]
-            },
-            "description": "Get a specific channel by ID"
-          },
-          "response": []
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "channels",
+                "{{channelId}}"
+              ]
+            }
+          }
         }
       ]
     },
@@ -173,80 +120,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelId\": \"{{channelId}}\",\n  \"content\": \"Hello everyone! This is a test message.\",\n  \"mentionIds\": [],\n  \"tempId\": \"temp-{{$timestamp}}\"\n}"
+              "raw": "{\n  \"channelId\": \"{{channelId}}\",\n  \"content\": \"Hello team! How are we doing today?\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/chat/messages",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages"]
-            },
-            "description": "Send a message to a channel"
-          },
-          "response": []
-        },
-        {
-          "name": "Send Message with Mentions",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"channelId\": \"{{channelId}}\",\n  \"content\": \"Hey @user2 and @user3, check this out!\",\n  \"mentionIds\": [\"{{userId2}}\", \"{{userId3}}\"],\n  \"tempId\": \"temp-{{$timestamp}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chat/messages",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages"]
-            },
-            "description": "Send a message mentioning specific users"
-          },
-          "response": []
-        },
-        {
-          "name": "List Messages",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/chat/messages?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages"],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "messages"
               ]
-            },
-            "description": "Get all messages with pagination"
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Get Channel Messages",
@@ -263,29 +149,34 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chat/channels/{{channelId}}/messages?page=1&limit=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels", "{{channelId}}", "messages"],
+              "raw": "{{baseUrl}}/chat/channels/{{channelId}}/messages?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "channels",
+                "{{channelId}}",
+                "messages"
+              ],
               "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
                 {
                   "key": "limit",
                   "value": "50"
                 }
               ]
-            },
-            "description": "Get messages for a specific channel"
-          },
-          "response": []
+            }
+          }
         },
         {
-          "name": "Get Messages Before Date",
+          "name": "Update Message",
           "request": {
-            "method": "GET",
+            "method": "PATCH",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
@@ -295,28 +186,22 @@
                 "value": "{{workspaceId}}"
               }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/chat/messages?channelId={{channelId}}&before=2026-03-23T00:00:00Z&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages"],
-              "query": [
-                {
-                  "key": "channelId",
-                  "value": "{{channelId}}"
-                },
-                {
-                  "key": "before",
-                  "value": "2026-03-23T00:00:00Z"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                }
-              ]
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello team! (edited)\"\n}"
             },
-            "description": "Get messages before a specific date (for infinite scroll)"
-          },
-          "response": []
+            "url": {
+              "raw": "{{baseUrl}}/chat/messages/{{messageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "messages",
+                "{{messageId}}"
+              ]
+            }
+          }
         },
         {
           "name": "Delete Message",
@@ -334,12 +219,16 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/chat/messages/{{messageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages", "{{messageId}}"]
-            },
-            "description": "Soft delete a message (only author can delete)"
-          },
-          "response": []
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "messages",
+                "{{messageId}}"
+              ]
+            }
+          }
         }
       ]
     },
@@ -347,53 +236,7 @@
       "name": "Unread / Read Status",
       "item": [
         {
-          "name": "Get Unread Count",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/chat/unread-count",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "unread-count"]
-            },
-            "description": "Get total unread message count across all channels"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Unread Summary",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "x-workspace-id",
-                "value": "{{workspaceId}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/chat/unread-summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "unread-summary"]
-            },
-            "description": "Get unread count broken down by channel"
-          },
-          "response": []
-        },
-        {
-          "name": "Mark as Read",
+          "name": "Mark Channel Read",
           "request": {
             "method": "POST",
             "header": [
@@ -412,19 +255,24 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"messageId\": \"{{messageId}}\"\n}"
+              "raw": "{\n  \"messageId\": \"{{lastSeenMessageId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/chat/channels/{{channelId}}/read",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "channels", "{{channelId}}", "read"]
-            },
-            "description": "Mark all messages up to messageId as read in a channel"
-          },
-          "response": []
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "channels",
+                "{{channelId}}",
+                "read"
+              ]
+            }
+          }
         },
         {
-          "name": "Mark All as Read",
+          "name": "Mark All Read",
           "request": {
             "method": "POST",
             "header": [
@@ -439,77 +287,69 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/chat/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "read-all"]
-            },
-            "description": "Mark all messages in all channels as read"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "WebSocket Test",
-      "item": [
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "read-all"
+              ]
+            }
+          }
+        },
         {
-          "name": "WebSocket Connection Info",
+          "name": "Get Unread Count",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-workspace-id",
+                "value": "{{workspaceId}}"
+              }
+            ],
             "url": {
-              "raw": "",
-              "host": [""]
-            },
-            "description": "WebSocket URL: ws://localhost:3000/chat\n\nConnection params:\n- namespace: /chat\n- auth.token: Bearer {{accessToken}}\n- query.workspaceId: {{workspaceId}}\n\nEvents:\n- Client → Server: join:channel, leave:channel, send:message, mark:read, typing:start, typing:stop\n- Server → Client: connected, message:new, message:sent, joined:channel, left:channel, read:confirmed, typing:start, typing:stop, error"
-          },
-          "response": []
+              "raw": "{{baseUrl}}/chat/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "unread-count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-workspace-id",
+                "value": "{{workspaceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/unread-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "unread-summary"
+              ]
+            }
+          }
         }
       ]
-    }
-  ],
-  "event": [],
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000",
-      "type": "string",
-      "description": "API base URL"
-    },
-    {
-      "key": "accessToken",
-      "value": "your-jwt-token-here",
-      "type": "string",
-      "description": "JWT access token"
-    },
-    {
-      "key": "workspaceId",
-      "value": "your-workspace-id-here",
-      "type": "string",
-      "description": "Workspace ID (x-workspace-id header)"
-    },
-    {
-      "key": "channelId",
-      "value": "",
-      "type": "string",
-      "description": "Channel ID (will be set after creating a channel)"
-    },
-    {
-      "key": "messageId",
-      "value": "",
-      "type": "string",
-      "description": "Message ID (will be set after sending a message)"
-    },
-    {
-      "key": "userId2",
-      "value": "another-user-id",
-      "type": "string",
-      "description": "Second user ID for DM/private channels"
-    },
-    {
-      "key": "userId3",
-      "value": "third-user-id",
-      "type": "string",
-      "description": "Third user ID for private channels"
     }
   ]
 }

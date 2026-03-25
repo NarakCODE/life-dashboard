@@ -7,6 +7,47 @@ import type {
 } from "@/lib/notes/types";
 import type { ProjectNote } from "@/lib/data/project-details";
 
+/**
+ * Backend NoteResponseDto structure
+ */
+interface BackendNote {
+  id: string;
+  workspaceId: string;
+  title: string;
+  content?: string;
+  noteType: "general" | "meeting" | "audio";
+  status: "completed" | "processing";
+  projectId: string;
+  projectName?: string;
+  audioUrl?: string;
+  audioDuration?: string;
+  author?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Transform backend NoteResponseDto to frontend ProjectNote format
+ */
+function transformBackendNote(note: BackendNote): ProjectNote {
+  return {
+    ...note,
+    author: note.author
+      ? {
+          ...note.author,
+          role: undefined, // Backend doesn't provide role
+        }
+      : undefined,
+    audioData: undefined, // Backend doesn't provide audioData, will be loaded separately if needed
+    createdAt: new Date(note.createdAt),
+    updatedAt: new Date(note.updatedAt),
+  } as ProjectNote;
+}
+
 function buildQueryString(query: NotesQuery) {
   const params = new URLSearchParams();
 
@@ -28,14 +69,20 @@ export async function getNotesByProject(
   projectId: string,
   query: Omit<NotesQuery, "projectId">,
 ): Promise<NotesResponse> {
-  const payload = await apiRequestEnvelope<NotesResponse["data"]>({
+  const payload = await apiRequestEnvelope<{
+    notes: BackendNote[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+  }>({
     path: `/notes/by-project/${projectId}${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   });
 
   return {
-    data: payload.data,
+    data: {
+      notes: payload.data.notes.map(transformBackendNote),
+      pagination: payload.data.pagination,
+    },
   };
 }
 
@@ -43,14 +90,20 @@ export async function getAllNotes(
   workspaceId: string,
   query: NotesQuery,
 ): Promise<NotesResponse> {
-  const payload = await apiRequestEnvelope<NotesResponse["data"]>({
+  const payload = await apiRequestEnvelope<{
+    notes: BackendNote[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+  }>({
     path: `/notes${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   });
 
   return {
-    data: payload.data,
+    data: {
+      notes: payload.data.notes.map(transformBackendNote),
+      pagination: payload.data.pagination,
+    },
   };
 }
 
@@ -58,24 +111,26 @@ export async function getNote(
   workspaceId: string,
   noteId: string,
 ): Promise<ProjectNote> {
-  return apiRequest<ProjectNote>({
+  const note = await apiRequest<BackendNote>({
     path: `/notes/${noteId}`,
     auth: "required",
     workspaceId,
   });
+  return transformBackendNote(note);
 }
 
 export async function createNote(
   workspaceId: string,
   input: CreateNoteInput,
 ): Promise<ProjectNote> {
-  return apiRequest<ProjectNote>({
+  const note = await apiRequest<BackendNote>({
     path: "/notes",
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendNote(note);
 }
 
 export async function updateNote(
@@ -83,13 +138,14 @@ export async function updateNote(
   noteId: string,
   input: UpdateNoteInput,
 ): Promise<ProjectNote> {
-  return apiRequest<ProjectNote>({
+  const note = await apiRequest<BackendNote>({
     path: `/notes/${noteId}`,
     method: "PATCH",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendNote(note);
 }
 
 export async function deleteNote(workspaceId: string, noteId: string) {

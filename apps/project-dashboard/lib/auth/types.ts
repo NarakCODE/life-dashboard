@@ -1,43 +1,44 @@
-import type { OnboardingSummary } from "@/lib/onboarding/types"
+import type { OnboardingSummary } from "@/lib/onboarding/types";
 
 export interface AuthTokens {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface AuthUser {
-  id: string
-  email: string
-  displayName: string
-  isEmailVerified: boolean
-  defaultWorkspaceId: string | null
-  activeWorkspaceId: string | null
-  onboarding: OnboardingSummary
-  createdAt: string
-  updatedAt: string
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  isEmailVerified: boolean;
+  defaultWorkspaceId: string;
+  activeWorkspaceId: string | null;
+  onboarding: OnboardingSummary;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginInput {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface RegisterInput {
-  email: string
-  password: string
-  displayName: string
+  email: string;
+  password: string;
+  displayName: string;
 }
 
 export interface VerifyEmailInput {
-  email: string
-  code: string
+  email: string;
+  code: string;
 }
 
 export interface ResendVerificationInput {
-  email: string
+  email: string;
 }
 
 export interface AuthMessageResponse {
-  message: string
+  message: string;
 }

@@ -65,6 +65,8 @@ export type WorkstreamTask = {
   tag?: string
   /** Optional short description used in task lists. */
   description?: string
+  /** Optional timestamp when the task was completed. */
+  completedAt?: string | null
 }
 
 export type WorkstreamGroup = {
@@ -77,8 +79,8 @@ export type WorkstreamGroup = {
 export type ProjectTask = WorkstreamTask & {
   projectId: string
   projectName: string
-  workstreamId: string
-  workstreamName: string
+  workstreamId?: string
+  workstreamName?: string
 }
 
 export type TimeSummary = {

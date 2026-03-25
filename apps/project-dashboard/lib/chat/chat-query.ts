@@ -1,11 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import {
   createChannel,
   deleteMessage,
+  editMessage,
   getChannel,
   getChannels,
   getChannelMessages,
+  getChatConfig,
+  updateChatConfig,
   getUnreadCount,
   getUnreadSummary,
   markAllAsRead,
@@ -16,6 +24,8 @@ import type {
   CreateChannelInput,
   MessagesQuery,
   SendMessageInput,
+  UpdateChatConfigInput,
+  ChatConfig,
 } from "@/lib/chat/types";
 
 export const chatKeys = {
@@ -30,6 +40,8 @@ export const chatKeys = {
     [...chatKeys.all(workspaceId), "unread-count"] as const,
   unreadSummary: (workspaceId: string) =>
     [...chatKeys.all(workspaceId), "unread-summary"] as const,
+  config: (workspaceId: string) =>
+    [...chatKeys.all(workspaceId), "config"] as const,
 };
 
 export function useChannelsQuery(workspaceId: string, enabled = true) {
@@ -58,10 +70,29 @@ export function useChannelMessagesQuery(
   query: Omit<MessagesQuery, "channelId">,
   enabled = true,
 ) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: chatKeys.messages(workspaceId, { ...query, channelId }),
-    queryFn: () => getChannelMessages(workspaceId, channelId, query),
+    queryFn: ({ pageParam }) =>
+      getChannelMessages(workspaceId, channelId, {
+        ...query,
+        before: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => {
+      // If there are more messages, return the timestamp of the oldest message
+      if (lastPage.hasMore && lastPage.items.length > 0) {
+        const oldestMessage = lastPage.items[lastPage.items.length - 1];
+        return oldestMessage?.createdAt;
+      }
+      return undefined;
+    },
     enabled: enabled && Boolean(workspaceId) && Boolean(channelId),
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+      items: data.pages.flatMap((page) => page.items),
+      hasMore: data.pages[data.pages.length - 1]?.hasMore ?? false,
+    }),
   });
 }
 
@@ -99,10 +130,7 @@ export function useCreateChannelMutation(workspaceId: string) {
   });
 }
 
-export function useSendMessageMutation(
-  workspaceId: string,
-  channelId: string,
-) {
+export function useSendMessageMutation(workspaceId: string, channelId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -182,6 +210,53 @@ export function useDeleteMessageMutation(workspaceId: string) {
       // Invalidate all message queries
       queryClient.invalidateQueries({
         queryKey: chatKeys.all(workspaceId),
+      });
+    },
+  });
+}
+
+export function useEditMessageMutation(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      messageId,
+      content,
+    }: {
+      messageId: string;
+      content: string;
+    }) => {
+      if (!workspaceId) throw new Error("Workspace not available");
+      return editMessage(workspaceId, messageId, content);
+    },
+    onSuccess: () => {
+      // Invalidate all message queries to refresh the edited message
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.all(workspaceId),
+      });
+    },
+  });
+}
+
+export function useChatConfigQuery(workspaceId: string, enabled = true) {
+  return useQuery({
+    queryKey: chatKeys.config(workspaceId),
+    queryFn: () => getChatConfig(workspaceId),
+    enabled: enabled && Boolean(workspaceId),
+  });
+}
+
+export function useUpdateChatConfigMutation(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateChatConfigInput) => {
+      if (!workspaceId) throw new Error("Workspace not available");
+      return updateChatConfig(workspaceId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.config(workspaceId),
       });
     },
   });

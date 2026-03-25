@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "10 - Dashboard",
-    "description": "Workspace-scoped dashboard aggregation endpoints.",
+    "description": "Dashboard aggregation and metric endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

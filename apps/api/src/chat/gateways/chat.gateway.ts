@@ -23,11 +23,13 @@ interface JwtPayload {
 }
 
 @WebSocketGateway({
-  namespace: 'chat',
+  namespace: '/chat',
   cors: {
-    origin: '*',
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+    methods: ['GET', 'POST'],
   },
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(ChatGateway.name);
@@ -49,18 +51,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token = this.extractToken(client);
       if (!token) {
-        throw new UnauthorizedException('No token provided');
+        this.logger.warn(`Connection rejected: No token provided from ${client.id}`);
+        client.emit('error', { message: 'No token provided' });
+        client.disconnect(true);
+        return;
       }
 
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       client.data.userId = payload.sub;
       client.data.workspaceId =
-        (client.handshake.query.workspaceId as string) || undefined;
+        (client.handshake.query.workspaceId as string) || null;
 
       // Track online status
       this.addOnlineUser(payload.sub, client.id);
 
-      this.logger.log(`Client connected: ${client.id}, user: ${payload.sub}`);
+      this.logger.log(`✅ Client connected: ${client.id}, user: ${payload.sub}, workspace: ${client.data.workspaceId}`);
 
       // Send connection success
       client.emit('connected', {
@@ -68,9 +73,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: payload.sub,
       });
     } catch (error: any) {
-      this.logger.error(`Connection failed: ${error.message}`);
-      client.emit('error', { message: 'Authentication failed' });
-      client.disconnect();
+      this.logger.error(`❌ Connection failed: ${error.message}`, error.stack);
+      client.emit('error', { message: `Authentication failed: ${error.message}` });
+      client.disconnect(true);
     }
   }
 

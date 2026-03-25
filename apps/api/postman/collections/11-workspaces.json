@@ -1,428 +1,371 @@
 {
   "info": {
     "name": "11 - Workspaces",
-    "description": "Workspace lifecycle and invitation management endpoints. Path-scoped routes derive workspace context from `:workspaceId`.",
+    "description": "Workspace management and member collaboration.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Create Workspace",
-      "event": [
+      "name": "Management",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const workspaceId = response.data?.id || response.data?._id || \"\";",
-              "if (workspaceId) {",
-              "  pm.environment.set('workspaceId', workspaceId);",
-              "}"
-            ]
+          "name": "Create Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Workspace\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces"
+              ]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Personal Life Dashboard\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/workspaces",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces"
-          ]
-        }
-      }
-    },
-    {
-      "name": "List Workspaces",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const workspace = Array.isArray(response.data) ? response.data[0] : null;",
-              "const workspaceId = workspace?.id || workspace?._id || \"\";",
-              "if (workspaceId) {",
-              "  pm.environment.set('workspaceId', workspaceId);",
-              "}"
-            ]
+          "name": "List My Workspaces",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces"
+              ]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces"
-          ]
-        }
-      }
-    },
-    {
-      "name": "List My Invitations",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const invitation = Array.isArray(response.data) ? response.data[0] : null;",
-              "const invitationId = invitation?.id || invitation?._id || \"\";",
-              "if (invitationId) {",
-              "  pm.environment.set('invitationId', invitationId);",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/invitations/mine",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "invitations",
-            "mine"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Workspace Details",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const workspace = response.data || {};",
-              "const workspaceId = workspace.id || workspace._id || \"\";",
-              "if (workspaceId) {",
-              "  pm.environment.set('workspaceId', workspaceId);",
-              "}",
-              "const member = Array.isArray(workspace.members) ? workspace.members.find((entry) => entry?.userId && entry.userId !== pm.environment.get(\"userId\")) : null;",
-              "if (member?.userId) {",
-              "  pm.environment.set('memberId', member.userId);",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Update Workspace",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Family Dashboard\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Invite Member",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const invitationId = response.data?.id || response.data?._id || \"\";",
-              "if (invitationId) {",
-              "  pm.environment.set('invitationId', invitationId);",
-              "}"
-            ]
+          "name": "Get Workspace Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}"
+              ]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"partner@example.com\",\n  \"role\": \"MEMBER\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/invitations",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}",
-            "invitations"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Accept Invitation",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/invitations/{{invitationId}}/accept",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "invitations",
-            "{{invitationId}}",
-            "accept"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Reject Invitation",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/invitations/{{invitationId}}/reject",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "invitations",
-            "{{invitationId}}",
-            "reject"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Revoke Invitation",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/invitations/{{invitationId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}",
-            "invitations",
-            "{{invitationId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Switch Workspace",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const workspaceId = response.data?.workspaceId || \"\";",
-              "if (workspaceId) {",
-              "  pm.environment.set('workspaceId', workspaceId);",
-              "}"
-            ]
+          "name": "Update Workspace",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Workspace Name\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}"
+              ]
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/switch",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}",
-            "switch"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Leave Workspace",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/leave",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}",
-            "leave"
-          ]
         },
-        "description": "Leaves the current workspace as the authenticated member. Owners cannot leave without transferring ownership first."
-      }
-    },
-    {
-      "name": "Remove Member",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
+        {
+          "name": "Switch Active Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/switch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "switch"
+              ]
+            }
           }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/members/{{memberId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}",
-            "members",
-            "{{memberId}}"
-          ]
         },
-        "description": "Requires `memberId` from the workspace details response or manual setup."
-      }
+        {
+          "name": "Leave Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "leave"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Workspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}"
+              ]
+            }
+          }
+        }
+      ]
     },
     {
-      "name": "Delete Workspace",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
+      "name": "Invitations",
+      "item": [
+        {
+          "name": "Invite Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invitee@example.com\",\n  \"role\": \"member\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "invitations"
+              ]
+            }
           }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "workspaces",
-            "{{workspaceId}}"
-          ]
+        },
+        {
+          "name": "List Workspace Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "invitations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List My Pending Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/invitations/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "invitations",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/invitations/{{invitationId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "invitations",
+                "{{invitationId}}",
+                "accept"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/invitations/{{invitationId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "invitations",
+                "{{invitationId}}",
+                "reject"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/invitations/{{invitationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "invitations",
+                "{{invitationId}}"
+              ]
+            }
+          }
         }
-      }
+      ]
+    },
+    {
+      "name": "Context Resolution",
+      "item": [
+        {
+          "name": "Resolve Workspace Context",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/resolve-context?workspaceId={{workspaceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "resolve-context"
+              ],
+              "query": [
+                {
+                  "key": "workspaceId",
+                  "value": "{{workspaceId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

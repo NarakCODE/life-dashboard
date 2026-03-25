@@ -101,6 +101,27 @@ export interface UnreadSummary {
   }>;
 }
 
+export type AutoDeletePreset = "off" | "1h" | "1d" | "7d" | "30d" | "custom";
+
+export interface ChatConfig {
+  id: string;
+  workspaceId: string;
+  autoDeletePreset: AutoDeletePreset;
+  autoDeleteCustomSeconds: number | null;
+  autoDeleteForAllUsers: boolean;
+  notifyBeforeDeletion: boolean;
+  autoDeleteSeconds: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateChatConfigInput {
+  autoDeletePreset?: AutoDeletePreset;
+  autoDeleteCustomSeconds?: number | null;
+  autoDeleteForAllUsers?: boolean;
+  notifyBeforeDeletion?: boolean;
+}
+
 // WebSocket events
 export interface SocketMessage {
   id: string;

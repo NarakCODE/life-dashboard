@@ -8,6 +8,45 @@ import type {
   UpdateTaskInput,
 } from "@/lib/tasks/types"
 
+/**
+ * Backend TaskResponseDto structure
+ */
+interface BackendTask {
+  id: string
+  workspaceId: string
+  name: string
+  status: "todo" | "in-progress" | "done" | "archived"
+  projectId: string
+  projectName: string
+  workstreamId?: string
+  workstreamName?: string
+  assignee?: {
+    id: string
+    name: string
+    avatarUrl?: string
+    role?: string
+  }
+  startDate?: string
+  priority?: "no-priority" | "low" | "medium" | "high" | "urgent"
+  tag?: string
+  description?: string
+  dueDate?: string
+  completedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * Transform backend TaskResponseDto to frontend ProjectTask format
+ */
+function transformTaskToProjectTask(task: BackendTask): ProjectTask {
+  return {
+    ...task,
+    startDate: task.startDate ? new Date(task.startDate) : undefined,
+    dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+  } as ProjectTask
+}
+
 function buildQueryString(query: MyTasksQuery) {
   const params = new URLSearchParams()
 
@@ -32,14 +71,17 @@ export async function getMyTasks(
   workspaceId: string,
   query: MyTasksQuery,
 ): Promise<MyTasksResponse> {
-  const payload = await apiRequestEnvelope<MyTasksResponse["data"], MyTasksResponseMeta>({
+  const payload = await apiRequestEnvelope<{ tasks: BackendTask[]; pagination: TaskPagination }, MyTasksResponseMeta>({
     path: `/tasks/my-tasks${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   })
 
   return {
-    data: payload.data,
+    data: {
+      tasks: payload.data.tasks.map(transformTaskToProjectTask),
+      pagination: payload.data.pagination,
+    },
     meta: payload.meta ?? { filterCounts: {} },
   }
 }
@@ -81,14 +123,17 @@ export async function getAllTasks(
   workspaceId: string,
   query: MyTasksQuery,
 ): Promise<MyTasksResponse> {
-  const payload = await apiRequestEnvelope<MyTasksResponse["data"], MyTasksResponseMeta>({
+  const payload = await apiRequestEnvelope<{ tasks: BackendTask[]; pagination: TaskPagination }, MyTasksResponseMeta>({
     path: `/tasks${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   })
 
   return {
-    data: payload.data,
+    data: {
+      tasks: payload.data.tasks.map(transformTaskToProjectTask),
+      pagination: payload.data.pagination,
+    },
     meta: payload.meta ?? { filterCounts: {} },
   }
 }
@@ -97,9 +142,17 @@ export async function getTask(
   workspaceId: string,
   taskId: string,
 ): Promise<ProjectTask> {
-  return apiRequest<ProjectTask>({
+  const task = await apiRequest<BackendTask>({
     path: `/tasks/${taskId}`,
     auth: "required",
     workspaceId,
   })
+  return transformTaskToProjectTask(task)
+}
+
+interface TaskPagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }

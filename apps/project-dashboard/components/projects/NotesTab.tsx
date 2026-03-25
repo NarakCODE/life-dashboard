@@ -254,6 +254,7 @@ export function NotesTab({
         note={selectedNote}
         onDelete={handleDeleteNote}
         onUpdate={handleUpdateNote}
+        isPending={updateNoteMutation.isPending || deleteNoteMutation.isPending}
       />
     </div>
   );

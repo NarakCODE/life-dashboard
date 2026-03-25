@@ -33,6 +33,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { PerformanceModule } from './performance/performance.module';
 import { FiltersModule } from './filters/filters.module';
 import { AuditModule } from './common/audit/audit.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -119,6 +120,7 @@ import { AuditModule } from './common/audit/audit.module';
     PerformanceModule,
     FiltersModule,
     AuditModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

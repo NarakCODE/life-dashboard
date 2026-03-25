@@ -9,7 +9,64 @@ import type {
   SendMessageInput,
   UnreadCountResponse,
   UnreadSummary,
+  ChatConfig,
+  UpdateChatConfigInput,
 } from "@/lib/chat/types";
+
+/**
+ * Backend ChannelResponseDto structure
+ */
+interface BackendChannel {
+  id: string;
+  workspaceId?: string | null;
+  type: "public" | "private" | "dm";
+  name?: string;
+  description?: string;
+  memberIds: string[];
+  unreadCount?: number;
+  lastMessageId?: string | null;
+  lastMessageAt?: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Backend MessageResponseDto structure
+ */
+interface BackendMessage {
+  id: string;
+  channelId: string;
+  workspaceId?: string | null;
+  authorId: string;
+  content: string;
+  mentionIds: string[];
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Transform backend ChannelResponseDto to frontend Channel format
+ */
+function transformBackendChannel(channel: BackendChannel): Channel {
+  return {
+    ...channel,
+    lastMessageAt: channel.lastMessageAt ?? undefined,
+  } as Channel;
+}
+
+/**
+ * Transform backend MessageResponseDto to frontend Message format
+ */
+function transformBackendMessage(message: BackendMessage): Message {
+  return {
+    ...message,
+    editedAt: message.editedAt ?? undefined,
+    deletedAt: message.deletedAt ?? undefined,
+  } as Message;
+}
 
 function buildQueryString(query: MessagesQuery) {
   const params = new URLSearchParams();
@@ -28,46 +85,58 @@ function buildQueryString(query: MessagesQuery) {
 }
 
 export async function getChannels(workspaceId: string): Promise<Channel[]> {
-  return apiRequest<Channel[]>({
+  const channels = await apiRequest<BackendChannel[]>({
     path: "/chat/channels",
     auth: "required",
     workspaceId,
   });
+  return channels.map(transformBackendChannel);
 }
 
 export async function getChannel(
   workspaceId: string,
   channelId: string,
 ): Promise<Channel> {
-  return apiRequest<Channel>({
+  const channel = await apiRequest<BackendChannel>({
     path: `/chat/channels/${channelId}`,
     auth: "required",
     workspaceId,
   });
+  return transformBackendChannel(channel);
 }
 
 export async function createChannel(
   workspaceId: string,
   input: CreateChannelInput,
 ): Promise<Channel> {
-  return apiRequest<Channel>({
+  const channel = await apiRequest<BackendChannel>({
     path: "/chat/channels",
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendChannel(channel);
 }
 
 export async function getMessages(
   workspaceId: string,
   query: MessagesQuery,
 ): Promise<PaginatedMessages> {
-  return apiRequest<PaginatedMessages>({
+  const result = await apiRequest<{
+    items: BackendMessage[];
+    total: number;
+    hasMore: boolean;
+  }>({
     path: `/chat/messages${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   });
+  return {
+    items: result.items.map(transformBackendMessage),
+    total: result.total,
+    hasMore: result.hasMore,
+  };
 }
 
 export async function getChannelMessages(
@@ -75,24 +144,34 @@ export async function getChannelMessages(
   channelId: string,
   query: Omit<MessagesQuery, "channelId">,
 ): Promise<PaginatedMessages> {
-  return apiRequest<PaginatedMessages>({
+  const result = await apiRequest<{
+    items: BackendMessage[];
+    total: number;
+    hasMore: boolean;
+  }>({
     path: `/chat/channels/${channelId}/messages${buildQueryString(query)}`,
     auth: "required",
     workspaceId,
   });
+  return {
+    items: result.items.map(transformBackendMessage),
+    total: result.total,
+    hasMore: result.hasMore,
+  };
 }
 
 export async function sendMessage(
   workspaceId: string,
   input: SendMessageInput,
 ): Promise<Message> {
-  return apiRequest<Message>({
+  const message = await apiRequest<BackendMessage>({
     path: "/chat/messages",
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendMessage(message);
 }
 
 export async function deleteMessage(
@@ -105,6 +184,21 @@ export async function deleteMessage(
     auth: "required",
     workspaceId,
   });
+}
+
+export async function editMessage(
+  workspaceId: string,
+  messageId: string,
+  content: string,
+): Promise<Message> {
+  const message = await apiRequest<BackendMessage>({
+    path: `/chat/messages/${messageId}`,
+    method: "PATCH",
+    body: { content },
+    auth: "required",
+    workspaceId,
+  });
+  return transformBackendMessage(message);
 }
 
 export async function markAsRead(
@@ -147,6 +241,29 @@ export async function getUnreadSummary(
 ): Promise<UnreadSummary> {
   return apiRequest<UnreadSummary>({
     path: "/chat/unread-summary",
+    auth: "required",
+    workspaceId,
+  });
+}
+
+export async function getChatConfig(
+  workspaceId: string,
+): Promise<ChatConfig> {
+  return apiRequest<ChatConfig>({
+    path: "/chat/config",
+    auth: "required",
+    workspaceId,
+  });
+}
+
+export async function updateChatConfig(
+  workspaceId: string,
+  input: UpdateChatConfigInput,
+): Promise<ChatConfig> {
+  return apiRequest<ChatConfig>({
+    path: "/chat/config",
+    method: "PATCH",
+    body: input,
     auth: "required",
     workspaceId,
   });

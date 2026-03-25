@@ -51,7 +51,7 @@ export class User {
   @Prop({ default: false })
   isEmailVerified!: boolean;
 
-  @Prop({ default: null })
+  @Prop({ default: null, type: String })
   avatarUrl?: string | null;
 
   @Prop({ type: Object, default: {} })
@@ -63,13 +63,13 @@ export class User {
   })
   status!: UserStatus;
 
-  @Prop({ default: null })
+  @Prop({ default: null, type: Date })
   lastLogin?: Date | null;
 
   @Prop({ default: 0 })
   tokenVersion!: number;
 
-  @Prop({ default: null })
+  @Prop({ default: null, type: Date })
   deletedAt?: Date | null;
 
   @Prop({ type: Types.ObjectId, ref: 'Workspace', default: null, index: true })

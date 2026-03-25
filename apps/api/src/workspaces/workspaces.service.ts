@@ -31,6 +31,7 @@ import {
 import { WorkspaceRequestContext } from './interfaces/workspace-context.interface';
 import { getWorkspacePermissions } from './workspace-permissions';
 import { WorkspaceProvisioningService } from './workspace-provisioning.service';
+import { WorkspaceResponseDto } from './dto/workspace-response.dto';
 
 // User details interface for populated responses
 export interface UserDetails {
@@ -239,8 +240,8 @@ export class WorkspacesService {
               },
             };
           }) ?? [],
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
+        createdAt: workspace.createdAt.toISOString(),
+        updatedAt: workspace.updatedAt.toISOString(),
       };
     });
   }

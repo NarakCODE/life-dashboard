@@ -1,8 +1,13 @@
+"use client"
+
 import { useState } from "react"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
+import { ListPlugin } from "@lexical/react/LexicalListPlugin"
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin"
 
 import { ContentEditable } from "@/components/editor/editor-ui/content-editable"
+import { Toolbar } from "@/components/editor/toolbar/toolbar"
 
 export function Plugins() {
   const [floatingAnchorElem, setFloatingAnchorElem] =
@@ -15,8 +20,11 @@ export function Plugins() {
   }
 
   return (
-    <div className="relative">
-      {/* toolbar plugins */}
+    <div className="relative flex flex-col">
+      {/* Toolbar */}
+      <Toolbar />
+      
+      {/* Content Area */}
       <div className="relative">
         <RichTextPlugin
           contentEditable={
@@ -28,9 +36,13 @@ export function Plugins() {
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
-        {/* editor plugins */}
       </div>
-      {/* actions plugins */}
+      
+      {/* List Plugin for bullet and numbered lists */}
+      <ListPlugin />
+      
+      {/* History Plugin for undo/redo */}
+      <HistoryPlugin />
     </div>
   )
 }

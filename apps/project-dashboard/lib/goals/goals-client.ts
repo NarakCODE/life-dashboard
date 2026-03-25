@@ -8,8 +8,45 @@ import type {
   LinkHabitsInput,
   LinkTasksInput,
   LogProgressInput,
+  ProgressLog,
   UpdateGoalInput,
 } from "@/lib/goals/types";
+
+/**
+ * Backend GoalResponseDto structure
+ */
+interface BackendGoal {
+  id: string;
+  workspaceId?: string | null;
+  userId: string;
+  title: string;
+  description?: string;
+  type: "manual" | "task-based" | "habit-based" | "mixed";
+  targetValue: number;
+  currentValue: number;
+  unit?: string;
+  dueDate?: string;
+  status: "active" | "completed" | "archived";
+  progressLogs: { value: number; note?: string; loggedAt: string }[];
+  linkedTasks: string[];
+  linkedHabits: string[];
+  progressPercent: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Transform backend GoalResponseDto to frontend Goal format
+ */
+function transformBackendGoal(goal: BackendGoal): Goal {
+  return {
+    ...goal,
+    progressLogs: goal.progressLogs.map((log) => ({
+      ...log,
+      loggedAt: log.loggedAt,
+    })),
+  } as Goal;
+}
 
 function buildQueryString(query: GoalsQuery) {
   const params = new URLSearchParams();
@@ -32,7 +69,7 @@ export async function getGoals(
   query: GoalsQuery,
 ): Promise<GoalsResponse> {
   const payload = await apiRequestEnvelope<
-    GoalsResponseData,
+    { items: BackendGoal[]; pagination: { total: number; page: number; limit: number; totalPages: number } },
     Record<string, unknown>
   >({
     path: `/goals${buildQueryString(query)}`,
@@ -41,7 +78,10 @@ export async function getGoals(
   });
 
   return {
-    data: payload.data,
+    data: {
+      items: payload.data.items.map(transformBackendGoal),
+      pagination: payload.data.pagination,
+    },
     meta: payload.meta ?? {},
   };
 }
@@ -50,21 +90,23 @@ export async function getGoal(
   workspaceId: string,
   goalId: string,
 ): Promise<Goal> {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}`,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function createGoal(workspaceId: string, input: CreateGoalInput) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: "/goals",
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function updateGoal(
@@ -72,13 +114,14 @@ export async function updateGoal(
   goalId: string,
   input: UpdateGoalInput,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}`,
     method: "PATCH",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function deleteGoal(workspaceId: string, goalId: string) {
@@ -95,13 +138,14 @@ export async function logProgress(
   goalId: string,
   input: LogProgressInput,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}/log-progress`,
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function linkTasks(
@@ -109,13 +153,14 @@ export async function linkTasks(
   goalId: string,
   input: LinkTasksInput,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}/link-tasks`,
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function unlinkTask(
@@ -123,12 +168,13 @@ export async function unlinkTask(
   goalId: string,
   taskId: string,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}/unlink-task/${taskId}`,
     method: "DELETE",
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function linkHabits(
@@ -136,13 +182,14 @@ export async function linkHabits(
   goalId: string,
   input: LinkHabitsInput,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}/link-habits`,
     method: "POST",
     body: input,
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }
 
 export async function unlinkHabit(
@@ -150,10 +197,11 @@ export async function unlinkHabit(
   goalId: string,
   habitId: string,
 ) {
-  return apiRequest<Goal>({
+  const goal = await apiRequest<BackendGoal>({
     path: `/goals/${goalId}/unlink-habit/${habitId}`,
     method: "DELETE",
     auth: "required",
     workspaceId,
   });
+  return transformBackendGoal(goal);
 }

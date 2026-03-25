@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { ChannelType, type Channel } from "@/lib/chat/types";
 
 interface ChannelSidebarProps {
@@ -25,7 +26,10 @@ interface ChannelSidebarProps {
   selectedChannelId?: string;
   onSelectChannel: (channel: Channel) => void;
   onCreateChannel?: () => void;
+  onMarkAllAsRead?: () => void;
   isLoading?: boolean;
+  totalUnreadCount?: number;
+  className?: string;
 }
 
 export function ChannelSidebar({
@@ -33,7 +37,10 @@ export function ChannelSidebar({
   selectedChannelId,
   onSelectChannel,
   onCreateChannel,
+  onMarkAllAsRead,
   isLoading,
+  totalUnreadCount = 0,
+  className,
 }: ChannelSidebarProps) {
   const [search, setSearch] = useState("");
 
@@ -122,7 +129,7 @@ export function ChannelSidebar({
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-64 flex-col border-r bg-muted/30 p-4">
+      <div className={cn("flex h-full w-64 flex-col border-r bg-muted/30 p-4", className)}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">Channels</h2>
           <div className="h-4 w-4 animate-pulse rounded bg-muted" />
@@ -140,33 +147,52 @@ export function ChannelSidebar({
   }
 
   return (
-    <div className="flex h-full w-72 flex-col border-r bg-muted/30">
+    <div className={cn("flex h-full w-72 flex-col border-r bg-muted/30", className)}>
       <div className="p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">Chat</h2>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold">Chat</h2>
+            {totalUnreadCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+                {totalUnreadCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {onMarkAllAsRead && totalUnreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs px-2 text-muted-foreground"
+                onClick={onMarkAllAsRead}
+              >
+                Mark all read
               </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-48">
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={onCreateChannel}
-                >
-                  <Hash className="mr-2 h-4 w-4" />
-                  New Channel
+            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Plus className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" className="w-full justify-start">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  New DM
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={onCreateChannel}
+                  >
+                    <Hash className="mr-2 h-4 w-4" />
+                    New Channel
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    New DM
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <div className="relative">

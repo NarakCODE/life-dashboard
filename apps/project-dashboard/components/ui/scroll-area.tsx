@@ -5,18 +5,39 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 
 import { cn } from "@/lib/utils";
 
+interface ScrollAreaProps extends React.ComponentProps<typeof ScrollAreaPrimitive.Root> {
+  viewportRef?: React.RefObject<HTMLDivElement>;
+  onScroll?: () => void;
+}
+
 function ScrollArea({
   className,
   children,
+  viewportRef,
+  onScroll,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: ScrollAreaProps) {
+  const localRef = React.useRef<HTMLDivElement>(null);
+  const viewportElementRef = viewportRef || localRef;
+
+  React.useEffect(() => {
+    if (!onScroll || !viewportElementRef.current) return;
+
+    const viewport = viewportElementRef.current;
+    viewport.addEventListener("scroll", onScroll);
+    return () => viewport.removeEventListener("scroll", onScroll);
+  }, [onScroll, viewportElementRef]);
+
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
       className={cn("relative overflow-hidden", className)}
       {...props}
     >
-      <ScrollAreaPrimitive.Viewport className="size-full rounded-[inherit]">
+      <ScrollAreaPrimitive.Viewport
+        ref={viewportElementRef as React.RefObject<HTMLDivElement>}
+        className="size-full rounded-[inherit]"
+      >
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar />
@@ -38,7 +59,7 @@ function ScrollBar({
         "flex touch-none select-none p-px transition-colors",
         orientation === "vertical" && "h-full w-2.5 border-l border-l-transparent",
         orientation === "horizontal" && "h-2.5 flex-col border-t border-t-transparent",
-        className,
+        className
       )}
       {...props}
     >

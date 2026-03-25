@@ -8,6 +8,8 @@ import {
   CopySimple,
   PencilSimpleLine,
   Spinner,
+  UploadSimple,
+  X,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,15 +32,18 @@ import { SettingRow } from "@/components/settings/shared/SettingRow";
 import { SettingSection } from "@/components/settings/shared/SettingSection";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpdateProfileMutation } from "@/lib/auth/auth-query";
+import { useUploadUserAvatarMutation } from "@/lib/upload/upload-query";
 import { getInitials } from "@/lib/utils";
 
 export function AccountSettingsPane() {
   const { user, hasHydrated } = useAuth();
   const updateProfileMutation = useUpdateProfileMutation();
+  const uploadAvatarMutation = useUploadUserAvatarMutation();
   const [displayName, setDisplayName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { theme, setTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -63,13 +68,44 @@ export function AccountSettingsPane() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please use JPEG, PNG, WebP, or GIF.");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File too large. Maximum size is 5MB.");
+      return;
+    }
+
     const nextUrl = URL.createObjectURL(file);
     setPhotoPreview(nextUrl);
-    toast.info("Photo upload not yet implemented. Please use a URL.");
+    setSelectedFile(file);
+  };
+
+  const handleUploadAvatar = async () => {
+    if (!selectedFile) return;
+
+    try {
+      await uploadAvatarMutation.mutateAsync(selectedFile);
+      // Clear preview after successful upload - the actual avatar will come from user data
+      setPhotoPreview(null);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch {
+      // Error is handled by the mutation
+    }
   };
 
   const handleResetPhoto = () => {
     setPhotoPreview(null);
+    setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -140,35 +176,72 @@ export function AccountSettingsPane() {
           description="This image appears across your workspace."
         >
           <div className="flex flex-wrap items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={photoPreview || undefined} />
-              <AvatarFallback className="text-lg font-medium">
-                {getInitials(user.displayName)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={photoPreview || user.avatarUrl || undefined} />
+                <AvatarFallback className="text-lg font-medium">
+                  {getInitials(user.displayName)}
+                </AvatarFallback>
+              </Avatar>
+              {uploadAvatarMutation.isPending && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                  <Spinner className="h-6 w-6 animate-spin text-white" />
+                </div>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-xs"
-                onClick={handleRequestPhoto}
-              >
-                Change photo
-              </Button>
-              {photoPreview && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 text-xs text-muted-foreground"
-                  onClick={handleResetPhoto}
-                >
-                  Remove
-                </Button>
+              {selectedFile ? (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                    onClick={handleUploadAvatar}
+                    disabled={uploadAvatarMutation.isPending}
+                  >
+                    {uploadAvatarMutation.isPending ? (
+                      <Spinner className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <UploadSimple className="mr-1 h-3 w-3" />
+                    )}
+                    Upload
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-muted-foreground"
+                    onClick={handleResetPhoto}
+                    disabled={uploadAvatarMutation.isPending}
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                    onClick={handleRequestPhoto}
+                  >
+                    Change photo
+                  </Button>
+                  {user.avatarUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs text-muted-foreground"
+                      onClick={handleResetPhoto}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </>
               )}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={handlePhotoChange}
                 aria-label="Upload profile photo"

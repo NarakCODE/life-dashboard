@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 import { Channel, ChannelSchema } from './schemas/channel.schema';
@@ -9,10 +10,12 @@ import {
   ChannelMember,
   ChannelMemberSchema,
 } from './schemas/channel-member.schema';
+import { ChatConfig, ChatConfigSchema } from './schemas/chat-config.schema';
 
 import { ChannelsService } from './services/channels.service';
 import { MessagesService } from './services/messages.service';
 import { UnreadService } from './services/unread.service';
+import { ChatConfigService } from './services/chat-config.service';
 
 import { ChatGateway } from './gateways/chat.gateway';
 import { ChatController } from './chat.controller';
@@ -23,12 +26,28 @@ import { ChatController } from './chat.controller';
       { name: Channel.name, schema: ChannelSchema },
       { name: Message.name, schema: MessageSchema },
       { name: ChannelMember.name, schema: ChannelMemberSchema },
+      { name: ChatConfig.name, schema: ChatConfigSchema },
     ]),
     WorkspacesModule,
-    JwtModule.register({}),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('jwt.secret', 'fallback-secret'),
+        signOptions: {
+          expiresIn: config.get<string>('jwt.expiresIn', '1h') as any,
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [ChatController],
-  providers: [ChatGateway, ChannelsService, MessagesService, UnreadService],
-  exports: [ChannelsService, MessagesService, UnreadService],
+  providers: [
+    ChatGateway,
+    ChannelsService,
+    MessagesService,
+    UnreadService,
+    ChatConfigService,
+  ],
+  exports: [ChannelsService, MessagesService, UnreadService, ChatConfigService],
 })
 export class ChatModule {}

@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/api-client"
+import { apiRequest } from "@/lib/api/api-client";
 import type {
   AuthMessageResponse,
   AuthTokens,
@@ -7,7 +7,68 @@ import type {
   RegisterInput,
   ResendVerificationInput,
   VerifyEmailInput,
-} from "@/lib/auth/types"
+} from "@/lib/auth/types";
+
+/**
+ * Backend AuthTokensDto structure (camelCase):
+ * {
+ *   accessToken: string   // JWT access token (15 min expiry)
+ *   refreshToken: string  // JWT refresh token (7 day expiry)
+ *   expiresIn: number     // Seconds until access token expires (e.g., 900)
+ * }
+ *
+ * The API wraps this in an envelope: { success: true, data: AuthTokensDto, timestamp: string }
+ * The apiRequest function automatically unwraps the envelope and returns the data.
+ */
+
+/**
+ * Backend MeResponseDto structure (nested)
+ */
+interface BackendMeResponse {
+  identity: {
+    id: string;
+    email: string;
+    roles: string[];
+    isEmailVerified: boolean;
+  };
+  profile: {
+    displayName: string;
+    avatarUrl?: string | null;
+    profileMetadata?: Record<string, string>;
+  };
+  metadata: {
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    lastLogin?: string | null;
+    defaultWorkspaceId?: string | null;
+    activeWorkspaceId?: string | null;
+    onboarding: {
+      status: string;
+      requiresOnboarding: boolean;
+      currentStep?: string | null;
+      workspaceId?: string | null;
+    };
+  };
+}
+
+/**
+ * Transform backend nested MeResponseDto to flat AuthUser format
+ */
+function transformMeResponseToAuthUser(response: BackendMeResponse): AuthUser {
+  return {
+    id: response.identity.id,
+    email: response.identity.email,
+    displayName: response.profile.displayName,
+    avatarUrl: response.profile.avatarUrl,
+    isEmailVerified: response.identity.isEmailVerified,
+    defaultWorkspaceId: response.metadata.defaultWorkspaceId ,
+    activeWorkspaceId: response.metadata.activeWorkspaceId,
+    onboarding: response.metadata.onboarding,
+    createdAt: response.metadata.createdAt,
+    updatedAt: response.metadata.updatedAt,
+  };
+}
 
 export function login(input: LoginInput) {
   return apiRequest<AuthTokens>({
@@ -15,7 +76,7 @@ export function login(input: LoginInput) {
     method: "POST",
     body: input,
     auth: "none",
-  })
+  });
 }
 
 export function devBootstrapSession() {
@@ -23,7 +84,7 @@ export function devBootstrapSession() {
     path: "/auth/dev-bootstrap",
     method: "POST",
     auth: "none",
-  })
+  });
 }
 
 export function register(input: RegisterInput) {
@@ -32,7 +93,7 @@ export function register(input: RegisterInput) {
     method: "POST",
     body: input,
     auth: "none",
-  })
+  });
 }
 
 export function verifyEmail(input: VerifyEmailInput) {
@@ -41,7 +102,7 @@ export function verifyEmail(input: VerifyEmailInput) {
     method: "POST",
     body: input,
     auth: "none",
-  })
+  });
 }
 
 export function resendVerification(input: ResendVerificationInput) {
@@ -50,7 +111,7 @@ export function resendVerification(input: ResendVerificationInput) {
     method: "POST",
     body: input,
     auth: "none",
-  })
+  });
 }
 
 export function refreshSession(refreshToken: string) {
@@ -61,7 +122,7 @@ export function refreshSession(refreshToken: string) {
       Authorization: `Bearer ${refreshToken}`,
     },
     auth: "none",
-  })
+  });
 }
 
 export function logout() {
@@ -69,26 +130,26 @@ export function logout() {
     path: "/auth/logout",
     method: "POST",
     auth: "required",
-  })
+  });
 }
 
 export function getCurrentUser() {
-  return apiRequest<AuthUser>({
+  return apiRequest<BackendMeResponse>({
     path: "/auth/me",
     auth: "required",
-  })
+  }).then(transformMeResponseToAuthUser);
 }
 
 export interface UpdateProfileInput {
-  displayName?: string
-  avatarUrl?: string | null
+  displayName?: string;
+  avatarUrl?: string | null;
 }
 
 export function updateProfile(input: UpdateProfileInput) {
-  return apiRequest<AuthUser>({
+  return apiRequest<BackendMeResponse>({
     path: "/auth/me",
     method: "PATCH",
     body: input,
     auth: "required",
-  })
+  }).then(transformMeResponseToAuthUser);
 }

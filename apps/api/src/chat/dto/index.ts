@@ -2,3 +2,8 @@ export * from './create-channel.dto';
 export * from './send-message.dto';
 export * from './query-messages.dto';
 export * from './mark-read.dto';
+export * from './message-response.dto';
+export * from './channel-response.dto';
+export * from './update-message.dto';
+export * from './update-chat-config.dto';
+export * from './chat-config-response.dto';

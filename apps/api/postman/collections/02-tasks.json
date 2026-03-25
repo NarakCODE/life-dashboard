@@ -1,73 +1,12 @@
 {
   "info": {
     "name": "02 - Tasks",
-    "description": "Workspace-scoped task endpoints. Includes a helper request to resolve project/workstream ids before task creation.",
+    "description": "Task management with workspace scoping.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "List Projects For Task Context",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "const projects = Array.isArray(response.data) ? response.data : [];",
-              "if (projects[0]?.id) {",
-              "  pm.environment.set('projectId', projects[0].id);",
-              "}",
-              "if (projects[0]?.workstreams?.[0]?.id) {",
-              "  pm.environment.set('workstreamId', projects[0].workstreams[0].id);",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          },
-          {
-            "key": "x-workspace-id",
-            "value": "{{workspaceId}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/projects",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "projects"
-          ]
-        },
-        "description": "Fetch workspace projects and save the first `projectId` / `workstreamId` for task examples."
-      }
-    },
-    {
       "name": "Create Task",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const response = pm.response.json();",
-              "if (response.data?.id) {",
-              "  pm.environment.set('taskId', response.data.id);",
-              "}",
-              "pm.test('Status code is 201', function () {",
-              "  pm.response.to.have.status(201);",
-              "});"
-            ]
-          }
-        }
-      ],
       "request": {
         "method": "POST",
         "header": [
@@ -86,7 +25,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Design system setup\",\n  \"projectId\": \"{{projectId}}\",\n  \"workstreamId\": \"{{workstreamId}}\",\n  \"description\": \"Establish the token and spacing system.\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"tag\": \"Design\",\n  \"startDate\": \"2026-03-25T00:00:00.000Z\",\n  \"dueDate\": \"2026-03-27T00:00:00.000Z\"\n}"
+          "raw": "{\n  \"title\": \"Implement Postman Collections\",\n  \"description\": \"Review and update all API modules\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2024-03-31\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks",
@@ -96,8 +35,7 @@
           "path": [
             "tasks"
           ]
-        },
-        "description": "Create a task in the active workspace using real project/workstream ids."
+        }
       }
     },
     {
@@ -115,7 +53,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks/my-tasks?page=1&limit=10&status=todo,in-progress&projectId={{projectId}}&tags=Design&view=board&groupBy=status&sortBy=startDate&sortOrder=asc",
+          "raw": "{{baseUrl}}/tasks/my-tasks?status=todo&priority=high",
           "host": [
             "{{baseUrl}}"
           ],
@@ -125,48 +63,19 @@
           ],
           "query": [
             {
-              "key": "page",
-              "value": "1"
-            },
-            {
-              "key": "limit",
-              "value": "10"
-            },
-            {
               "key": "status",
-              "value": "todo,in-progress"
+              "value": "todo"
             },
             {
-              "key": "projectId",
-              "value": "{{projectId}}"
-            },
-            {
-              "key": "tags",
-              "value": "Design"
-            },
-            {
-              "key": "view",
-              "value": "board"
-            },
-            {
-              "key": "groupBy",
-              "value": "status"
-            },
-            {
-              "key": "sortBy",
-              "value": "startDate"
-            },
-            {
-              "key": "sortOrder",
-              "value": "asc"
+              "key": "priority",
+              "value": "high"
             }
           ]
-        },
-        "description": "Fetch the authenticated user task board with filter counts."
+        }
       }
     },
     {
-      "name": "List Tasks",
+      "name": "Get All Tasks",
       "request": {
         "method": "GET",
         "header": [
@@ -180,34 +89,12 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/tasks?page=1&limit=10&priority=high&sortBy=createdAt&sortOrder=desc",
+          "raw": "{{baseUrl}}/tasks",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "tasks"
-          ],
-          "query": [
-            {
-              "key": "page",
-              "value": "1"
-            },
-            {
-              "key": "limit",
-              "value": "10"
-            },
-            {
-              "key": "priority",
-              "value": "high"
-            },
-            {
-              "key": "sortBy",
-              "value": "createdAt"
-            },
-            {
-              "key": "sortOrder",
-              "value": "desc"
-            }
           ]
         }
       }
@@ -258,7 +145,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"status\": \"in-progress\",\n  \"name\": \"Updated design system setup\",\n  \"tag\": \"Frontend\",\n  \"startDate\": \"2026-03-26T00:00:00.000Z\"\n}"
+          "raw": "{\n  \"status\": \"in_progress\",\n  \"priority\": \"urgent\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/tasks/{{taskId}}",
@@ -294,89 +181,6 @@
           "path": [
             "tasks",
             "{{taskId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Search Tasks",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          },
-          {
-            "key": "x-workspace-id",
-            "value": "{{workspaceId}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/tasks?search=design&page=1&limit=10",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "tasks"
-          ],
-          "query": [
-            {
-              "key": "search",
-              "value": "design"
-            },
-            {
-              "key": "page",
-              "value": "1"
-            },
-            {
-              "key": "limit",
-              "value": "10"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Filter by Start Date",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          },
-          {
-            "key": "x-workspace-id",
-            "value": "{{workspaceId}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/tasks/my-tasks?startDateFrom=2026-03-01T00:00:00.000Z&startDateTo=2026-03-31T23:59:59.999Z&page=1&limit=20",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "tasks",
-            "my-tasks"
-          ],
-          "query": [
-            {
-              "key": "startDateFrom",
-              "value": "2026-03-01T00:00:00.000Z"
-            },
-            {
-              "key": "startDateTo",
-              "value": "2026-03-31T23:59:59.999Z"
-            },
-            {
-              "key": "page",
-              "value": "1"
-            },
-            {
-              "key": "limit",
-              "value": "20"
-            }
           ]
         }
       }

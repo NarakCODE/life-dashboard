@@ -1,5 +1,5 @@
-import { Exclude, Expose } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { Exclude, Expose, Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HabitFrequency } from '../schemas/habit.schema';
 
 @Exclude()
@@ -18,10 +18,22 @@ export class HabitResponseDto {
 
   @Expose()
   @ApiProperty()
-  name!: string;
+  createdBy!: string;
+
+  @Expose()
+  @ApiPropertyOptional({ nullable: true })
+  updatedBy?: string | null;
+
+  @Expose()
+  @ApiPropertyOptional({ nullable: true })
+  archivedBy?: string | null;
 
   @Expose()
   @ApiProperty()
+  name!: string;
+
+  @Expose()
+  @ApiPropertyOptional()
   description?: string;
 
   @Expose()
@@ -41,7 +53,7 @@ export class HabitResponseDto {
   color!: string;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty({ enum: ['active', 'archived'] })
   status!: string;
 
   @Expose()
@@ -49,11 +61,11 @@ export class HabitResponseDto {
   startDate!: Date;
 
   @Expose()
-  @ApiProperty()
+  @ApiPropertyOptional({ nullable: true })
   endDate?: Date | null;
 
   @Expose()
-  @ApiProperty()
+  @ApiPropertyOptional({ nullable: true })
   archivedAt?: Date | null;
 
   @Expose()

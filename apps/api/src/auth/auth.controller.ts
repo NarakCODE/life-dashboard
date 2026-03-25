@@ -8,14 +8,12 @@ import {
   HttpCode,
   HttpStatus,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -33,6 +31,7 @@ import { UpdateEmailDto } from './dto/update-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { MeResponseDto } from './dto/me-response.dto';
 import { Throttle } from '@nestjs/throttler';
+import type { FileUpload } from '../upload/upload.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -227,6 +226,67 @@ export class AuthController {
     await this.accountService.deleteAccount(user.sub, dto);
     return {
       message: 'Account deletion requested. Cancellation window may apply.',
+    };
+  }
+
+  // ── Avatar Upload ────────────────────────────────────────────────────────
+
+  @Post('me/avatar')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Avatar image file (JPEG, PNG, WebP, GIF). Max 5MB.',
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+      fileFilter: (_req, file, callback) => {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (allowedMimeTypes.includes(file.mimetype)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
+    }),
+  )
+  async uploadAvatar(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: Express.Multer.File & { buffer: Buffer },
+  ) {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    const fileUpload: FileUpload = {
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    };
+
+    const avatarUrl = await this.profileService.uploadAvatar(user.sub, fileUpload);
+
+    return {
+      success: true,
+      data: {
+        avatarUrl,
+      },
     };
   }
 }

@@ -26,6 +26,9 @@ export class Message {
   @Prop({ type: Date, default: null })
   deletedAt?: Date;
 
+  @Prop({ type: Date, default: null, index: true })
+  expiresAt?: Date | null;
+
   createdAt!: Date;
   updatedAt!: Date;
 }
@@ -34,3 +37,4 @@ export const MessageSchema = SchemaFactory.createForClass(Message);
 
 MessageSchema.index({ channelId: 1, createdAt: -1 });
 MessageSchema.index({ workspaceId: 1, authorId: 1, createdAt: -1 });
+MessageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
