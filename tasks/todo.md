@@ -218,3 +218,22 @@ Review all `@apps/api` modules and update the Postman collections in `@apps/api/
     - [x] Use `{{baseUrl}}` for `http://localhost:3001/api/v1`
     - [x] Use `{{accessToken}}` for Authorization
     - [x] Use `{{workspaceId}}` in headers or URL as needed
+
+---
+
+## 8. Latest Push Review (2026-03-25)
+
+### Status: COMPLETE
+
+### Plan
+
+- [x] Inspect latest commit scope and changed files
+- [x] Review backend/frontend changes for correctness and security risks
+- [x] Summarize findings with severity and recommendations
+
+### Results
+
+- Reviewed commit `8db74a8` covering chat socket, upload module, performance dashboard, and Postman updates.
+- Identified high-priority access-control risk in chat gateway workspace handling.
+- Identified functional mismatch in upload MIME validation for documented attachment types.
+- Identified repository hygiene issue from committed runtime upload artifacts.
