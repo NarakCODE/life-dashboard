@@ -294,7 +294,9 @@ export function ProjectDescriptionEditor({
           .insertContent([
             {
               type: "paragraph",
-              content: [{ type: "text", marks: [{ type: "bold" }], text: "Scope:" }],
+              content: [
+                { type: "text", marks: [{ type: "bold" }], text: "Scope:" },
+              ],
             },
             {
               type: "taskList",
@@ -303,14 +305,20 @@ export function ProjectDescriptionEditor({
                   type: "taskItem",
                   attrs: { checked: false },
                   content: [
-                    { type: "paragraph", content: [{ type: "text", text: "In scope item 1" }] },
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "In scope item 1" }],
+                    },
                   ],
                 },
                 {
                   type: "taskItem",
                   attrs: { checked: false },
                   content: [
-                    { type: "paragraph", content: [{ type: "text", text: "In scope item 2" }] },
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "In scope item 2" }],
+                    },
                   ],
                 },
               ],
@@ -325,7 +333,9 @@ export function ProjectDescriptionEditor({
           .insertContent([
             {
               type: "paragraph",
-              content: [{ type: "text", marks: [{ type: "bold" }], text: "Scope:" }],
+              content: [
+                { type: "text", marks: [{ type: "bold" }], text: "Scope:" },
+              ],
             },
             {
               type: "taskList",
@@ -334,7 +344,10 @@ export function ProjectDescriptionEditor({
                   type: "taskItem",
                   attrs: { checked: false },
                   content: [
-                    { type: "paragraph", content: [{ type: "text", text: "In scope item" }] },
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "In scope item" }],
+                    },
                   ],
                 },
               ],
@@ -349,7 +362,13 @@ export function ProjectDescriptionEditor({
           .insertContent([
             {
               type: "paragraph",
-              content: [{ type: "text", marks: [{ type: "bold" }], text: "Out of Scope:" }],
+              content: [
+                {
+                  type: "text",
+                  marks: [{ type: "bold" }],
+                  text: "Out of Scope:",
+                },
+              ],
             },
             {
               type: "taskList",
@@ -493,7 +512,9 @@ export function ProjectDescriptionEditor({
                 />
 
                 {aiError && (
-                  <p className="text-xs text-destructive leading-snug">{aiError}</p>
+                  <p className="text-xs text-destructive leading-snug">
+                    {aiError}
+                  </p>
                 )}
 
                 <div className="flex items-center justify-between gap-2">
@@ -505,9 +526,13 @@ export function ProjectDescriptionEditor({
                       </span>
                     ) : (
                       <>
-                        <kbd className="rounded border bg-muted px-1 py-0.5">⌘</kbd>
+                        <kbd className="rounded border bg-muted px-1 py-0.5">
+                          ⌘
+                        </kbd>
                         {" + "}
-                        <kbd className="rounded border bg-muted px-1 py-0.5">↵</kbd>
+                        <kbd className="rounded border bg-muted px-1 py-0.5">
+                          ↵
+                        </kbd>
                         {" to generate"}
                       </>
                     )}
@@ -624,7 +649,7 @@ export function ProjectDescriptionEditor({
               <div className="flex-1" />
 
               {/* Write with AI toggle button */}
-              <div className="flex flex-col items-center justify-center ml-2">
+              {/* <div className="flex flex-col items-center justify-center ml-2">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -644,20 +669,24 @@ export function ProjectDescriptionEditor({
                       weight="fill"
                       className={cn(
                         "size-3.5",
-                        showAiPanel ? "text-primary-foreground" : "text-primary",
+                        showAiPanel
+                          ? "text-primary-foreground"
+                          : "text-primary",
                       )}
                     />
                   </div>
                   <span
                     className={cn(
                       "font-medium text-xs tracking-wide",
-                      showAiPanel ? "text-primary-foreground" : "text-foreground",
+                      showAiPanel
+                        ? "text-primary-foreground"
+                        : "text-foreground",
                     )}
                   >
                     Write with AI
                   </span>
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
