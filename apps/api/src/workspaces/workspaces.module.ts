@@ -11,6 +11,10 @@ import {
   WorkspaceMembership,
   WorkspaceMembershipSchema,
 } from './schemas/workspace-membership.schema';
+import {
+  WorkspaceJoinRequest,
+  WorkspaceJoinRequestSchema,
+} from './schemas/workspace-join-request.schema';
 import { UsersModule } from '../users/users.module';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
 import { WorkspaceRoleGuard } from './guards/workspace-role.guard';
@@ -23,6 +27,7 @@ import { WorkspaceProvisioningService } from './workspace-provisioning.service';
       { name: Workspace.name, schema: WorkspaceSchema },
       { name: WorkspaceInvitation.name, schema: WorkspaceInvitationSchema },
       { name: WorkspaceMembership.name, schema: WorkspaceMembershipSchema },
+      { name: WorkspaceJoinRequest.name, schema: WorkspaceJoinRequestSchema },
     ]),
     UsersModule,
   ],

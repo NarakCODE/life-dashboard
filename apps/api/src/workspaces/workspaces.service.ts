@@ -28,16 +28,21 @@ import {
   WorkspaceMembershipDocument,
   WorkspaceMembershipStatus,
 } from './schemas/workspace-membership.schema';
+import {
+  WorkspaceJoinRequest,
+  WorkspaceJoinRequestDocument,
+  JoinRequestStatus,
+} from './schemas/workspace-join-request.schema';
 import { WorkspaceRequestContext } from './interfaces/workspace-context.interface';
 import { getWorkspacePermissions } from './workspace-permissions';
 import { WorkspaceProvisioningService } from './workspace-provisioning.service';
-import { WorkspaceResponseDto } from './dto/workspace-response.dto';
 
 // User details interface for populated responses
 export interface UserDetails {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
 }
 
 // Member with populated user details
@@ -87,6 +92,8 @@ export class WorkspacesService {
     private invitationModel: Model<WorkspaceInvitationDocument>,
     @InjectModel(WorkspaceMembership.name)
     private membershipModel: Model<WorkspaceMembershipDocument>,
+    @InjectModel(WorkspaceJoinRequest.name)
+    private joinRequestModel: Model<WorkspaceJoinRequestDocument>,
     private usersService: UsersService,
     private workspaceProvisioningService: WorkspaceProvisioningService,
   ) {}
@@ -201,6 +208,7 @@ export class WorkspacesService {
         id: user._id.toString(),
         email: user.email,
         displayName: user.displayName,
+        avatarUrl: user.avatarUrl ?? null,
       });
     });
 
@@ -219,12 +227,14 @@ export class WorkspacesService {
           id: ownerId,
           email: 'unknown',
           displayName: 'Unknown User',
+          avatarUrl: null,
         },
         createdById,
         createdBy: userMap.get(createdById) ?? {
           id: createdById,
           email: 'unknown',
           displayName: 'Unknown User',
+          avatarUrl: null,
         },
         defaultForUserId: workspace.defaultForUserId?.toString() ?? null,
         members:
@@ -237,6 +247,7 @@ export class WorkspacesService {
                 id: memberUserId,
                 email: 'unknown',
                 displayName: 'Unknown User',
+                avatarUrl: null,
               },
             };
           }) ?? [],
@@ -361,6 +372,258 @@ export class WorkspacesService {
         $pull: { members: { userId: new Types.ObjectId(userIdToRemove) } },
       })
       .exec();
+  }
+
+  async listMembers(
+    workspaceId: string,
+  ): Promise<WorkspaceMemberWithDetails[]> {
+    const workspace = await this.findOne(workspaceId);
+    return workspace.members;
+  }
+
+  async updateMemberRole(
+    workspaceId: string,
+    memberId: string,
+    role: WorkspaceRole,
+    currentUserId: string,
+  ): Promise<WorkspaceMemberWithDetails> {
+    const workspace = await this.workspaceModel.findById(workspaceId).exec();
+    if (!workspace) throw new NotFoundException('Workspace not found');
+
+    if (workspace.ownerId.toString() === memberId) {
+      throw new BadRequestException(
+        'Cannot change the role of the workspace owner',
+      );
+    }
+
+    if (memberId === currentUserId) {
+      throw new BadRequestException('Cannot change your own role');
+    }
+
+    const embeddedMember = workspace.members.find(
+      (member) => member.userId.toString() === memberId,
+    );
+    if (!embeddedMember) {
+      throw new NotFoundException('Member not found in workspace');
+    }
+
+    // Update embedded data
+    embeddedMember.role = role;
+    await workspace.save();
+
+    // Update the separate membership document
+    await this.membershipModel
+      .findOneAndUpdate(
+        {
+          workspaceId: new Types.ObjectId(workspaceId),
+          userId: new Types.ObjectId(memberId),
+        },
+        { $set: { role } },
+      )
+      .exec();
+
+    const user = await this.usersService.findById(memberId);
+    return {
+      userId: memberId,
+      role,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl ?? null,
+      },
+    };
+  }
+
+  async generateJoinLink(workspaceId: string): Promise<string> {
+    const token = randomBytes(16).toString('hex');
+    const workspace = await this.workspaceModel
+      .findByIdAndUpdate(
+        workspaceId,
+        {
+          $set: {
+            joinLinkToken: token,
+            isJoinLinkEnabled: true,
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!workspace) throw new NotFoundException('Workspace not found');
+    return token;
+  }
+
+  async toggleJoinLink(
+    workspaceId: string,
+    isEnabled: boolean,
+  ): Promise<boolean> {
+    const workspace = await this.workspaceModel
+      .findByIdAndUpdate(
+        workspaceId,
+        { $set: { isJoinLinkEnabled: isEnabled } },
+        { new: true },
+      )
+      .exec();
+
+    if (!workspace) throw new NotFoundException('Workspace not found');
+    return workspace.isJoinLinkEnabled;
+  }
+
+  async resolveWorkspaceByJoinLink(token: string) {
+    const workspace = await this.workspaceModel
+      .findOne({
+        joinLinkToken: token,
+        isJoinLinkEnabled: true,
+        status: WorkspaceStatus.ACTIVE,
+      })
+      .lean()
+      .exec();
+
+    if (!workspace) throw new NotFoundException('Invalid or expired join link');
+
+    return {
+      id: workspace._id.toString(),
+      name: workspace.name,
+    };
+  }
+
+  async createJoinRequest(token: string, userId: string): Promise<void> {
+    const workspace = await this.workspaceModel
+      .findOne({
+        joinLinkToken: token,
+        isJoinLinkEnabled: true,
+        status: WorkspaceStatus.ACTIVE,
+      })
+      .exec();
+
+    if (!workspace) throw new NotFoundException('Invalid or expired join link');
+
+    const existingMembership = await this.membershipModel
+      .findOne({
+        workspaceId: workspace._id,
+        userId: new Types.ObjectId(userId),
+        status: WorkspaceMembershipStatus.ACTIVE,
+      })
+      .exec();
+
+    if (existingMembership) {
+      throw new BadRequestException(
+        'You are already a member of this workspace',
+      );
+    }
+
+    try {
+      await this.joinRequestModel.create({
+        workspaceId: workspace._id,
+        userId: new Types.ObjectId(userId),
+        status: JoinRequestStatus.PENDING,
+      });
+    } catch (error: any) {
+      if (this.isDuplicateKeyError(error)) {
+        throw new BadRequestException(
+          'You have already requested to join this workspace',
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listJoinRequests(workspaceId: string) {
+    const requests = await this.joinRequestModel
+      .find({
+        workspaceId: new Types.ObjectId(workspaceId),
+        status: JoinRequestStatus.PENDING,
+      })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    if (!requests.length) return [];
+
+    const userIds = requests.map((r) => r.userId.toString());
+    const users = await this.usersService.findByIds(userIds);
+
+    const userMap = new Map();
+    users.forEach((u) => {
+      userMap.set(u._id.toString(), {
+        id: u._id.toString(),
+        email: u.email,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl ?? null,
+      });
+    });
+
+    return requests.map((r) => ({
+      id: r._id.toString(),
+      workspaceId: r.workspaceId.toString(),
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      user: userMap.get(r.userId.toString()) ?? { id: r.userId.toString() },
+    }));
+  }
+
+  async approveJoinRequest(
+    workspaceId: string,
+    requestId: string,
+    resolvedBy: string,
+  ): Promise<void> {
+    const request = await this.joinRequestModel
+      .findOne({
+        _id: new Types.ObjectId(requestId),
+        workspaceId: new Types.ObjectId(workspaceId),
+        status: JoinRequestStatus.PENDING,
+      })
+      .exec();
+
+    if (!request) {
+      throw new NotFoundException('Join request not found or already resolved');
+    }
+
+    request.status = JoinRequestStatus.APPROVED;
+    request.resolvedBy = new Types.ObjectId(resolvedBy);
+    request.resolvedAt = new Date();
+    await request.save();
+
+    await this.upsertMembership(
+      request.workspaceId,
+      request.userId,
+      WorkspaceRole.MEMBER,
+      {
+        status: WorkspaceMembershipStatus.ACTIVE,
+        joinedAt: new Date(),
+        lastActiveAt: new Date(),
+      },
+    );
+
+    await this.ensureEmbeddedMember(
+      request.workspaceId,
+      request.userId,
+      WorkspaceRole.MEMBER,
+    );
+  }
+
+  async rejectJoinRequest(
+    workspaceId: string,
+    requestId: string,
+    resolvedBy: string,
+  ): Promise<void> {
+    const request = await this.joinRequestModel
+      .findOne({
+        _id: new Types.ObjectId(requestId),
+        workspaceId: new Types.ObjectId(workspaceId),
+        status: JoinRequestStatus.PENDING,
+      })
+      .exec();
+
+    if (!request) {
+      throw new NotFoundException('Join request not found or already resolved');
+    }
+
+    request.status = JoinRequestStatus.REJECTED;
+    request.resolvedBy = new Types.ObjectId(resolvedBy);
+    request.resolvedAt = new Date();
+    await request.save();
   }
 
   async ensureDefaultWorkspaceForUser(

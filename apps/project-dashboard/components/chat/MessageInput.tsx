@@ -2,8 +2,19 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Smile, Paperclip, X } from "lucide-react";
+import { EmojiPicker } from "frimousse";
+import type {
+  EmojiPickerListCategoryHeaderProps,
+  EmojiPickerListEmojiProps,
+  EmojiPickerListRowProps,
+} from "frimousse";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -25,6 +36,52 @@ interface MessageInputProps {
 const TYPING_STOP_DELAY = 2000; // Stop typing indicator after 2s of inactivity
 const MAX_MESSAGE_LENGTH = 4000;
 
+function EmojiCategoryHeader({
+  category,
+  className,
+  ...props
+}: EmojiPickerListCategoryHeaderProps) {
+  return (
+    <div
+      {...props}
+      className={cn(
+        "bg-background/95 px-2 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+        className,
+      )}
+    >
+      {category.label}
+    </div>
+  );
+}
+
+function EmojiRow({ className, ...props }: EmojiPickerListRowProps) {
+  return (
+    <div
+      {...props}
+      className={cn("grid grid-cols-8 gap-1 px-1 py-0.5", className)}
+    />
+  );
+}
+
+function EmojiCell({ emoji, className, ...props }: EmojiPickerListEmojiProps) {
+  return (
+    <button
+      {...props}
+      type="button"
+      className={cn(
+        "flex size-10 items-center justify-center rounded-xl text-xl transition-colors",
+        emoji.isActive
+          ? "bg-accent text-accent-foreground"
+          : "hover:bg-accent/70",
+        className,
+      )}
+      aria-label={emoji.label}
+    >
+      {emoji.emoji}
+    </button>
+  );
+}
+
 export function MessageInput({
   channelId,
   onSendMessage,
@@ -36,6 +93,7 @@ export function MessageInput({
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingStoppedRef = useRef(true);
@@ -121,10 +179,36 @@ export function MessageInput({
     setContent(value);
     handleTyping();
 
+    resizeTextarea(e.target);
+  };
+
+  const resizeTextarea = (textarea: HTMLTextAreaElement) => {
     // Auto-resize textarea
-    const textarea = e.target;
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    const selectionStart = textarea?.selectionStart ?? content.length;
+    const selectionEnd = textarea?.selectionEnd ?? content.length;
+    const nextContent =
+      content.slice(0, selectionStart) + emoji + content.slice(selectionEnd);
+    const nextCursorPosition = selectionStart + emoji.length;
+
+    setContent(nextContent);
+    setIsEmojiPickerOpen(false);
+    handleTyping();
+
+    requestAnimationFrame(() => {
+      if (!textareaRef.current) return;
+      textareaRef.current.focus();
+      textareaRef.current.setSelectionRange(
+        nextCursorPosition,
+        nextCursorPosition,
+      );
+      resizeTextarea(textareaRef.current);
+    });
   };
 
   const clearInput = () => {
@@ -191,22 +275,63 @@ export function MessageInput({
         </div>
 
         {/* Emoji Button */}
-        <TooltipProvider delayDuration={100}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
-                disabled={disabled || isSending}
-                type="button"
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add emoji (coming soon)</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                    disabled={disabled || isSending}
+                    type="button"
+                  >
+                    <Smile className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Add emoji</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <PopoverContent
+            align="end"
+            side="top"
+            className="w-[352px] rounded-2xl border border-border/60 bg-background/95 p-0 shadow-xl backdrop-blur"
+          >
+            <EmojiPicker.Root
+              onEmojiSelect={({ emoji }) => insertEmoji(emoji)}
+              className="flex h-[420px] flex-col"
+            >
+              <div className="border-b border-border/50 p-3">
+                <EmojiPicker.Search
+                  placeholder="Search emoji..."
+                  className="flex h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+                />
+              </div>
+              <EmojiPicker.Viewport className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+                <EmojiPicker.Loading className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
+                  Loading emojis...
+                </EmojiPicker.Loading>
+                <EmojiPicker.Empty className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
+                  {({ search }) =>
+                    search
+                      ? `No emoji found for "${search}".`
+                      : "No emoji found."
+                  }
+                </EmojiPicker.Empty>
+                <EmojiPicker.List
+                  className="pb-2"
+                  components={{
+                    CategoryHeader: EmojiCategoryHeader,
+                    Row: EmojiRow,
+                    Emoji: EmojiCell,
+                  }}
+                />
+              </EmojiPicker.Viewport>
+            </EmojiPicker.Root>
+          </PopoverContent>
+        </Popover>
 
         {/* Send Button */}
         <TooltipProvider delayDuration={100}>

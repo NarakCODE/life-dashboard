@@ -321,44 +321,43 @@ export default function ChatPage() {
   }, [members]);
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 overflow-hidden bg-background">
-      <PageLayout className="flex flex-1 flex-col p-0 m-2 rounded-xl border-border/60 overflow-hidden min-h-0">
-        <ResizablePanelGroup
-          // @ts-expect-error type mismatches with strict html properties
-          direction="horizontal"
-          className="h-full w-full items-stretch"
+    <PageLayout className="p-0 m-0 border-0 rounded-none">
+      <ResizablePanelGroup
+        // @ts-expect-error type mismatches with strict html properties
+        direction="horizontal"
+        className="h-full w-full"
+      >
+        {/* Desktop Sidebar Panel */}
+        <ResizablePanel
+          defaultSize={25}
+          minSize={20}
+          maxSize={40}
+          className={cn("hidden lg:flex flex-col bg-muted/30 border-r")}
         >
-          {/* Desktop Sidebar Panel */}
-          <ResizablePanel
-            defaultSize={25}
-            minSize={20}
-            maxSize={40}
-            className={cn("hidden lg:flex flex-col bg-muted/30 border-r")}
-          >
-            <ChannelSidebar
-              channels={channels}
-              selectedChannelId={selectedChannelId}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onSelectChannel={(channel: Record<string, any>) =>
-                handleSelectChannel(channel.id)
-              }
-              onCreateChannel={() => setIsCreateModalOpen(true)}
-              onMarkAllAsRead={() => markAllAsReadMutation.mutateAsync()}
-              isLoading={isLoadingChannels}
-              totalUnreadCount={totalUnreadCount}
-              className="h-full w-full border-none"
-            />
-          </ResizablePanel>
+          <ChannelSidebar
+            channels={channels}
+            selectedChannelId={selectedChannelId}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onSelectChannel={(channel: Record<string, any>) =>
+              handleSelectChannel(channel.id)
+            }
+            onCreateChannel={() => setIsCreateModalOpen(true)}
+            onMarkAllAsRead={() => markAllAsReadMutation.mutateAsync()}
+            isLoading={isLoadingChannels}
+            totalUnreadCount={totalUnreadCount}
+            className="h-full w-full border-none"
+          />
+        </ResizablePanel>
 
-          <ResizableHandle className="hidden lg:flex bg-border/50" withHandle />
+        <ResizableHandle className="hidden lg:flex bg-border/50" withHandle />
 
-          {/* Main Chat Area */}
-          <ResizablePanel
-            defaultSize={75}
-            className="flex min-w-0 flex-1 flex-col overflow-hidden relative bg-background"
-          >
-            {/* Header - Fixed Height */}
-            <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-6 sticky top-0 z-10">
+        {/* Main Chat Area */}
+        <ResizablePanel
+          defaultSize={75}
+          className="flex min-w-0 flex-1 flex-col overflow-hidden relative bg-background"
+        >
+          {/* Header - Fixed Height */}
+          <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-6 z-10">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
@@ -497,7 +496,6 @@ export default function ChatPage() {
             )}
           </ResizablePanel>
         </ResizablePanelGroup>
-      </PageLayout>
 
       {/* Mobile Sidebar Sheet */}
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
@@ -526,6 +524,6 @@ export default function ChatPage() {
         isPending={createChannelMutation.isPending}
         members={members}
       />
-    </div>
+    </PageLayout>
   );
 }

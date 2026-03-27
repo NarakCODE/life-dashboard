@@ -11,8 +11,10 @@ import {
   editMessage,
   getChannel,
   getChannels,
+  getDms,
   getChannelMessages,
   getChatConfig,
+  getOrCreateDm,
   updateChatConfig,
   getUnreadCount,
   getUnreadSummary,
@@ -25,13 +27,14 @@ import type {
   MessagesQuery,
   SendMessageInput,
   UpdateChatConfigInput,
-  ChatConfig,
 } from "@/lib/chat/types";
 
 export const chatKeys = {
   all: (workspaceId: string) => ["workspace", workspaceId, "chat"] as const,
   channels: (workspaceId: string) =>
     [...chatKeys.all(workspaceId), "channels"] as const,
+  dms: (workspaceId: string) =>
+    [...chatKeys.all(workspaceId), "dms"] as const,
   channel: (workspaceId: string, channelId: string) =>
     [...chatKeys.all(workspaceId), "channel", channelId] as const,
   messages: (workspaceId: string, query: MessagesQuery) =>
@@ -48,6 +51,14 @@ export function useChannelsQuery(workspaceId: string, enabled = true) {
   return useQuery({
     queryKey: chatKeys.channels(workspaceId),
     queryFn: () => getChannels(workspaceId),
+    enabled: enabled && Boolean(workspaceId),
+  });
+}
+
+export function useDmsQuery(workspaceId: string, enabled = true) {
+  return useQuery({
+    queryKey: chatKeys.dms(workspaceId),
+    queryFn: () => getDms(workspaceId),
     enabled: enabled && Boolean(workspaceId),
   });
 }
@@ -125,6 +136,26 @@ export function useCreateChannelMutation(workspaceId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(workspaceId),
+      });
+    },
+  });
+}
+
+export function useGetOrCreateDmMutation(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => {
+      if (!workspaceId) throw new Error("Workspace not available");
+      return getOrCreateDm(workspaceId, userId);
+    },
+    onSuccess: (dmChannel) => {
+      queryClient.setQueryData(
+        chatKeys.channel(workspaceId, dmChannel.id),
+        dmChannel,
+      );
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.dms(workspaceId),
       });
     },
   });

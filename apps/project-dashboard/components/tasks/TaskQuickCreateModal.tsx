@@ -7,7 +7,6 @@ import {
   ChartBar,
   Paperclip,
   Tag,
-  Microphone,
   UserCircle,
   X,
   Folder,
@@ -688,9 +687,6 @@ export function TaskQuickCreateModal({
         <div className="flex items-center gap-1">
           <button className="flex items-center justify-center size-10 rounded-lg hover:bg-muted transition-colors">
             <Paperclip className="size-4 text-muted-foreground" />
-          </button>
-          <button className="flex items-center justify-center size-10 rounded-lg hover:bg-muted transition-colors">
-            <Microphone className="size-4 text-muted-foreground" />
           </button>
         </div>
 

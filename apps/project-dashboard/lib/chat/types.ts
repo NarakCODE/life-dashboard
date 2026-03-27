@@ -17,6 +17,7 @@ export interface Channel {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  otherUser?: ChatUser;
 }
 
 export interface Message {
@@ -45,6 +46,7 @@ export interface ChannelMember {
 export interface ChatUser {
   id: string;
   displayName: string;
+  email?: string;
   avatarUrl?: string;
   status?: "online" | "away" | "offline";
 }

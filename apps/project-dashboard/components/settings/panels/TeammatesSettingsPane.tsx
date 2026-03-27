@@ -346,8 +346,11 @@ export function TeammatesSettingsPane() {
               >
                 <div className="col-span-6 flex items-center gap-3">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={undefined} />
-                    <AvatarFallback>
+                    <AvatarImage
+                      src={member.user.avatarUrl || undefined}
+                      alt={member.user.displayName}
+                    />
+                    <AvatarFallback className="text-xs font-medium">
                       {getInitials(member.user.displayName)}
                     </AvatarFallback>
                   </Avatar>

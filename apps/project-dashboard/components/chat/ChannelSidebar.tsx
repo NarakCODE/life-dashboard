@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
+  AtSign,
   Hash,
   Lock,
   MessageCircle,
@@ -10,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,10 +28,15 @@ interface ChannelSidebarProps {
   selectedChannelId?: string;
   onSelectChannel: (channel: Channel) => void;
   onCreateChannel?: () => void;
+  onCreateDm?: () => void;
   onMarkAllAsRead?: () => void;
   isLoading?: boolean;
   totalUnreadCount?: number;
   className?: string;
+}
+
+interface ChannelItemProps {
+  channel: Channel;
 }
 
 export function ChannelSidebar({
@@ -37,6 +44,7 @@ export function ChannelSidebar({
   selectedChannelId,
   onSelectChannel,
   onCreateChannel,
+  onCreateDm,
   onMarkAllAsRead,
   isLoading,
   totalUnreadCount = 0,
@@ -47,7 +55,13 @@ export function ChannelSidebar({
   const filteredChannels = channels.filter((channel) => {
     const searchLower = search.toLowerCase();
     const name = channel.name?.toLowerCase() || "";
-    return name.includes(searchLower);
+    const otherUserName = channel.otherUser?.displayName?.toLowerCase() || "";
+    const otherUserEmail = channel.otherUser?.email?.toLowerCase() || "";
+    return (
+      name.includes(searchLower) ||
+      otherUserName.includes(searchLower) ||
+      otherUserEmail.includes(searchLower)
+    );
   });
 
   const publicChannels = filteredChannels.filter(
@@ -78,9 +92,33 @@ export function ChannelSidebar({
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 
-  const ChannelItem = ({ channel }: { channel: Channel }) => {
+  const getChannelLabel = (channel: Channel) => {
+    if (channel.type === ChannelType.DM) {
+      return channel.otherUser?.displayName || "Direct message";
+    }
+    return channel.name || "Unnamed channel";
+  };
+
+  const getChannelSecondaryText = (channel: Channel) => {
+    if (channel.type === ChannelType.DM) {
+      return channel.otherUser?.email || "";
+    }
+    return "";
+  };
+
+  const getInitials = (value: string) =>
+    value
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
+  const ChannelItem = ({ channel }: ChannelItemProps) => {
     const isSelected = selectedChannelId === channel.id;
     const unreadCount = channel.unreadCount ?? 0;
+    const label = getChannelLabel(channel);
+    const secondaryText = getChannelSecondaryText(channel);
 
     return (
       <button
@@ -91,10 +129,29 @@ export function ChannelSidebar({
             : "hover:bg-accent/50"
         } ${unreadCount ? "font-medium" : ""}`}
       >
-        <span className="text-muted-foreground">
-          {getChannelIcon(channel.type)}
-        </span>
-        <span className="flex-1 truncate">{channel.name}</span>
+        {channel.type === ChannelType.DM ? (
+          <Avatar className="size-8 shrink-0">
+            <AvatarImage
+              src={channel.otherUser?.avatarUrl}
+              alt={channel.otherUser?.displayName}
+            />
+            <AvatarFallback className="text-[11px]">
+              {getInitials(label)}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <span className="text-muted-foreground shrink-0">
+            {getChannelIcon(channel.type)}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate">{label}</div>
+          {secondaryText ? (
+            <div className="truncate text-xs font-normal text-muted-foreground">
+              {secondaryText}
+            </div>
+          ) : null}
+        </div>
         {unreadCount ? (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
             {unreadCount}
@@ -108,6 +165,13 @@ export function ChannelSidebar({
       </button>
     );
   };
+
+  const renderChannelItem = (channel: Channel) => (
+    // eslint-disable-next-line react/prop-types
+    <ChannelItem key={channel.id} channel={channel} />
+  );
+
+  const renderChannelItems = (items: Channel[]) => items.map(renderChannelItem);
 
   const SectionHeader = ({
     title,
@@ -180,14 +244,18 @@ export function ChannelSidebar({
                   <Button
                     variant="ghost"
                     className="w-full justify-start"
+                    onClick={onCreateDm}
+                  >
+                    <AtSign className="mr-2 h-4 w-4" />
+                    New DM
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
                     onClick={onCreateChannel}
                   >
                     <Hash className="mr-2 h-4 w-4" />
                     New Channel
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    New DM
                   </Button>
                 </div>
               </PopoverContent>
@@ -216,9 +284,7 @@ export function ChannelSidebar({
                 count={publicChannels.length}
               />
               <div className="space-y-0.5">
-                {publicChannels.map((channel) => (
-                  <ChannelItem key={channel.id} channel={channel} />
-                ))}
+                {renderChannelItems(publicChannels)}
               </div>
             </div>
           )}
@@ -231,9 +297,7 @@ export function ChannelSidebar({
                 count={privateChannels.length}
               />
               <div className="space-y-0.5">
-                {privateChannels.map((channel) => (
-                  <ChannelItem key={channel.id} channel={channel} />
-                ))}
+                {renderChannelItems(privateChannels)}
               </div>
             </div>
           )}
@@ -246,9 +310,7 @@ export function ChannelSidebar({
                 count={dmChannels.length}
               />
               <div className="space-y-0.5">
-                {dmChannels.map((channel) => (
-                  <ChannelItem key={channel.id} channel={channel} />
-                ))}
+                {renderChannelItems(dmChannels)}
               </div>
             </div>
           )}

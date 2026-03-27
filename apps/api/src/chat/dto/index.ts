@@ -7,3 +7,5 @@ export * from './channel-response.dto';
 export * from './update-message.dto';
 export * from './update-chat-config.dto';
 export * from './chat-config-response.dto';
+export * from './create-or-get-dm.dto';
+export * from './dm-channel-response.dto';

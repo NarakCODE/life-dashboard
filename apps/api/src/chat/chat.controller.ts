@@ -41,6 +41,9 @@ import {
   UpdateMessageDto,
   UpdateChatConfigDto,
   ChatConfigResponseDto,
+  CreateOrGetDmDto,
+  DmChannelResponseDto,
+  DmOtherUserDto,
 } from './dto';
 
 @ApiTags('chat')
@@ -93,12 +96,42 @@ export class ChatController {
       channelId: raw.channelId?.toString() ?? raw.channelId,
       workspaceId: raw.workspaceId?.toString() ?? null,
       authorId: raw.authorId?.toString() ?? raw.authorId,
+      authorAvatar: raw.author?.avatarUrl ?? null,
       content: raw.content,
       mentionIds: (raw.mentionIds || []).map(
         (id: any) => id.toString?.() ?? id,
       ),
       editedAt: raw.editedAt?.toISOString() ?? null,
       deletedAt: raw.deletedAt?.toISOString() ?? null,
+      createdAt: raw.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: raw.updatedAt?.toISOString() ?? new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Transform DM Channel document to DmChannelResponseDto with other user info
+   */
+  private async toDmChannelResponse(
+    channel: any,
+    currentUserId: string,
+  ): Promise<DmChannelResponseDto> {
+    const raw = channel.toObject ? channel.toObject() : channel;
+    const otherUser = await this.channelsService.getOtherUserInDm(channel, currentUserId);
+
+    return new DmChannelResponseDto({
+      id: raw._id?.toString() ?? raw.id,
+      workspaceId: raw.workspaceId?.toString() ?? null,
+      type: raw.type,
+      otherUser: otherUser
+        ? new DmOtherUserDto({
+            id: otherUser.id,
+            displayName: otherUser.displayName,
+            email: otherUser.email,
+            avatarUrl: otherUser.avatarUrl,
+          })
+        : undefined,
+      lastMessageId: raw.lastMessageId?.toString() ?? null,
+      lastMessageAt: raw.lastMessageAt?.toISOString() ?? null,
       createdAt: raw.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: raw.updatedAt?.toISOString() ?? new Date().toISOString(),
     });
@@ -145,6 +178,48 @@ export class ChatController {
   ): Promise<ChannelResponseDto> {
     const channel = await this.channelsService.findById(id, workspace);
     return this.toChannelResponse(channel);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Direct Messages (DM)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @Get('dms')
+  @ApiOperation({ 
+    summary: 'Get all DM channels for the current user',
+    description: 'Returns a list of all direct message conversations the user is part of.',
+  })
+  @ApiOkResponse({
+    type: [DmChannelResponseDto],
+    description: 'List of DM channels with other user information',
+  })
+  async findDms(
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ): Promise<DmChannelResponseDto[]> {
+    const dms = await this.channelsService.findDms(workspace);
+    return Promise.all(
+      dms.map(async (dm) => await this.toDmChannelResponse(dm, workspace.actorUserId)),
+    );
+  }
+
+  @Post('dms/:userId')
+  @ApiOperation({ 
+    summary: 'Get or create a DM channel with a specific user',
+    description: 
+      'Returns an existing DM channel if one already exists with the user, ' +
+      'otherwise creates a new DM channel. This is an idempotent operation.',
+  })
+  @ApiParam({ name: 'userId', description: 'The user ID to create/get DM with' })
+  @ApiCreatedResponse({
+    type: DmChannelResponseDto,
+    description: 'DM channel created or retrieved successfully',
+  })
+  async getOrCreateDm(
+    @Param('userId') targetUserId: string,
+    @WorkspaceContext() workspace: WorkspaceRequestContext,
+  ): Promise<DmChannelResponseDto> {
+    const channel = await this.channelsService.getOrCreateDm(workspace, targetUserId);
+    return this.toDmChannelResponse(channel, workspace.actorUserId);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ export interface UserDetails {
   id: string
   email: string
   displayName: string
+  avatarUrl?: string | null
 }
 
 export interface WorkspaceMember {

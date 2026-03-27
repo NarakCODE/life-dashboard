@@ -5,10 +5,13 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { WinstonModule } from 'nest-winston';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as winston from 'winston';
+import Redis from 'ioredis';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
+import { RedisModule, REDIS_CLIENT } from './redis';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -47,13 +50,15 @@ import { UploadModule } from './upload/upload.module';
     }),
 
     // ── Rate Limiting (security-rate-limiting) ─────────────────────────────
+    // Uses Redis for distributed rate limiting across multiple instances
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
+      imports: [ConfigModule, RedisModule],
+      inject: [ConfigService, REDIS_CLIENT],
+      useFactory: (config: ConfigService, redisClient: Redis) => [
         {
           ttl: config.get<number>('THROTTLE_TTL', 60000),
           limit: config.get<number>('THROTTLE_LIMIT', 100),
+          storage: new ThrottlerStorageRedisService(redisClient),
         },
       ],
     }),
@@ -97,6 +102,9 @@ import { UploadModule } from './upload/upload.module';
         uri: config.get<string>('database.uri'),
       }),
     }),
+
+    // ── Redis Module (caching, rate limiting, pub/sub) ─────────────────────
+    RedisModule,
 
     // ── Feature Modules ────────────────────────────────────────────────────
     HealthModule,

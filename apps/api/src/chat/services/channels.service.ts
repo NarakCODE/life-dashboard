@@ -1,16 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Channel, ChannelDocument, ChannelType } from '../schemas/channel.schema';
 import { ChannelMember } from '../schemas/channel-member.schema';
 import { CreateChannelDto } from '../dto/create-channel.dto';
 import { WorkspaceRequestContext } from '../../workspaces/interfaces/workspace-context.interface';
+import { UsersRepository } from '../../users/users.repository';
 
 @Injectable()
 export class ChannelsService {
   constructor(
     @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
     @InjectModel(ChannelMember.name) private readonly channelMemberModel: Model<ChannelMember>,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
   async create(
@@ -129,5 +131,114 @@ export class ChannelsService {
       lastMessageId: new Types.ObjectId(messageId),
       lastMessageAt: new Date(),
     });
+  }
+
+  /**
+   * Find all DM channels for the current user
+   */
+  async findDms(
+    workspace: WorkspaceRequestContext,
+  ): Promise<Channel[]> {
+    const query: Record<string, unknown> = {
+      workspaceId: workspace.workspaceId ? new Types.ObjectId(workspace.workspaceId) : null,
+      type: ChannelType.DM,
+      memberIds: { $in: [new Types.ObjectId(workspace.actorUserId)] },
+    };
+
+    return this.channelModel
+      .find(query)
+      .sort({ lastMessageAt: -1, updatedAt: -1 })
+      .exec();
+  }
+
+  /**
+   * Get or create a DM channel with a specific user
+   * Returns existing DM if one already exists, creates new one otherwise
+   */
+  async getOrCreateDm(
+    workspace: WorkspaceRequestContext,
+    targetUserId: string,
+  ): Promise<Channel> {
+    // Cannot create DM with yourself
+    if (targetUserId === workspace.actorUserId) {
+      throw new ForbiddenException('Cannot create DM with yourself');
+    }
+
+    // Verify target user exists
+    const targetUser = await this.usersRepository.findById(targetUserId);
+    if (!targetUser) {
+      throw new NotFoundException('Target user not found');
+    }
+
+    // Check if DM already exists between these two users
+    const existingDm = await this.channelModel.findOne({
+      workspaceId: workspace.workspaceId ? new Types.ObjectId(workspace.workspaceId) : null,
+      type: ChannelType.DM,
+      memberIds: {
+        $all: [
+          new Types.ObjectId(workspace.actorUserId),
+          new Types.ObjectId(targetUserId),
+        ],
+      },
+    }).exec();
+
+    if (existingDm) {
+      return existingDm;
+    }
+
+    // Create new DM channel
+    const memberIds = [workspace.actorUserId, targetUserId];
+    const channel = new this.channelModel({
+      workspaceId: workspace.workspaceId ? new Types.ObjectId(workspace.workspaceId) : null,
+      type: ChannelType.DM,
+      memberIds: memberIds.map(id => new Types.ObjectId(id)),
+      createdBy: new Types.ObjectId(workspace.actorUserId),
+    });
+
+    const saved = await channel.save();
+
+    // Create ChannelMember entries for both users
+    const channelMembers = memberIds.map(userId => ({
+      channelId: saved._id,
+      userId: new Types.ObjectId(userId),
+      unreadCount: 0,
+      joinedAt: new Date(),
+    }));
+
+    await this.channelMemberModel.insertMany(channelMembers);
+
+    return saved;
+  }
+
+  /**
+   * Get the other user in a DM channel
+   */
+  async getOtherUserInDm(
+    channel: Channel,
+    currentUserId: string,
+  ): Promise<{ id: string; displayName: string; email: string; avatarUrl?: string | null } | null> {
+    if (channel.type !== ChannelType.DM) {
+      return null;
+    }
+
+    const otherMemberId = channel.memberIds.find(
+      memberId => memberId.toString() !== currentUserId,
+    );
+
+    if (!otherMemberId) {
+      return null;
+    }
+
+    const user = await this.usersRepository.findById(otherMemberId);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user._id.toString(),
+      displayName: user.displayName,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    };
   }
 }

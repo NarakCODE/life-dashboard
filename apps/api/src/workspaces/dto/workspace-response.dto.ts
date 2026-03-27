@@ -1,6 +1,10 @@
 import { Exclude, Expose, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkspaceType, WorkspaceStatus, WorkspaceRole } from '../schemas/workspace.schema';
+import {
+  WorkspaceType,
+  WorkspaceStatus,
+  WorkspaceRole,
+} from '../schemas/workspace.schema';
 
 @Exclude()
 export class WorkspaceUserDetailsDto {
@@ -15,6 +19,10 @@ export class WorkspaceUserDetailsDto {
   @Expose()
   @ApiProperty()
   displayName!: string;
+
+  @Expose()
+  @ApiPropertyOptional({ nullable: true })
+  avatarUrl?: string | null;
 
   constructor(partial: Partial<WorkspaceUserDetailsDto>) {
     Object.assign(this, partial);

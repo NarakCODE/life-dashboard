@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, PageToolbarResponsive, PageLayout } from "@/components/page-layout";
+import {
+  PageHeader,
+  PageToolbarResponsive,
+  PageLayout,
+} from "@/components/page-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +45,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -119,7 +129,7 @@ function journalEntryToFormState(entry: JournalEntry): JournalEntryFormState {
     entryDate: formatDateInput(entry.entryDate),
     title: entry.title ?? "",
     content: entry.content,
-    mood: entry.mood ? String(entry.mood) as MoodFilterValue : "all",
+    mood: entry.mood ? (String(entry.mood) as MoodFilterValue) : "all",
     tags: entry.tags.join(", "),
   };
 }
@@ -145,7 +155,9 @@ function formStateToInput(
     title: formState.title.trim() || undefined,
     content: formState.content.trim(),
     mood:
-      formState.mood === "all" ? undefined : Number(formState.mood) as MoodLevel,
+      formState.mood === "all"
+        ? undefined
+        : (Number(formState.mood) as MoodLevel),
     tags: tags.length > 0 ? tags : undefined,
   };
 }
@@ -155,12 +167,12 @@ function getMoodOption(mood?: MoodLevel | null) {
 }
 
 function getMoodAverageCopy(value: number | null) {
-  if (!value) return "No mood data yet"
-  if (value >= MoodLevel.VERY_GOOD) return "Very positive stretch"
-  if (value >= MoodLevel.GOOD) return "Mostly good days"
-  if (value >= MoodLevel.NEUTRAL) return "Balanced stretch"
-  if (value >= MoodLevel.BAD) return "Some tougher days"
-  return "Rough stretch"
+  if (!value) return "No mood data yet";
+  if (value >= MoodLevel.VERY_GOOD) return "Very positive stretch";
+  if (value >= MoodLevel.GOOD) return "Mostly good days";
+  if (value >= MoodLevel.NEUTRAL) return "Balanced stretch";
+  if (value >= MoodLevel.BAD) return "Some tougher days";
+  return "Rough stretch";
 }
 
 function SummaryCard({
@@ -226,7 +238,8 @@ export function JournalEntriesPage() {
   const [search, setSearch] = useState("");
   const [moodFilter, setMoodFilter] = useState<MoodFilterValue>("all");
   const [tagFilter, setTagFilter] = useState("all");
-  const [analyticsWindow, setAnalyticsWindow] = useState<AnalyticsWindow>("30d");
+  const [analyticsWindow, setAnalyticsWindow] =
+    useState<AnalyticsWindow>("30d");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -246,36 +259,33 @@ export function JournalEntriesPage() {
       search: deferredSearch.trim() || undefined,
       tag: tagFilter === "all" ? undefined : tagFilter,
       mood:
-        moodFilter === "all"
-          ? undefined
-          : (Number(moodFilter) as MoodLevel),
+        moodFilter === "all" ? undefined : (Number(moodFilter) as MoodLevel),
     }),
     [deferredSearch, moodFilter, tagFilter],
   );
 
   const analyticsQuery = useMemo(() => {
     const nextQuery: {
-      dateFrom?: string
-      dateTo?: string
-      mood?: MoodLevel
-      tag?: string
-      search?: string
+      dateFrom?: string;
+      dateTo?: string;
+      mood?: MoodLevel;
+      tag?: string;
+      search?: string;
     } = {
       search: deferredSearch.trim() || undefined,
       tag: tagFilter === "all" ? undefined : tagFilter,
       mood:
-        moodFilter === "all"
-          ? undefined
-          : (Number(moodFilter) as MoodLevel),
-    }
+        moodFilter === "all" ? undefined : (Number(moodFilter) as MoodLevel),
+    };
 
     if (analyticsWindow !== "all") {
-      const days = analyticsWindow === "7d" ? 7 : analyticsWindow === "30d" ? 30 : 90
-      nextQuery.dateFrom = subDays(new Date(), days).toISOString()
-      nextQuery.dateTo = new Date().toISOString()
+      const days =
+        analyticsWindow === "7d" ? 7 : analyticsWindow === "30d" ? 30 : 90;
+      nextQuery.dateFrom = subDays(new Date(), days).toISOString();
+      nextQuery.dateTo = new Date().toISOString();
     }
 
-    return nextQuery
+    return nextQuery;
   }, [analyticsWindow, deferredSearch, moodFilter, tagFilter]);
 
   const {
@@ -283,14 +293,18 @@ export function JournalEntriesPage() {
     isPending: isEntriesPending,
     error: journalEntriesError,
   } = useJournalEntriesQuery(workspaceId ?? "", query, isQueryEnabled);
-  const {
-    data: moodSummary,
-    isPending: isMoodSummaryPending,
-  } = useMoodSummaryQuery(workspaceId ?? "", analyticsQuery, isQueryEnabled);
+  const { data: moodSummary, isPending: isMoodSummaryPending } =
+    useMoodSummaryQuery(workspaceId ?? "", analyticsQuery, isQueryEnabled);
 
-  const createJournalEntryMutation = useCreateJournalEntryMutation(workspaceId ?? "");
-  const updateJournalEntryMutation = useUpdateJournalEntryMutation(workspaceId ?? "");
-  const deleteJournalEntryMutation = useDeleteJournalEntryMutation(workspaceId ?? "");
+  const createJournalEntryMutation = useCreateJournalEntryMutation(
+    workspaceId ?? "",
+  );
+  const updateJournalEntryMutation = useUpdateJournalEntryMutation(
+    workspaceId ?? "",
+  );
+  const deleteJournalEntryMutation = useDeleteJournalEntryMutation(
+    workspaceId ?? "",
+  );
 
   const entries = journalEntriesData?.data.items ?? emptyJournalEntries;
   const availableTags = useMemo(
@@ -317,7 +331,10 @@ export function JournalEntriesPage() {
 
     return Array.from(counts.entries())
       .map(([tag, count]) => ({ tag, count }))
-      .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag))
+      .sort(
+        (left, right) =>
+          right.count - left.count || left.tag.localeCompare(right.tag),
+      )
       .slice(0, 8);
   }, [entries]);
 
@@ -371,7 +388,11 @@ export function JournalEntriesPage() {
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save the journal entry");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to save the journal entry",
+      );
     }
   }
 
@@ -383,7 +404,11 @@ export function JournalEntriesPage() {
       toast.success("Journal entry deleted");
       setEntryToDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to delete the journal entry");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete the journal entry",
+      );
     }
   }
 
@@ -430,7 +455,9 @@ export function JournalEntriesPage() {
               <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
                 <Select
                   value={moodFilter}
-                  onValueChange={(value) => setMoodFilter(value as MoodFilterValue)}
+                  onValueChange={(value) =>
+                    setMoodFilter(value as MoodFilterValue)
+                  }
                 >
                   <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="All moods" />
@@ -446,7 +473,9 @@ export function JournalEntriesPage() {
 
                 <Select
                   value={analyticsWindow}
-                  onValueChange={(value) => setAnalyticsWindow(value as AnalyticsWindow)}
+                  onValueChange={(value) =>
+                    setAnalyticsWindow(value as AnalyticsWindow)
+                  }
                 >
                   <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Analytics period" />
@@ -463,7 +492,6 @@ export function JournalEntriesPage() {
             }
           />
         }
-        toolbarClassName="flex-col gap-2 md:flex-row md:items-center md:justify-between"
       />
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -480,16 +508,16 @@ export function JournalEntriesPage() {
                       ? `${moodSummary.averageMood.toFixed(1)} / 5`
                       : "No mood yet"
                   }
-                  description={getMoodAverageCopy(moodSummary?.averageMood ?? null)}
+                  description={getMoodAverageCopy(
+                    moodSummary?.averageMood ?? null,
+                  )}
                   icon={Sparkles}
-                  toneClassName="border-sky-200/70 bg-sky-50/50"
                 />
                 <SummaryCard
                   title="Entries Logged"
                   value={String(moodSummary?.totalEntries ?? 0)}
                   description="Entries included in the current analytics window"
                   icon={BookText}
-                  toneClassName="border-orange-200/70 bg-orange-50/50"
                 />
                 <SummaryCard
                   title="Dominant Mood"
@@ -500,7 +528,6 @@ export function JournalEntriesPage() {
                       : "Add mood to entries to see your pattern"
                   }
                   icon={LineChart}
-                  toneClassName="border-emerald-200/70 bg-emerald-50/50"
                 />
               </div>
 
@@ -515,13 +542,15 @@ export function JournalEntriesPage() {
                   <CardContent className="flex flex-col gap-4">
                     {moodSummary?.moodDistribution.length ? (
                       moodSummary.moodDistribution.map((item) => {
-                        const moodOption = getMoodOption(item.mood)
+                        const moodOption = getMoodOption(item.mood);
 
                         return (
                           <div key={item.mood} className="flex flex-col gap-2">
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-lg">{moodOption?.emoji ?? "•"}</span>
+                                <span className="text-lg">
+                                  {moodOption?.emoji ?? "•"}
+                                </span>
                                 <div className="flex flex-col">
                                   <span className="text-sm font-medium text-foreground">
                                     {item.label}
@@ -537,7 +566,7 @@ export function JournalEntriesPage() {
                             </div>
                             <Progress value={item.percentage} />
                           </div>
-                        )
+                        );
                       })
                     ) : (
                       <EmptyState
@@ -563,7 +592,10 @@ export function JournalEntriesPage() {
                       <>
                         <div className="grid grid-cols-7 gap-2 lg:grid-cols-10">
                           {moodSummary.trend.slice(-10).map((point) => (
-                            <div key={point.date} className="flex flex-col items-center gap-2">
+                            <div
+                              key={point.date}
+                              className="flex flex-col items-center gap-2"
+                            >
                               <div className="flex h-28 items-end">
                                 <div
                                   className="w-7 rounded-full bg-primary/15"
@@ -579,14 +611,17 @@ export function JournalEntriesPage() {
                                   {point.avgMood.toFixed(1)}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {formatDisplayDate(`${point.date}T00:00:00.000Z`)}
+                                  {formatDisplayDate(
+                                    `${point.date}T00:00:00.000Z`,
+                                  )}
                                 </p>
                               </div>
                             </div>
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Average mood score by day across entries that include a mood.
+                          Average mood score by day across entries that include
+                          a mood.
                         </p>
                       </>
                     ) : (
@@ -626,12 +661,15 @@ export function JournalEntriesPage() {
                     )}
                   >
                     <span>#{tag.tag}</span>
-                    <span className="text-xs text-muted-foreground">{tag.count}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {tag.count}
+                    </span>
                   </button>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Add tags like `gratitude`, `stress`, or `focus` to group your entries over time.
+                  Add tags like `gratitude`, `stress`, or `focus` to group your
+                  entries over time.
                 </p>
               )}
             </CardContent>
@@ -651,7 +689,11 @@ export function JournalEntriesPage() {
 
           {!isEntriesPending && isEmpty ? (
             <EmptyState
-              title={hasActiveFilters ? "No entries match these filters" : "No journal entries yet"}
+              title={
+                hasActiveFilters
+                  ? "No entries match these filters"
+                  : "No journal entries yet"
+              }
               description={
                 hasActiveFilters
                   ? "Try clearing the current search or filters to see the rest of your journal history."
@@ -677,7 +719,7 @@ export function JournalEntriesPage() {
           {!isEntriesPending && !isEmpty ? (
             <div className="grid gap-4 xl:grid-cols-2">
               {entries.map((entry) => {
-                const moodOption = getMoodOption(entry.mood)
+                const moodOption = getMoodOption(entry.mood);
 
                 return (
                   <Card key={entry.id} className="border-border/60">
@@ -689,11 +731,19 @@ export function JournalEntriesPage() {
                               {formatDisplayDate(entry.entryDate)}
                             </Badge>
                             {moodOption ? (
-                              <Badge className={cn("rounded-full border", moodOption.accentClassName)}>
+                              <Badge
+                                className={cn(
+                                  "rounded-full border",
+                                  moodOption.accentClassName,
+                                )}
+                              >
                                 {moodOption.emoji} {moodOption.label}
                               </Badge>
                             ) : (
-                              <Badge variant="secondary" className="rounded-full">
+                              <Badge
+                                variant="secondary"
+                                className="rounded-full"
+                              >
                                 Mood untracked
                               </Badge>
                             )}
@@ -752,7 +802,7 @@ export function JournalEntriesPage() {
                       </p>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
             </div>
           ) : null}
@@ -775,7 +825,8 @@ export function JournalEntriesPage() {
               {editingEntry ? "Edit journal entry" : "New journal entry"}
             </DialogTitle>
             <DialogDescription>
-              Track the day, capture your mood, and add tags you can return to later.
+              Track the day, capture your mood, and add tags you can return to
+              later.
             </DialogDescription>
           </DialogHeader>
 
@@ -854,7 +905,9 @@ export function JournalEntriesPage() {
                       )}
                     >
                       <span className="text-2xl">{option.emoji}</span>
-                      <span className="text-xs font-medium">{option.shortLabel}</span>
+                      <span className="text-xs font-medium">
+                        {option.shortLabel}
+                      </span>
                     </button>
                   );
                 })}
@@ -914,7 +967,8 @@ export function JournalEntriesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete journal entry?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the entry and its mood/tag history from the workspace view.
+              This will permanently remove the entry and its mood/tag history
+              from the workspace view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

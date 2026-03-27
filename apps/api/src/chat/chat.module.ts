@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { UsersModule } from '../users/users.module';
 
 import { Channel, ChannelSchema } from './schemas/channel.schema';
 import { Message, MessageSchema } from './schemas/message.schema';
@@ -29,6 +30,9 @@ import { ChatController } from './chat.controller';
       { name: ChatConfig.name, schema: ChatConfigSchema },
     ]),
     WorkspacesModule,
+    // UsersModule exports UsersRepository & UsersService; importing it here
+    // makes them available to all providers in ChatModule without re-declaring them.
+    UsersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -47,6 +51,8 @@ import { ChatController } from './chat.controller';
     MessagesService,
     UnreadService,
     ChatConfigService,
+    // NOTE: Do NOT add UsersRepository here — it is already exported by UsersModule above.
+    // Adding it as a local provider would create a second instance missing UserModel.
   ],
   exports: [ChannelsService, MessagesService, UnreadService, ChatConfigService],
 })

@@ -27,7 +27,6 @@ import {
 import {
   PageHeader,
   PageToolbar,
-  AiButton,
   PageLayout,
 } from "@/components/page-layout";
 import { useAuth } from "@/hooks/use-auth";
@@ -186,11 +185,6 @@ export function MyTasksPage() {
   const deleteTaskMutation = useDeleteTaskMutation(
     workspaceId ?? "",
     taskQuery,
-  );
-  const allTasksQuery = useAllTasksQuery(
-    workspaceId ?? "",
-    taskQuery,
-    isQueryEnabled && viewMode === "all-tasks",
   );
 
   const tasksData = viewMode === "my-tasks" ? myTasks : allTasks;
@@ -433,7 +427,6 @@ export function MyTasksPage() {
                   onChange={setViewOptions}
                   allowedViewTypes={["list", "board"]}
                 />
-                <AiButton />
               </>
             }
           />

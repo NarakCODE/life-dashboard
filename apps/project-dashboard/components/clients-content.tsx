@@ -37,26 +37,17 @@ function statusLabel(status: ClientStatus): string {
 function ClientStatusBadge({ status }: { status: ClientStatus }) {
   const label = statusLabel(status)
 
-  let badgeClasses = "bg-muted text-muted-foreground border-transparent dark:bg-muted/30 dark:text-muted-foreground"
-  let dotClasses = "bg-zinc-900 dark:bg-zinc-300"
-
-  if (status === "active") {
-    badgeClasses = "bg-teal-50 text-teal-700 border-transparent dark:bg-teal-500/15 dark:text-teal-100"
-    dotClasses = "bg-teal-600 dark:bg-teal-300"
-  } else if (status === "on_hold") {
-    badgeClasses = "bg-amber-50 text-amber-700 border-transparent dark:bg-amber-500/15 dark:text-amber-100"
-    dotClasses = "bg-amber-600 dark:bg-amber-300"
-  } else if (status === "archived") {
-    badgeClasses = "bg-slate-100 text-slate-600 border-transparent dark:bg-slate-600/30 dark:text-slate-200"
-    dotClasses = "bg-slate-500 dark:bg-slate-300"
-  }
+  let variant: "muted" | "active" | "on_hold" | "archived" = "muted"
+  if (status === "active") variant = "active"
+  else if (status === "on_hold") variant = "on_hold"
+  else if (status === "archived") variant = "archived"
 
   return (
     <Badge
-      variant="outline"
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${badgeClasses}`}
+      variant={variant}
+      dot={true}
+      className="px-2 py-0.5 text-[11px] capitalize"
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${dotClasses}`} />
       {label}
     </Badge>
   )

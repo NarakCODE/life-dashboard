@@ -46,6 +46,7 @@ import {
   TargetIcon,
   FlagIcon,
   ChatCircleIcon,
+  ChatIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   footerItems,
@@ -93,6 +94,7 @@ const navItemIcons: Record<
   journal: NotebookIcon,
   goals: FlagIcon,
   chat: ChatCircleIcon,
+  chats: ChatIcon,
 };
 
 const footerItemIcons: Record<
@@ -110,9 +112,10 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsItemId>("account");
+  const [settingsInitialTab, setSettingsInitialTab] =
+    useState<SettingsItemId>("account");
   const [isLoggingOut, startLogout] = useTransition();
-  
+
   // Quick create workspace dialog state (for sidebar shortcut)
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
 
@@ -125,10 +128,8 @@ export function AppSidebar() {
     useWorkspacesQuery();
 
   // Active projects data fetching
-  const { data: projects = [], isLoading: isLoadingProjects } = useProjectsQuery(
-    activeWorkspaceId ?? "",
-    Boolean(activeWorkspaceId)
-  );
+  const { data: projects = [], isLoading: isLoadingProjects } =
+    useProjectsQuery(activeWorkspaceId ?? "", Boolean(activeWorkspaceId));
 
   // Filter active projects and map to sidebar format
   const activeProjects = projects
@@ -224,10 +225,9 @@ export function AppSidebar() {
       return buildWorkspacePath(currentWorkspaceId, "/habit-logs");
     if (id === "journal")
       return buildWorkspacePath(currentWorkspaceId, "/journal");
-    if (id === "goals")
-      return buildWorkspacePath(currentWorkspaceId, "/goals");
-    if (id === "chat")
-      return buildWorkspacePath(currentWorkspaceId, "/chat");
+    if (id === "goals") return buildWorkspacePath(currentWorkspaceId, "/goals");
+    if (id === "chat") return buildWorkspacePath(currentWorkspaceId, "/chat");
+    if (id === "chats") return buildWorkspacePath(currentWorkspaceId, "/chats");
     return "#";
   };
 
@@ -274,6 +274,9 @@ export function AppSidebar() {
     if (id === "chat") {
       return scopedPathname.startsWith("/chat");
     }
+    if (id === "chats") {
+      return scopedPathname.startsWith("/chats");
+    }
     return false;
   };
 
@@ -290,7 +293,7 @@ export function AppSidebar() {
           isLoading={isLoadingWorkspaces}
           disabled={switchWorkspace.isPending}
         />
-        
+
         <ManageWorkspaceDialog
           open={isCreateWorkspaceOpen}
           onOpenChange={setIsCreateWorkspaceOpen}
@@ -323,8 +326,8 @@ export function AppSidebar() {
                 const active = isItemActive(item.id);
                 const badgeCount =
                   item.id === "inbox"
-                    ? unreadNotificationsQuery.data?.count ?? 0
-                    : item.badge ?? 0;
+                    ? (unreadNotificationsQuery.data?.count ?? 0)
+                    : (item.badge ?? 0);
 
                 return (
                   <SidebarMenuItem key={item.label}>
@@ -387,7 +390,7 @@ export function AppSidebar() {
                       <Link
                         href={buildWorkspacePath(
                           currentWorkspaceId ?? "",
-                          `/projects/${project.id}`
+                          `/projects/${project.id}`,
                         )}
                       >
                         <ProgressCircle
@@ -479,8 +482,8 @@ export function AppSidebar() {
         </DropdownMenu>
       </SidebarFooter>
 
-      <SettingsDialog 
-        open={isSettingsOpen} 
+      <SettingsDialog
+        open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
         initialItemId={settingsInitialTab}
       />

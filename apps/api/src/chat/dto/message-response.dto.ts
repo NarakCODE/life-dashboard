@@ -20,6 +20,10 @@ export class MessageResponseDto {
   authorId!: string;
 
   @Expose()
+  @ApiPropertyOptional({ description: 'Author avatar URL' })
+  authorAvatar?: string | null;
+
+  @Expose()
   @ApiProperty()
   content!: string;
 

@@ -16,6 +16,7 @@ import { WorkspacesService } from './workspaces.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { UpdateMemberRoleDto } from './dto/update-member.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
 import { WorkspacePermissionGuard } from './guards/workspace-permission.guard';
@@ -121,13 +122,40 @@ export class WorkspacesController {
     return { success: true, data };
   }
 
-  @Delete(':workspaceId')
+  @Delete(':workspaceId/')
   @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
   @RequireWorkspaceRole(WorkspaceRole.OWNER)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a workspace' })
   async remove(@Param('workspaceId') workspaceId: string) {
     await this.workspacesService.delete(workspaceId);
+  }
+
+  @Get(':workspaceId/members')
+  @UseGuards(WorkspaceAccessGuard)
+  @ApiOperation({ summary: 'List all members in the workspace' })
+  async listMembers(@Param('workspaceId') workspaceId: string) {
+    const data = await this.workspacesService.listMembers(workspaceId);
+    return { success: true, data };
+  }
+
+  @Patch(':workspaceId/members/:memberId')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Update a member role' })
+  async updateMemberRole(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @Body() dto: UpdateMemberRoleDto,
+    @CurrentUser('sub') currentUserId: string,
+  ) {
+    const data = await this.workspacesService.updateMemberRole(
+      workspaceId,
+      memberId,
+      dto.role,
+      currentUserId,
+    );
+    return { success: true, data };
   }
 
   @Delete(':workspaceId/members/:memberId')
@@ -181,6 +209,94 @@ export class WorkspacesController {
       invitationId,
     );
     return { success: true, data };
+  }
+
+  // Join Requests / Public Join Link Endpoints
+
+  @Post(':workspaceId/join-link')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Generate or regenerate a new public join link' })
+  async generateJoinLink(@Param('workspaceId') workspaceId: string) {
+    const data = await this.workspacesService.generateJoinLink(workspaceId);
+    return { success: true, data };
+  }
+
+  @Patch(':workspaceId/join-link')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Enable or disable the public join link' })
+  async toggleJoinLink(
+    @Param('workspaceId') workspaceId: string,
+    @Body('isEnabled') isEnabled: boolean,
+  ) {
+    const data = await this.workspacesService.toggleJoinLink(
+      workspaceId,
+      isEnabled,
+    );
+    return { success: true, data };
+  }
+
+  @Get('join/:token')
+  @ApiOperation({ summary: 'Get workspace info by join link token' })
+  async resolveJoinLink(@Param('token') token: string) {
+    const data = await this.workspacesService.resolveWorkspaceByJoinLink(token);
+    return { success: true, data };
+  }
+
+  @Post('join/:token/request')
+  @ApiOperation({
+    summary: 'Request to join a workspace via its join link token',
+  })
+  async createJoinRequest(
+    @Param('token') token: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    await this.workspacesService.createJoinRequest(token, userId);
+    return { success: true };
+  }
+
+  @Get(':workspaceId/join-requests')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'List pending join requests for a workspace' })
+  async listJoinRequests(@Param('workspaceId') workspaceId: string) {
+    const data = await this.workspacesService.listJoinRequests(workspaceId);
+    return { success: true, data };
+  }
+
+  @Post(':workspaceId/join-requests/:requestId/approve')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Approve a pending join request' })
+  async approveJoinRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('requestId') requestId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    await this.workspacesService.approveJoinRequest(
+      workspaceId,
+      requestId,
+      userId,
+    );
+    return { success: true };
+  }
+
+  @Post(':workspaceId/join-requests/:requestId/reject')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Reject a pending join request' })
+  async rejectJoinRequest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('requestId') requestId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    await this.workspacesService.rejectJoinRequest(
+      workspaceId,
+      requestId,
+      userId,
+    );
+    return { success: true };
   }
 
   @Post(':workspaceId/switch')

@@ -15,10 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -178,7 +175,10 @@ export function AccountSettingsPane() {
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={photoPreview || user.avatarUrl || undefined} />
+                <AvatarImage
+                  src={photoPreview || user.avatarUrl || undefined}
+                  className="object-cover"
+                />
                 <AvatarFallback className="text-lg font-medium">
                   {getInitials(user.displayName)}
                 </AvatarFallback>

@@ -1,7 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": [],
+  "globalEnv": ["QWEN_API_KEY", "KIMI_API_KEY", "QWEN_MODEL", "QWEN_BASE_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

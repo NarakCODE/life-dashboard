@@ -5,4 +5,3 @@ import { WorkspaceRouteRedirect } from "@/components/workspaces/workspace-route-
 export default function JournalPage() {
   return <WorkspaceRouteRedirect pathname="/journal" />;
 }
-

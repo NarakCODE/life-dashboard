@@ -201,7 +201,7 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-background h-full">
+    <div className="flex flex-1 flex-col min-h-0 bg-background">
       {/* Channel header */}
       <div className="flex items-center justify-between border-b px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export function MessageList({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="flex min-h-full flex-col justify-end">
           {hasMore && (
             <div className="flex justify-center p-4">

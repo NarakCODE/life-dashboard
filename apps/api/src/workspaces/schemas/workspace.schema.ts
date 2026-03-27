@@ -74,6 +74,12 @@ export class Workspace {
   @Prop({ type: [WorkspaceMemberSchema], default: [] })
   members!: WorkspaceMember[];
 
+  @Prop({ type: String, sparse: true, unique: true, default: null })
+  joinLinkToken?: string | null;
+
+  @Prop({ type: Boolean, default: false })
+  isJoinLinkEnabled!: boolean;
+
   createdAt!: Date;
   updatedAt!: Date;
 }

@@ -1,220 +1,612 @@
-# Tasks - API Integration Audit
+# Tasks TODO List
 
-## Status: COMPLETE
+## Current Task: Chats Direct Messages
 
-### 1. Backend API Inventory
+- [x] Read the DM endpoint summary and current chats page integration
+- [x] Add frontend DM types, client methods, and TanStack Query hooks for `/chat/dms`
+- [x] Replace the ad hoc DM creation flow with the dedicated get-or-create DM flow
+- [x] Render DMs correctly in the chats sidebar and selected chat header
+- [x] Verify the touched chats files with targeted frontend checks
 
-**Total: 111 endpoints across 15 modules**
+### Result
 
-| Module          | Endpoints | Key Routes                                                                                     |
-| --------------- | --------- | ---------------------------------------------------------------------------------------------- |
-| auth            | 12        | `/auth/register`, `/auth/login`, `/auth/me`, `/auth/refresh`, `/auth/change-password`          |
-| workspaces      | 15        | `/workspaces`, `/workspaces/:id`, `/workspaces/:id/invitations`, `/workspaces/resolve-context` |
-| projects        | 10        | `/projects`, `/projects/:id`, `/projects/:id/details`, `/projects/:id/tasks/:id`               |
-| tasks           | 6         | `/tasks`, `/tasks/my-tasks`, `/tasks/:id`                                                      |
-| goals           | 10        | `/goals`, `/goals/:id`, `/goals/:id/log-progress`, `/goals/:id/link-tasks`                     |
-| chat            | 10        | `/chat/channels`, `/chat/messages`, `/chat/unread-count`                                       |
-| notifications   | 7         | `/notifications`, `/notifications/unread-count`, `/notifications/mark-all-read`                |
-| budgets         | 6         | `/budgets`, `/budgets/summary`, `/budgets/:id`                                                 |
-| habits          | 6         | `/habits`, `/habits/:id`, `/habits/:id/archive`                                                |
-| habit-logs      | 6         | `/habit-logs`, `/habit-logs/habit/:id`, `/habit-logs/:id`                                      |
-| journal-entries | 6         | `/journal-entries`, `/journal-entries/mood-summary`, `/journal-entries/:id`                    |
-| notes           | 6         | `/notes`, `/notes/by-project/:projectId`, `/notes/:id`                                         |
-| transactions    | 6         | `/transactions`, `/transactions/summary`, `/transactions/:id`                                  |
-| dashboard       | 1         | `/dashboard/tasks-overview`                                                                    |
-| onboarding      | 4         | `/onboarding/me`, `/onboarding/start`, `/onboarding/complete`                                  |
-| users           | 0         | No controller (user ops via auth module)                                                       |
+- Added dedicated frontend support for `GET /chat/dms` and `POST /chat/dms/:userId`, including query keys and mutation handling in the shared chat data layer.
+- Updated the chats page to merge regular channels with DMs, keep DM lists refreshed on chat activity, and select newly created DMs immediately.
+- Updated the channel modal to select exactly one target user for DMs and route DM creation through the idempotent backend DM endpoint instead of generic channel creation.
+- Updated the sidebar and chat header to render DM display name, email, and avatar from `otherUser`.
+- File-scoped ESLint passed for the touched chat data layer, modal, sidebar, and chats page files.
 
-**Guards Used:**
+## Current Task: Chats Emoji Picker
 
-- `JwtAuthGuard` - JWT authentication
-- `WorkspaceAccessGuard` - Workspace membership verification
-- `WorkspacePermissionGuard` - Permission-level checks (BUDGET_READ, TASK_WRITE, etc.)
-- `WorkspaceRoleGuard` - Role-level checks (OWNER, ADMIN, MEMBER)
+- [x] Inspect the Frimousse API and current chat composer integration point
+- [x] Integrate a Frimousse emoji picker into the shared chat composer used by `/chats`
+- [x] Verify the chats page emoji picker integration with targeted frontend checks
 
----
+### Result
 
-### 2. Frontend Requirements
+- Integrated Frimousse into the shared `MessageInput` used by the workspace chats page, replacing the placeholder emoji action with a searchable picker in a popover.
+- Emoji selection inserts into the textarea at the current cursor position, restores focus, preserves auto-resize behavior, and keeps the typing indicator flow active.
+- File-scoped ESLint passed for the touched composer and chats page files.
 
-**17 API client modules** in `apps/project-dashboard/lib/`:
+## Current Task: Quick User Profile Popover
 
-- auth, workspaces, projects, project-details, tasks, project-wizard
-- budgets, habits, habit-logs, goals, journal-entries, notes
-- transactions, notifications, chat, onboarding
+- [x] Inspect the existing chats page, shared UI primitives, and `/users/:id` API shape
+- [x] Add shared users client and TanStack Query hook for user details
+- [x] Create a reusable avatar-triggered quick user profile popover
+- [x] Integrate the popover into chat message avatars on `/chats`
+- [x] Verify the touched frontend files with targeted checks
+- [x] Add GLightbox iframe-based large avatar preview inside the popover
+- [x] Verify the GLightbox avatar preview integration
 
-**Key Pages Requiring API Data:**
+### Result
 
-- `/projects`, `/projects/:id`, `/projects/:id/backlog`
-- `/tasks`, `/budgets`, `/habits`, `/goals`, `/journal`
-- `/inbox`, `/notifications`, `/chat`, `/onboarding`
-- `/performance`, `/clients`, `/workspace/:id`
+- Added shared `/users/:id` frontend client and a keyed TanStack Query hook with reusable query options, `staleTime`, and prefetch support.
+- Added a reusable quick profile popover with loading and retry states, triggered from avatar clicks and prefetched on hover/focus.
+- Integrated the popover into chat message avatars on the workspace chats page.
+- File-scoped ESLint passed for all touched frontend files.
+- App-wide `pnpm run check-types` still fails from unrelated pre-existing errors in editor, performance, auth, and socket files outside this change set.
+- Added a GLightbox-powered large avatar preview from the popover using the library's iframe/external slide path with a generated HTML document around the image.
+- File-scoped ESLint passed again after the GLightbox enhancement.
 
----
+## Current Task: Chats Page UX Consistency
 
-### 3. Existing API Design Documents
+- [x] Inspect the existing `/chats` page integration
+- [x] Replace the ad hoc composer with shared chat primitives
+- [x] Verify the edited page with file-scoped lint
 
-Found: `tasks/tasks_api_design.md` - Comprehensive design for tasks module including:
+### Result
 
-- Data structure (Project, Workstream, Task, User)
-- JSON schema examples
-- Backend API design with filters and aggregations
-- Database schema recommendations (Mongoose)
-- Implementation notes for NestJS
+- The chats page now uses the shared `MessageInput`, `ConnectionStatus`, and `TypingIndicator` components.
+- Message rendering is sorted chronologically so the newest message stays at the bottom.
+- File-scoped ESLint passed for the touched frontend file.
 
-**Key design requirements from document:**
+## Current Task: Workspace Member Avatar Field
 
-- `GET /tasks/my-tasks` with filters and `filterCounts` in meta
-- Denormalized `projectName`, `workstreamName` in task responses
-- Aggregated filter counts for status, members, tags
-- Support for drag-and-drop reordering with `position` field
+- [x] Inspect workspace member response shape
+- [x] Add `avatarUrl` to enriched workspace member user payload
+- [x] Verify the workspace package still typechecks for the touched files
 
----
+### Result
 
-### 4. Gap Analysis: Backend vs Frontend
+- Workspace member payloads now include `user.avatarUrl` from the underlying user record.
+- File-scoped ESLint passed for the touched backend files.
 
-#### ✅ Fully Implemented
+## Current Task: Teammates Pane Avatar Display
 
-| Feature              | Backend                             | Frontend                       | Status      |
-| -------------------- | ----------------------------------- | ------------------------------ | ----------- |
-| Authentication       | Full JWT + refresh + OTP            | Auth hooks, guards             | ✅ Complete |
-| Workspace management | CRUD + invitations + members        | Sidebar switcher, settings     | ✅ Complete |
-| Projects             | CRUD + details endpoint             | Project list, details page     | ✅ Complete |
-| Tasks (basic)        | CRUD + my-tasks                     | Task list, board, quick create | ✅ Complete |
-| Goals                | CRUD + link tasks/habits + progress | Goals page, linking UI         | ✅ Complete |
-| Habits               | CRUD + archive                      | Habits page                    | ✅ Complete |
-| Habit Logs           | CRUD by habit                       | Habit logs page                | ✅ Complete |
-| Budgets              | CRUD + summary                      | Budgets page, summary cards    | ✅ Complete |
-| Transactions         | CRUD + summary                      | Transactions page              | ✅ Complete |
-| Journal              | CRUD + mood summary                 | Journal page, analytics        | ✅ Complete |
-| Notes                | CRUD + by-project                   | Notes tab in project details   | ✅ Complete |
-| Notifications        | CRUD + unread + mark-all            | Inbox page, dropdown badge     | ✅ Complete |
-| Chat                 | Channels + messages + unread        | Chat page, sidebar             | ✅ Complete |
-| Onboarding           | State + steps + complete            | Onboarding setup page          | ✅ Complete |
+- [x] Read the teammates settings pane layout
+- [x] Render the member avatar alongside display name and email
+- [x] Verify the changed frontend files with targeted lint
 
-#### ⚠️ Partially Implemented / Gaps
+### Result
 
-| Feature                    | Gap                                                                       | Impact                                | Priority |
-| -------------------------- | ------------------------------------------------------------------------- | ------------------------------------- | -------- |
-| **Tasks - Filter Counts**  | Backend returns tasks but `filterCounts` aggregation may be incomplete    | Filter popover shows incorrect totals | High     |
-| **Tasks - Reorder**        | No dedicated `PATCH /tasks/reorder` endpoint for cross-project reordering | Drag-and-drop reordering limited      | Medium   |
-| **Tasks - Position field** | Task schema lacks `position`/`order` field for manual sorting             | Cannot persist custom task order      | Medium   |
-| **Project Details**        | Notes, files, timeline tabs use placeholder data                          | Rich project details incomplete       | Low      |
-| **Chat - Socket**          | No WebSocket integration for real-time messages                           | Chat requires manual refresh          | Low      |
-| **Performance Module**     | Only 1 endpoint (`/dashboard/tasks-overview`)                             | Performance page likely incomplete    | Medium   |
-| **Clients Module**         | No backend clients module                                                 | `/clients` route uses mock data       | High     |
+- Teammates now show `user.avatarUrl` in the avatar component with initials fallback.
+- File-scoped ESLint passed for the touched frontend files.
 
-#### 🔴 Missing Endpoints
-
-| Endpoint                   | Purpose               | Frontend Need               |
-| -------------------------- | --------------------- | --------------------------- |
-| `GET /clients`             | List clients          | Clients page                |
-| `POST /clients`            | Create client         | Client create dialog        |
-| `GET /clients/:id`         | Client details        | Client details page         |
-| `PATCH /clients/:id`       | Update client         | Client edit                 |
-| `DELETE /clients/:id`      | Delete client         | Client delete action        |
-| `PATCH /tasks/reorder`     | Batch reorder tasks   | Drag-and-drop across groups |
-| `GET /performance/metrics` | Performance analytics | Performance dashboard       |
-| `POST /performance/goals`  | Set performance goals | Goal setting UI             |
+**Created:** March 26, 2026
+**Based on:** Backend & Frontend Integration Analysis
 
 ---
 
-### 5. Recommendations
+## Priority 1: Critical Missing Features
 
-#### Immediate (High Priority)
+### [ ] Task 1: Clients Backend Module
 
-1. **Add Clients Module** - Frontend has routes but no backend support
-2. **Fix Tasks Filter Counts** - Ensure `GET /tasks/my-tasks` returns accurate aggregations
-3. **Add Task Reorder Endpoint** - Support drag-and-drop with `position` field
+**Priority:** HIGH
+**Effort:** 4-6 hours
+**Status:** NOT STARTED
 
-#### Short-term (Medium Priority)
+**Description:** Implement complete backend for Clients module
 
-4. **Expand Performance Module** - Add metrics and goals endpoints
-5. **Project Details Enrichment** - Add real notes/files/timeline data endpoints
-6. **Add `@ApiProperty()` to `PaginatedResultDto.meta`** - Fix Swagger documentation
+**Subtasks:**
 
-#### Long-term (Low Priority)
+- [ ] Create NestJS module structure (clients.module.ts)
+- [ ] Create TypeORM entity (client.entity.ts)
+- [ ] Create DTOs (create-client.dto.ts, update-client.dto.ts)
+- [ ] Create service (clients.service.ts)
+- [ ] Create controller (clients.controller.ts) with endpoints:
+  - POST /clients - Create client
+  - GET /clients - List clients (paginated, workspace-scoped)
+  - GET /clients/:id - Get client details
+  - PATCH /clients/:id - Update client
+  - DELETE /clients/:id - Delete client
+  - GET /clients/:id/projects - Get client projects
+  - GET /clients/:id/notes - Get client notes
+- [ ] Add workspace permissions
+- [ ] Add Swagger documentation
+- [ ] Write unit tests
 
-7. **WebSocket for Chat** - Real-time message delivery
-8. **Currency Conversion for Budgets** - Multi-workspace currency support
+**Files to Create:**
 
----
-
-### 6. Schema Recommendations
-
-**Task Schema Updates Needed:**
-
-```typescript
-@Prop({ type: Number, default: 0 })
-position?: number; // For manual ordering
-
-@Prop({ type: [{ type: Types.ObjectId, ref: 'Habit' }], default: [] })
-linkedHabits?: Types.ObjectId[]; // Already in goals, consider bidirectional
-
-@Prop({ type: [{ type: Types.ObjectId, ref: 'Client' }], default: [] })
-linkedClients?: Types.ObjectId[]; // For client-linked tasks
 ```
-
-**New Schema Needed:**
-
-```typescript
-// clients/client.schema.ts
-@Schema({ timestamps: true })
-export class Client extends Document {
-  @Prop({ required: true })
-  name: string;
-
-  @Prop()
-  email?: string;
-
-  @Prop()
-  phone?: string;
-
-  @Prop({ type: Types.ObjectId, ref: "Workspace", required: true })
-  workspaceId: Types.ObjectId;
-
-  @Prop({ type: [{ type: Types.ObjectId, ref: "Project" }], default: [] })
-  projects?: Types.ObjectId[];
-}
+/apps/api/src/clients/
+  ├── clients.module.ts
+  ├── clients.service.ts
+  ├── clients.controller.ts
+  ├── entities/client.entity.ts
+  ├── dto/create-client.dto.ts
+  ├── dto/update-client.dto.ts
+  └── dto/client-query.dto.ts
 ```
 
 ---
 
-## Review / Results
+### [ ] Task 2: Clients Frontend Integration
 
-- Audited 16 backend modules: 15 with controllers, 1 (users) service-only
-- Documented 111 total endpoints with guards and permission requirements
-- Mapped 17 frontend API client modules to backend endpoints
-- Identified 8 missing endpoints (clients module, task reorder, performance)
-- Found existing API design doc: `tasks/tasks_api_design.md`
-- Recommended 3 immediate fixes, 3 short-term improvements, 2 long-term enhancements
+**Priority:** HIGH
+**Effort:** 3-4 hours
+**Status:** NOT STARTED
+
+**Description:** Create API client and integrate with frontend
+
+**Subtasks:**
+
+- [ ] Create clients-client.ts (API client)
+- [ ] Create clients-query.ts (TanStack Query hooks)
+- [ ] Create clients page at /w/:workspaceId/clients
+- [ ] Create client detail page at /w/:workspaceId/clients/:id
+- [ ] Remove mock data from /lib/data/clients.ts
+- [ ] Add client form components
+- [ ] Add client list/table component
+- [ ] Add client detail view
+
+**Files to Create:**
+
+```
+/apps/project-dashboard/lib/clients/
+  ├── clients-client.ts
+  └── clients-query.ts
+/apps/project-dashboard/app/(protected)/w/[workspaceId]/clients/
+  └── page.tsx
+/apps/project-dashboard/app/(protected)/w/[workspaceId]/clients/[id]/
+  └── page.tsx
+```
 
 ---
 
-## 7. Postman Collections Update Task
+## Priority 2: AI Features (High Impact)
 
-### Status: COMPLETE
+### [ ] Task 3: AI Infrastructure Setup
 
-### Objectives
+**Priority:** HIGH
+**Effort:** 2-3 hours
+**Status:** NOT STARTED
 
-Review all `@apps/api` modules and update the Postman collections in `@apps/api/postman/collections/` to ensure all endpoints are testable.
+**Description:** Set up AI provider and service layer
 
-### Tasks
+**Subtasks:**
 
-- [x] Create missing collections:
-    - [x] 14-notes.json
-    - [x] 15-onboarding.json
-    - [x] 16-performance.json
-    - [x] 17-health.json
-    - [x] 18-filters.json
-    - [x] 19-upload.json
-- [x] Review and update existing collections:
-    - [x] 01-auth.json (Updated with profile and account management)
-    - [x] 02-tasks.json (Standardized and verified)
-    - [x] 10-dashboard.json (Updated)
-    - [x] 11-workspaces.json (Updated with invitations and context resolution)
-    - [x] 12-projects.json (Updated with details and reordering)
-    - [x] 13-chat.json (Updated with messages and unread summary)
-- [x] Standardize variables and environment:
-    - [x] Use `{{baseUrl}}` for `http://localhost:3001/api/v1`
-    - [x] Use `{{accessToken}}` for Authorization
-    - [x] Use `{{workspaceId}}` in headers or URL as needed
+- [ ] Choose AI provider (OpenAI/Anthropic/Ollama)
+- [ ] Install dependencies:
+  - `pnpm add ai @ai-sdk/openai` (or @ai-sdk/anthropic)
+  - `pnpm add langchain @langchain/core`
+  - `pnpm add pgvector` (if using pgvector)
+- [ ] Add environment variables to .env.example:
+  - OPENAI_API_KEY or ANTHROPIC_API_KEY
+  - AI_MODEL=gpt-4o or claude-3-5-sonnet
+- [ ] Create AI service module in backend
+- [ ] Create AI configuration service
+- [ ] Add rate limiting for AI endpoints
+- [ ] Add AI usage tracking/logging
+
+**Files to Create:**
+
+```
+/apps/api/src/ai/
+  ├── ai.module.ts
+  ├── ai.service.ts
+  ├── ai.config.ts
+  └── dto/ai-request.dto.ts
+```
+
+---
+
+### [ ] Task 4: Journal AI Analysis
+
+**Priority:** HIGH
+**Effort:** 8-12 hours
+**Status:** NOT STARTED
+
+**Description:** Implement AI-powered journal analysis and insights
+
+**Subtasks:**
+
+- [ ] Create journal analysis service
+- [ ] Implement sentiment analysis endpoint
+- [ ] Implement mood trend analysis
+- [ ] Create auto-summary generation
+- [ ] Implement pattern detection
+- [ ] Create frontend AI insights component
+- [ ] Add weekly/monthly report generation
+- [ ] Add mood prediction chart
+
+**Backend Endpoints to Create:**
+
+```
+POST   /journal-entries/:id/analyze           - Analyze single entry
+GET    /journal-entries/analysis/summary      - Get period summary
+GET    /journal-entries/insights              - Get AI insights
+POST   /journal-entries/generate-summary      - Generate period report
+GET    /journal-entries/mood-trends           - Get mood trends
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/journal-entries/journal-ai.service.ts
+/apps/api/src/journal-entries/dto/analyze-entry.dto.ts
+/apps/project-dashboard/lib/journal-entries/journal-ai-client.ts
+/apps/project-dashboard/components/journal/ai-insights.tsx
+```
+
+---
+
+### [ ] Task 5: Task & Goal Recommendations
+
+**Priority:** HIGH
+**Effort:** 10-15 hours
+**Status:** NOT STARTED
+
+**Description:** AI-powered task prioritization and goal recommendations
+
+**Subtasks:**
+
+- [ ] Create task recommendation service
+- [ ] Implement smart prioritization algorithm
+- [ ] Create goal achievement prediction
+- [ ] Add workload balancing suggestions
+- [ ] Create milestone generation
+- [ ] Build frontend recommendation UI
+- [ ] Add "Recommended Next Action" feature
+- [ ] Create goal insights dashboard
+
+**Backend Endpoints to Create:**
+
+```
+GET    /tasks/recommendations                 - Get task recommendations
+GET    /tasks/priority-score/:id              - Calculate priority score
+GET    /goals/insights                        - Get goal insights
+POST   /goals/generate-milestones             - AI-generate milestones
+GET    /performance/suggestions               - Get improvement suggestions
+POST   /goals/predict-achievement/:id         - Predict success rate
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/tasks/task-recommendation.service.ts
+/apps/api/src/goals/goal-insights.service.ts
+/apps/project-dashboard/lib/tasks/task-recommendations-client.ts
+/apps/project-dashboard/lib/goals/goal-insights-client.ts
+/apps/project-dashboard/components/tasks/recommended-tasks.tsx
+/apps/project-dashboard/components/goals/goal-insights.tsx
+```
+
+---
+
+## Priority 3: AI Features (Medium Impact)
+
+### [ ] Task 6: Chat AI Assistant
+
+**Priority:** MEDIUM
+**Effort:** 15-20 hours
+**Status:** NOT STARTED
+
+**Description:** AI-powered chat assistance and summarization
+
+**Subtasks:**
+
+- [ ] Create chat AI service
+- [ ] Implement message summarization
+- [ ] Add smart reply suggestions
+- [ ] Create AI assistant channel bot
+- [ ] Implement thread summarization
+- [ ] Add context-aware responses
+- [ ] Build frontend AI assistant UI
+- [ ] Add "Ask AI" feature in chat
+
+**Backend Endpoints to Create:**
+
+```
+POST   /chat/messages/:id/summarize           - Summarize message thread
+POST   /chat/ai-reply                         - Generate AI reply
+GET    /chat/channels/:id/summary             - Get channel summary
+POST   /chat/ai/ask                           - Ask AI assistant
+POST   /chat/messages/suggest-reply           - Suggest reply
+GET    /chat/channels/:id/key-points          - Extract key points
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/chat/chat-ai.service.ts
+/apps/project-dashboard/lib/chat/chat-ai-client.ts
+/apps/project-dashboard/components/chat/ai-assistant.tsx
+/apps/project-dashboard/components/chat/message-summary.tsx
+/apps/project-dashboard/components/chat/smart-replies.tsx
+```
+
+---
+
+### [ ] Task 7: Performance Insights
+
+**Priority:** MEDIUM
+**Effort:** 6-10 hours
+**Status:** NOT STARTED
+
+**Description:** AI-powered performance analysis and insights
+
+**Subtasks:**
+
+- [ ] Create performance analysis service
+- [ ] Implement productivity pattern detection
+- [ ] Add focus time optimization
+- [ ] Create burnout risk detection
+- [ ] Generate weekly performance reports
+- [ ] Build insights dashboard UI
+- [ ] Add productivity trends chart
+- [ ] Create goal suggestion engine
+
+**Backend Endpoints to Create:**
+
+```
+GET    /performance/insights                  - Get AI insights
+GET    /performance/weekly-report             - Generate weekly report
+GET    /performance/patterns                  - Detect patterns
+POST   /performance/generate-goals            - Suggest new goals
+GET    /performance/burnout-risk              - Assess burnout risk
+GET    /performance/focus-time-analysis       - Analyze focus patterns
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/performance/performance-ai.service.ts
+/apps/project-dashboard/lib/performance/performance-ai-client.ts
+/apps/project-dashboard/components/performance/ai-insights.tsx
+/apps/project-dashboard/components/performance/weekly-report.tsx
+```
+
+---
+
+### [ ] Task 8: Note Summarization & Audio Transcription
+
+**Priority:** MEDIUM
+**Effort:** 10-15 hours
+**Status:** NOT STARTED
+
+**Description:** Auto-summarize notes and transcribe audio
+
+**Subtasks:**
+
+- [ ] Create note summarization service
+- [ ] Implement audio transcription (Whisper API)
+- [ ] Add action item extraction
+- [ ] Create smart tagging system
+- [ ] Build meeting notes template
+- [ ] Add summary generation UI
+- [ ] Create transcription progress indicator
+- [ ] Add searchable transcript text
+
+**Backend Endpoints to Create:**
+
+```
+POST   /notes/:id/summarize                   - Summarize note
+POST   /notes/transcribe-audio                - Transcribe audio note
+POST   /notes/extract-action-items            - Extract tasks from note
+POST   /notes/auto-tag                        - Auto-generate tags
+GET    /notes/:id/key-points                  - Extract key points
+POST   /notes/meeting-to-tasks                - Convert meeting to tasks
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/notes/note-ai.service.ts
+/apps/project-dashboard/lib/notes/note-ai-client.ts
+/apps/project-dashboard/components/notes/note-summary.tsx
+/apps/project-dashboard/components/notes/audio-transcription.tsx
+/apps/project-dashboard/components/notes/action-items.tsx
+```
+
+---
+
+## Priority 4: AI Features (Lower Impact)
+
+### [ ] Task 9: Smart Categorization
+
+**Priority:** LOW
+**Effort:** 6-8 hours
+**Status:** NOT STARTED
+
+**Description:** Auto-categorize transactions and tasks
+
+**Subtasks:**
+
+- [ ] Create categorization service
+- [ ] Implement transaction auto-categorization
+- [ ] Add task categorization suggestions
+- [ ] Create expense pattern detection
+- [ ] Build budget recommendations
+- [ ] Add category learning from user behavior
+- [ ] Create manual override UI
+- [ ] Add category confidence scores
+
+**Backend Endpoints to Create:**
+
+```
+POST   /transactions/:id/categorize           - Auto-categorize
+GET    /transactions/suggestions              - Get category suggestions
+GET    /budgets/recommendations               - Budget optimization tips
+POST   /transactions/analyze-patterns         - Detect spending patterns
+GET    /transactions/category-stats           - Category statistics
+POST   /tasks/suggest-category                - Suggest task category
+```
+
+**Files to Create:**
+
+```
+/apps/api/src/transactions/categorization.service.ts
+/apps/project-dashboard/lib/transactions/categorization-client.ts
+/apps/project-dashboard/components/transactions/category-suggestions.tsx
+/apps/project-dashboard/components/budgets/recommendations.tsx
+```
+
+---
+
+## Priority 5: Page Integration Cleanup
+
+### [ ] Task 10: Budgets Page Integration
+
+**Priority:** MEDIUM
+**Effort:** 1-2 hours
+**Status:** NOT STARTED
+
+**Description:** Create dedicated budgets page in workspace route
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/budgets page
+- [ ] Add budget list view
+- [ ] Add budget form
+- [ ] Add spending summary chart
+- [ ] Connect to existing API client
+
+---
+
+### [ ] Task 11: Habits Page Integration
+
+**Priority:** MEDIUM
+**Effort:** 1-2 hours
+**Status:** NOT STARTED
+
+**Description:** Create dedicated habits page in workspace route
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/habits page
+- [ ] Add habit list with completion status
+- [ ] Add habit form
+- [ ] Add habit streak visualization
+- [ ] Connect to existing API client
+
+---
+
+### [ ] Task 12: Journal Page Integration
+
+**Priority:** MEDIUM
+**Effort:** 2-3 hours
+**Status:** NOT STARTED
+
+**Description:** Create dedicated journal page in workspace route
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/journal page
+- [ ] Add journal entry list
+- [ ] Add journal editor
+- [ ] Add mood tracking visualization
+- [ ] Add AI insights panel (when Task 4 complete)
+- [ ] Connect to existing API client
+
+---
+
+### [ ] Task 13: Performance Page Integration
+
+**Priority:** LOW
+**Effort:** 1-2 hours
+**Status:** NOT STARTED
+
+**Description:** Create dedicated performance page in workspace route
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/performance page
+- [ ] Add KPI dashboard
+- [ ] Add charts for metrics
+- [ ] Add AI insights panel (when Task 7 complete)
+- [ ] Connect to existing API client
+
+---
+
+### [ ] Task 14: Inbox Page Integration
+
+**Priority:** LOW
+**Effort:** 2-3 hours
+**Status:** NOT STARTED
+
+**Description:** Create unified inbox for notifications and updates
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/inbox page
+- [ ] Aggregate notifications, mentions, updates
+- [ ] Add notification preferences
+- [ ] Add read/unread management
+- [ ] Connect to notifications API
+
+---
+
+### [ ] Task 15: Habit Logs Page Integration
+
+**Priority:** LOW
+**Effort:** 1-2 hours
+**Status:** NOT STARTED
+
+**Description:** Create habit logs view page
+
+**Subtasks:**
+
+- [ ] Create /w/:workspaceId/habit-logs page
+- [ ] Add calendar view
+- [ ] Add habit log list
+- [ ] Add filtering by habit/date
+- [ ] Connect to existing API client
+
+---
+
+## Summary
+
+### Total Tasks: 15
+
+| Priority        | Count  | Estimated Hours |
+| --------------- | ------ | --------------- |
+| HIGH (Critical) | 3      | 9-13 hours      |
+| HIGH (AI)       | 2      | 18-27 hours     |
+| MEDIUM (AI)     | 2      | 16-25 hours     |
+| MEDIUM (Pages)  | 3      | 4-7 hours       |
+| LOW (AI)        | 1      | 6-8 hours       |
+| LOW (Pages)     | 4      | 5-9 hours       |
+| **TOTAL**       | **15** | **58-89 hours** |
+
+### AI-Specific Tasks: 6
+
+- Task 3: AI Infrastructure Setup
+- Task 4: Journal AI Analysis
+- Task 5: Task & Goal Recommendations
+- Task 6: Chat AI Assistant
+- Task 7: Performance Insights
+- Task 8: Note Summarization & Audio Transcription
+- Task 9: Smart Categorization
+
+**Total AI Implementation:** 55-80 hours
+
+---
+
+## Recommended Order of Execution
+
+1. **Week 1:** Task 1 (Clients Backend), Task 2 (Clients Frontend), Task 3 (AI Setup)
+2. **Week 2:** Task 4 (Journal AI)
+3. **Week 3:** Task 5 (Task/Goal Recommendations)
+4. **Week 4:** Task 7 (Performance Insights), Task 10-13 (Page integrations)
+5. **Week 5:** Task 6 (Chat AI)
+6. **Week 6:** Task 8 (Note Summarization), Task 9 (Smart Categorization), Task 14-15
+
+---
+
+## Notes
+
+- All AI features require an AI provider API key (OpenAI, Anthropic, or self-hosted)
+- Consider implementing rate limiting and usage tracking for AI features
+- Add user preferences for AI features (opt-in/opt-out)
+- Consider cost implications of AI API calls
+- Add caching for AI-generated content to reduce API calls

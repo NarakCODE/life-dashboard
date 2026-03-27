@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api/api-client";
 import type {
   Channel,
+  ChatUser,
   CreateChannelInput,
   MarkReadInput,
   Message,
@@ -29,6 +30,7 @@ interface BackendChannel {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  otherUser?: ChatUser;
 }
 
 /**
@@ -93,6 +95,15 @@ export async function getChannels(workspaceId: string): Promise<Channel[]> {
   return channels.map(transformBackendChannel);
 }
 
+export async function getDms(workspaceId: string): Promise<Channel[]> {
+  const channels = await apiRequest<BackendChannel[]>({
+    path: "/chat/dms",
+    auth: "required",
+    workspaceId,
+  });
+  return channels.map(transformBackendChannel);
+}
+
 export async function getChannel(
   workspaceId: string,
   channelId: string,
@@ -113,6 +124,19 @@ export async function createChannel(
     path: "/chat/channels",
     method: "POST",
     body: input,
+    auth: "required",
+    workspaceId,
+  });
+  return transformBackendChannel(channel);
+}
+
+export async function getOrCreateDm(
+  workspaceId: string,
+  userId: string,
+): Promise<Channel> {
+  const channel = await apiRequest<BackendChannel>({
+    path: `/chat/dms/${userId}`,
+    method: "POST",
     auth: "required",
     workspaceId,
   });

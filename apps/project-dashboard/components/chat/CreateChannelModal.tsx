@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { X } from "lucide-react";
-import { motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,102 +21,204 @@ import { QuickCreateModalLayout } from "@/components/QuickCreateModalLayout";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { ChannelType, type CreateChannelInput } from "@/lib/chat/types";
 import { WorkspaceMember } from "@/lib/workspaces/workspace-types";
+import { useWorkspaceQuery } from "@/lib/workspaces/workspace-query";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
 import { cn } from "@/lib/utils";
+import { GlobeIcon, LockIcon, UserIcon } from "@phosphor-icons/react";
+
+// ---------------------------------------------------------------------------
+// Zod schema — validation rules match the original manual validate() logic
+// ---------------------------------------------------------------------------
+
+const createChannelSchema = z
+  .object({
+    type: z.nativeEnum(ChannelType),
+    name: z
+      .string()
+      .max(100, "Name must be less than 100 characters")
+      .optional(),
+    description: z
+      .string()
+      .max(500, "Description must be less than 500 characters")
+      .optional(),
+    memberIds: z.array(z.string()).optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Name required for non-DM channels
+    if (data.type !== ChannelType.DM && !data.name?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["name"],
+        message: "Channel name is required",
+      });
+    }
+    // DM must target exactly one other person.
+    if (data.type === ChannelType.DM && data.memberIds?.length !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["memberIds"],
+        message: "Select exactly one person for DM",
+      });
+    }
+    // Private channels require at least one invite
+    if (
+      data.type === ChannelType.PRIVATE &&
+      (!data.memberIds || data.memberIds.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["memberIds"],
+        message: "Select at least one member",
+      });
+    }
+  });
+
+type FormValues = z.infer<typeof createChannelSchema>;
+
+// ---------------------------------------------------------------------------
+// Channel type options
+// ---------------------------------------------------------------------------
+
+const CHANNEL_TYPE_OPTIONS = [
+  {
+    value: ChannelType.PUBLIC,
+    label: "Public",
+    icon: <GlobeIcon />,
+    description: "Anyone in the workspace can join",
+  },
+  {
+    value: ChannelType.PRIVATE,
+    label: "Private",
+    description: "Invite only",
+    icon: <LockIcon />,
+  },
+  {
+    value: ChannelType.DM,
+    label: "Direct Message",
+    description: "One-on-one conversation",
+    icon: <UserIcon />,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface CreateChannelModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: CreateChannelInput) => void;
   isPending?: boolean;
+  initialType?: ChannelType;
+  /** Workspace members to populate the invite picker. If omitted, fetched internally. */
   members?: WorkspaceMember[];
+  /** Pass workspaceId so the modal can self-fetch members when the prop is absent/empty. */
+  workspaceId?: string;
 }
 
-const CHANNEL_TYPE_OPTIONS = [
-  { value: ChannelType.PUBLIC, label: "Public", description: "Anyone in the workspace can join" },
-  { value: ChannelType.PRIVATE, label: "Private", description: "Invite only" },
-  { value: ChannelType.DM, label: "Direct Message", description: "One-on-one conversation" },
-];
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function CreateChannelModal({
   open,
   onClose,
   onSubmit,
   isPending,
-  members = [],
+  initialType = ChannelType.PUBLIC,
+  members: membersProp = [],
+  workspaceId: workspaceIdProp,
 }: CreateChannelModalProps) {
-  const [formData, setFormData] = useState<CreateChannelInput>({
-    type: ChannelType.PUBLIC,
-    name: "",
-    description: "",
-    memberIds: [],
+  // Resolve workspaceId: use the prop if provided, otherwise read from route scope
+  const { workspaceId: scopeWorkspaceId } = useWorkspaceScope();
+  const workspaceId = workspaceIdProp ?? scopeWorkspaceId;
+
+  // Self-fetch workspace members so the picker is never empty due to timing issues
+  const { data: workspace } = useWorkspaceQuery(workspaceId ?? "", {
+    enabled: Boolean(workspaceId),
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateChannelInput, string>>>({});
+  // Prefer the prop when populated (parent might already have data); fall back to query result
+  const members: WorkspaceMember[] = useMemo(() => {
+    if (membersProp.length > 0) return membersProp;
+    return workspace?.members ?? [];
+  }, [membersProp, workspace?.members]);
 
-  const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof CreateChannelInput, string>> = {};
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(createChannelSchema),
+    defaultValues: {
+      type: initialType,
+      name: "",
+      description: "",
+      memberIds: [],
+    },
+  });
 
-    if (formData.type !== ChannelType.DM && !formData.name?.trim()) {
-      newErrors.name = "Channel name is required";
+  const resetForm = useCallback(() => {
+    reset({
+      type: initialType,
+      name: "",
+      description: "",
+      memberIds: [],
+    });
+  }, [initialType, reset]);
+
+  useEffect(() => {
+    if (open) {
+      resetForm();
     }
+  }, [open, resetForm]);
 
-    if (formData.type === ChannelType.DM && formData.memberIds?.length !== 2) {
-      newErrors.memberIds = "Select exactly one person for DM";
-    }
+  const channelType = watch("type");
+  const memberIds = watch("memberIds");
 
-    if (formData.type === ChannelType.PRIVATE && (!formData.memberIds || formData.memberIds.length === 0)) {
-      newErrors.memberIds = "Select at least one member";
-    }
-
-    if (formData.name && formData.name.length > 100) {
-      newErrors.name = "Name must be less than 100 characters";
-    }
-
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = "Description must be less than 500 characters";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  // For DM: derive the display name of the selected person (excluding self placeholder)
+  const getDMName = () => {
+    if (channelType !== ChannelType.DM || memberIds?.length !== 1) return "";
+    const otherUserId = memberIds[0];
+    if (!otherUserId) return "";
+    return (
+      members.find((m) => m.userId === otherUserId)?.user.displayName ?? ""
+    );
   };
 
-  const handleSubmit = () => {
-    if (!validate()) return;
-    onSubmit(formData);
+  const onValid = (data: FormValues) => {
+    onSubmit(data as CreateChannelInput);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      handleSubmit(onValid)();
     }
-  };
-
-  const selectedType = CHANNEL_TYPE_OPTIONS.find((opt) => opt.value === formData.type);
-
-  // For DM, get the other user (excluding current user)
-  const getDMName = () => {
-    if (formData.type !== ChannelType.DM || formData.memberIds?.length !== 2) return "";
-    const otherUserId = formData.memberIds.find((id) => id !== "current-user");
-    if (!otherUserId) return "";
-    const otherMember = members.find((m) => m.userId === otherUserId);
-    return otherMember ? otherMember.user.displayName : "";
   };
 
   return (
     <QuickCreateModalLayout
       open={open}
-      onClose={onClose}
-      onSubmitShortcut={handleSubmit}
+      onClose={() => {
+        resetForm();
+        onClose();
+      }}
+      onSubmitShortcut={() => handleSubmit(onValid)()}
       className="max-w-lg"
     >
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold">
-            {formData.type === ChannelType.DM ? "New Direct Message" : "Create Channel"}
+            {channelType === ChannelType.DM
+              ? "New Direct Message"
+              : "Create Channel"}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {formData.type === ChannelType.DM
+            {channelType === ChannelType.DM
               ? "Start a conversation with someone"
               : "Create a new channel for your workspace"}
           </p>
@@ -122,58 +226,78 @@ export function CreateChannelModal({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
-          onClick={onClose}
+          className="size-8"
+          onClick={() => {
+            resetForm();
+            onClose();
+          }}
           disabled={isPending}
         >
-          <X className="h-4 w-4" />
+          <X />
         </Button>
       </div>
 
-      <div className="space-y-4" onKeyDown={handleKeyDown}>
-        <div className="space-y-2">
+      <form
+        onSubmit={handleSubmit(onValid)}
+        className="flex flex-col gap-4"
+        onKeyDown={handleKeyDown}
+      >
+        {/* Channel Type */}
+        <div className="flex flex-col gap-2">
           <Label htmlFor="channel-type">Channel Type</Label>
-          <Select
-            value={formData.type}
-            onValueChange={(value: ChannelType) =>
-              setFormData((prev) => ({ ...prev, type: value, memberIds: [] }))
-            }
-          >
-            <SelectTrigger id="channel-type" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CHANNEL_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex flex-col">
-                    <span>{option.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {option.description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(value: ChannelType) => field.onChange(value)}
+              >
+                <SelectTrigger id="channel-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHANNEL_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        {option.icon}
+                        <span>{option.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {option.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
 
-        {formData.type === ChannelType.DM ? (
-          <div className="space-y-2">
+        {/* DM: person selector only */}
+        {channelType === ChannelType.DM ? (
+          <div className="flex flex-col gap-2">
             <Label>Select Person</Label>
-            <UserSearchCombobox
-              members={members.filter((m) => m.userId !== "current-user")}
-              selectedUserIds={formData.memberIds || []}
-              onSelectionChange={(userIds) =>
-                setFormData((prev) => ({ ...prev, memberIds: userIds }))
-              }
-              placeholder="Search for someone..."
-              disabled={isPending}
-              maxSelections={2}
+            <Controller
+              name="memberIds"
+              control={control}
+              render={({ field }) => (
+                <UserSearchCombobox
+                  members={members}
+                  selectedUserIds={field.value ?? []}
+                  onSelectionChange={field.onChange}
+                  placeholder="Search for someone..."
+                  disabled={isPending}
+                  maxSelections={1}
+                />
+              )}
             />
             {errors.memberIds && (
-              <p className="text-xs text-destructive">{errors.memberIds}</p>
+              <p className="text-xs text-destructive">
+                {errors.memberIds.message}
+              </p>
             )}
-            {formData.memberIds?.length === 2 && (
+            {memberIds?.length === 1 && (
               <p className="text-sm text-muted-foreground">
                 Creating DM with <strong>{getDMName()}</strong>
               </p>
@@ -181,85 +305,121 @@ export function CreateChannelModal({
           </div>
         ) : (
           <>
-            {formData.type === ChannelType.PRIVATE && (
-              <div className="space-y-2">
-                <Label>Select Members</Label>
-                <UserSearchCombobox
-                  members={members}
-                  selectedUserIds={formData.memberIds || []}
-                  onSelectionChange={(userIds) =>
-                    setFormData((prev) => ({ ...prev, memberIds: userIds }))
-                  }
-                  placeholder="Search for members..."
-                  disabled={isPending}
-                />
-                {errors.memberIds && (
-                  <p className="text-xs text-destructive">{errors.memberIds}</p>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2">
+            {/* Channel name */}
+            <div className="flex flex-col gap-2">
               <Label htmlFor="channel-name">Channel Name</Label>
               <Input
                 id="channel-name"
                 placeholder="e.g., general"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
                 disabled={isPending}
-                className={cn(errors.name && "border-destructive")}
                 autoFocus
+                aria-invalid={!!errors.name}
+                className={cn(errors.name && "border-destructive")}
+                {...register("name")}
               />
               {errors.name && (
-                <p className="text-xs text-destructive">{errors.name}</p>
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="channel-description">Description (optional)</Label>
+            {/* Member invite */}
+            <div className="flex flex-col gap-2">
+              <Label>
+                {channelType === ChannelType.PRIVATE
+                  ? "Invite Members"
+                  : "Invite Members (optional)"}
+              </Label>
+              <Controller
+                name="memberIds"
+                control={control}
+                render={({ field }) => (
+                  <UserSearchCombobox
+                    members={members}
+                    selectedUserIds={field.value ?? []}
+                    onSelectionChange={field.onChange}
+                    placeholder={
+                      members.length === 0
+                        ? "Loading members..."
+                        : "Search workspace members..."
+                    }
+                    disabled={isPending || members.length === 0}
+                  />
+                )}
+              />
+              {errors.memberIds && (
+                <p className="text-xs text-destructive">
+                  {errors.memberIds.message}
+                </p>
+              )}
+              {channelType === ChannelType.PUBLIC && (
+                <p className="text-xs text-muted-foreground">
+                  Public channels are open to everyone — invites are optional.
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="channel-description">
+                Description (optional)
+              </Label>
               <Textarea
                 id="channel-description"
                 placeholder="Describe the purpose of this channel..."
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
-                }
                 disabled={isPending}
-                className={cn("min-h-[80px]", errors.description && "border-destructive")}
+                aria-invalid={!!errors.description}
+                className={cn(
+                  "min-h-20",
+                  errors.description && "border-destructive",
+                )}
                 rows={3}
+                {...register("description")}
               />
               {errors.description && (
-                <p className="text-xs text-destructive">{errors.description}</p>
+                <p className="text-xs text-destructive">
+                  {errors.description.message}
+                </p>
               )}
             </div>
           </>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              isPending ||
-              (formData.type === ChannelType.DM && formData.memberIds?.length !== 2)
-            }
-          >
-            {isPending ? "Creating..." : formData.type === ChannelType.DM ? "Start DM" : "Create Channel"}
-          </Button>
+        {/* Actions */}
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <kbd className="rounded border bg-muted px-1.5 py-0.5">
+              {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}
+            </kbd>
+            <kbd className="rounded border bg-muted px-1.5 py-0.5">Enter</kbd>
+            <span>to submit</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                isPending ||
+                (channelType === ChannelType.DM && memberIds?.length !== 1)
+              }
+            >
+              {isPending
+                ? "Creating..."
+                : channelType === ChannelType.DM
+                  ? "Start DM"
+                  : "Create Channel"}
+            </Button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <kbd className="rounded border bg-muted px-1.5 py-0.5">
-            {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}
-          </kbd>
-          <kbd className="rounded border bg-muted px-1.5 py-0.5">Enter</kbd>
-          <span>to submit</span>
-        </div>
-      </div>
+      </form>
     </QuickCreateModalLayout>
   );
 }
