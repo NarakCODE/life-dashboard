@@ -15,8 +15,11 @@
     "sourceMap": true,
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2021"
+    "target": "ES2021",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tools/**/*"],
   "exclude": ["node_modules", "dist"]
 }

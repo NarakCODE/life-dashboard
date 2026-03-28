@@ -11,7 +11,15 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AuthService } from './auth.service';
@@ -256,7 +264,12 @@ export class AuthController {
         fileSize: 5 * 1024 * 1024, // 5MB
       },
       fileFilter: (_req, file, callback) => {
-        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const allowedMimeTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'image/gif',
+        ];
         if (allowedMimeTypes.includes(file.mimetype)) {
           callback(null, true);
         } else {
@@ -280,7 +293,10 @@ export class AuthController {
       size: file.size,
     };
 
-    const avatarUrl = await this.profileService.uploadAvatar(user.sub, fileUpload);
+    const avatarUrl = await this.profileService.uploadAvatar(
+      user.sub,
+      fileUpload,
+    );
 
     return {
       success: true,

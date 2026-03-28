@@ -83,6 +83,13 @@ export interface WorkspaceInvitationResponse {
   updatedAt: Date;
 }
 
+export interface WorkspaceJoinLinkResponse {
+  token: string;
+  isEnabled: boolean;
+  workspaceId: string;
+  workspaceName: string;
+}
+
 @Injectable()
 export class WorkspacesService {
   constructor(
@@ -435,7 +442,23 @@ export class WorkspacesService {
     };
   }
 
-  async generateJoinLink(workspaceId: string): Promise<string> {
+  async getJoinLink(
+    workspaceId: string,
+  ): Promise<WorkspaceJoinLinkResponse | null> {
+    const workspace = await this.workspaceModel.findById(workspaceId).lean().exec();
+    if (!workspace || !workspace.joinLinkToken) return null;
+
+    return {
+      token: workspace.joinLinkToken,
+      isEnabled: workspace.isJoinLinkEnabled ?? true,
+      workspaceId: workspace._id.toString(),
+      workspaceName: workspace.name,
+    };
+  }
+
+  async generateJoinLink(
+    workspaceId: string,
+  ): Promise<WorkspaceJoinLinkResponse> {
     const token = randomBytes(16).toString('hex');
     const workspace = await this.workspaceModel
       .findByIdAndUpdate(
@@ -448,10 +471,34 @@ export class WorkspacesService {
         },
         { new: true },
       )
+      .lean()
       .exec();
 
     if (!workspace) throw new NotFoundException('Workspace not found');
-    return token;
+
+    return {
+      token,
+      isEnabled: workspace.isJoinLinkEnabled ?? true,
+      workspaceId: workspace._id.toString(),
+      workspaceName: workspace.name,
+    };
+  }
+
+  async deleteJoinLink(workspaceId: string): Promise<void> {
+    const workspace = await this.workspaceModel
+      .findByIdAndUpdate(
+        workspaceId,
+        {
+          $unset: {
+            joinLinkToken: 1,
+            isJoinLinkEnabled: 1,
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!workspace) throw new NotFoundException('Workspace not found');
   }
 
   async toggleJoinLink(

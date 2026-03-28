@@ -7,6 +7,7 @@ import { ProjectsController } from './projects.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { UsersModule } from '../users/users.module';
 import { TasksModule } from '../tasks/tasks.module';
+import { ProjectSeeder } from './seeds/project-seeder';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { TasksModule } from '../tasks/tasks.module';
     MongooseModule.forFeature([{ name: Project.name, schema: ProjectSchema }]),
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsRepository, ProjectsService],
-  exports: [ProjectsRepository, ProjectsService],
+  providers: [ProjectsRepository, ProjectsService, ProjectSeeder],
+  exports: [ProjectsRepository, ProjectsService, ProjectSeeder],
 })
 export class ProjectsModule {}

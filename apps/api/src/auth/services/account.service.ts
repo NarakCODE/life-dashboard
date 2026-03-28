@@ -26,13 +26,18 @@ export class AccountService {
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.usersService.findById(userId);
 
-    const matches = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    const matches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
     if (!matches) {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
     if (dto.currentPassword === dto.newPassword) {
-      throw new BadRequestException('New password must differ from current password');
+      throw new BadRequestException(
+        'New password must differ from current password',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);

@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useJoinInfoQuery, useCreateJoinRequestMutation } from "@/lib/workspaces/workspace-query";
+import { useJoinInfoQuery, useCreateJoinRequestMutation, useWorkspaceQuery } from "@/lib/workspaces/workspace-query";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
@@ -23,7 +23,14 @@ export function JoinWorkspacePage({ token }: JoinWorkspacePageProps) {
   const [isRequesting, setIsRequesting] = useState(false);
 
   const { data: joinInfo, isPending, error } = useJoinInfoQuery(token);
+  const { data: workspace } = useWorkspaceQuery(joinInfo?.workspaceId ?? "", {
+    enabled: Boolean(joinInfo?.workspaceId) && auth.isAuthenticated,
+  });
   const createJoinRequestMutation = useCreateJoinRequestMutation();
+
+  const alreadyMember = workspace?.members.some(
+    (m) => m.userId === auth.user?.id,
+  ) ?? false;
 
   const handleJoinRequest = async () => {
     if (!auth.isAuthenticated) {
@@ -89,8 +96,6 @@ export function JoinWorkspacePage({ token }: JoinWorkspacePageProps) {
       </div>
     );
   }
-
-  const alreadyMember = false; // TODO: Check if user is already a member
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

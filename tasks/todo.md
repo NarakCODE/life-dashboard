@@ -1,5 +1,19 @@
 # Tasks TODO List
 
+## Current Task: Projects Mockup Seeder
+
+- [x] Inspect the existing projects module and current seeder/CLI pattern
+- [x] Implement a projects mock-data seeder with workspace-scoped validation and realistic sample records
+- [x] Wire the seeder into the projects module and expose CLI scripts
+- [x] Verify the touched backend files with targeted checks
+
+### Result
+
+- Added `ProjectSeeder` with workspace-scoped mock project generation, duplicate-seed protection, and both scoped and global clear methods.
+- Wired the seeder into `ProjectsModule` and added `seed:projects` / `seed:projects:clear` package scripts plus a CLI entrypoint at `apps/api/tools/seeds/seed-projects.ts`.
+- Targeted ESLint passed for the touched backend files.
+- Repo-wide API typecheck still fails from pre-existing constructor-arity errors in `apps/api/src/workspaces/workspaces.service.spec.ts`, unrelated to this change.
+
 ## Current Task: Auth Response Shape Alignment
 
 - [x] Inspect the login route, auth client path, and backend auth controller response shape
@@ -641,3 +655,17 @@ POST   /tasks/suggest-category                - Suggest task category
 - Add user preferences for AI features (opt-in/opt-out)
 - Consider cost implications of AI API calls
 - Add caching for AI-generated content to reduce API calls
+
+---
+
+## Summary
+
+| Priority        | Count  | Estimated Hours |
+| --------------- | ------ | --------------- |
+| HIGH (Critical) | 3      | 9-13 hours      |
+| HIGH (AI)       | 2      | 18-27 hours     |
+| MEDIUM (AI)     | 2      | 16-25 hours     |
+| MEDIUM (Pages)  | 3      | 4-7 hours       |
+| LOW (AI)        | 1      | 6-8 hours       |
+| LOW (Pages)     | 4      | 5-9 hours       |
+| **TOTAL**       | **15** | **58-89 hours** |

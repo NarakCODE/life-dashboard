@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 
 import {
   createNotification,
@@ -11,6 +11,7 @@ import {
 import type {
   CreateNotificationInput,
   MarkAsReadInput,
+  Notification,
   NotificationsQuery,
 } from "@/lib/notifications/types";
 
@@ -33,6 +34,24 @@ export function useNotificationsQuery(
   return useQuery({
     queryKey: notificationKeys.list(workspaceId, query),
     queryFn: () => getNotifications(workspaceId, query),
+    enabled: enabled && Boolean(workspaceId),
+  });
+}
+
+export function useNotificationsInfiniteQuery(
+  workspaceId: string,
+  baseQuery: Omit<NotificationsQuery, "page">,
+  enabled = true,
+) {
+  return useInfiniteQuery({
+    queryKey: [...notificationKeys.all(workspaceId), "infinite", baseQuery],
+    queryFn: ({ pageParam }) =>
+      getNotifications(workspaceId, { ...baseQuery, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { page, totalPages } = lastPage.meta.pagination;
+      return page < totalPages ? page + 1 : undefined;
+    },
     enabled: enabled && Boolean(workspaceId),
   });
 }
@@ -134,7 +153,66 @@ export function useMarkNotificationReadMutation(
       }
       return markAsRead(workspaceId, notificationId, { isRead });
     },
-    onSuccess: async (_data, { notificationId }) => {
+    onMutate: async ({ notificationId, isRead }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: notificationKeys.all(workspaceId),
+      });
+
+      // Snapshot previous values
+      const previousNotifications = queryClient.getQueryData<{
+        data: Notification[];
+        meta: { pagination: { total: number } };
+      }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}));
+
+      const previousUnreadCount = queryClient.getQueryData<{ count: number }>(
+        notificationKeys.unreadCount(workspaceId),
+      );
+
+      // Optimistically update the notification
+      if (previousNotifications) {
+        queryClient.setQueryData<{
+          data: Notification[];
+          meta: { pagination: { total: number } };
+        }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}), {
+          ...previousNotifications,
+          data: previousNotifications.data.map((n) =>
+            n.id === notificationId
+              ? { ...n, isRead, readAt: isRead ? new Date().toISOString() : null }
+              : n,
+          ),
+        });
+      }
+
+      // Optimistically update unread count
+      if (previousUnreadCount) {
+        const countDelta = isRead ? -1 : 1;
+        queryClient.setQueryData<{ count: number }>(
+          notificationKeys.unreadCount(workspaceId),
+          { count: Math.max(0, previousUnreadCount.count + countDelta) },
+        );
+      }
+
+      // Return rollback context
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_error, { notificationId }, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          notificationKeys.list(workspaceId, queryToInvalidate ?? {}),
+          context.previousNotifications,
+        );
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(
+          notificationKeys.unreadCount(workspaceId),
+          context.previousUnreadCount,
+        );
+      }
+    },
+    onSettled: async (_data, _error, { notificationId }) => {
+      // Always refetch after error or success to ensure sync
       await queryClient.invalidateQueries({
         queryKey: notificationKeys.all(workspaceId),
       });
@@ -144,11 +222,6 @@ export function useMarkNotificationReadMutation(
       await queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(workspaceId),
       });
-      if (queryToInvalidate) {
-        await queryClient.invalidateQueries({
-          queryKey: notificationKeys.list(workspaceId, queryToInvalidate),
-        });
-      }
     },
   });
 }
@@ -166,18 +239,71 @@ export function useMarkAllAsReadMutation(
       }
       return markAllAsRead(workspaceId);
     },
-    onSuccess: async () => {
+    onMutate: async () => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: notificationKeys.all(workspaceId),
+      });
+
+      // Snapshot previous values
+      const previousNotifications = queryClient.getQueryData<{
+        data: Notification[];
+        meta: { pagination: { total: number } };
+      }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}));
+
+      const previousUnreadCount = queryClient.getQueryData<{ count: number }>(
+        notificationKeys.unreadCount(workspaceId),
+      );
+
+      // Optimistically mark all as read
+      if (previousNotifications) {
+        queryClient.setQueryData<{
+          data: Notification[];
+          meta: { pagination: { total: number } };
+        }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}), {
+          ...previousNotifications,
+          data: previousNotifications.data.map((n) =>
+            !n.isRead
+              ? { ...n, isRead: true, readAt: new Date().toISOString() }
+              : n,
+          ),
+        });
+      }
+
+      // Set unread count to 0
+      if (previousUnreadCount) {
+        queryClient.setQueryData<{ count: number }>(
+          notificationKeys.unreadCount(workspaceId),
+          { count: 0 },
+        );
+      }
+
+      // Return rollback context
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          notificationKeys.list(workspaceId, queryToInvalidate ?? {}),
+          context.previousNotifications,
+        );
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(
+          notificationKeys.unreadCount(workspaceId),
+          context.previousUnreadCount,
+        );
+      }
+    },
+    onSettled: async () => {
+      // Always refetch after error or success to ensure sync
       await queryClient.invalidateQueries({
         queryKey: notificationKeys.all(workspaceId),
       });
       await queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(workspaceId),
       });
-      if (queryToInvalidate) {
-        await queryClient.invalidateQueries({
-          queryKey: notificationKeys.list(workspaceId, queryToInvalidate),
-        });
-      }
     },
   });
 }
@@ -198,21 +324,85 @@ export function useDeleteNotificationMutation(
       }
       return deleteNotification(workspaceId, notificationId);
     },
-    onSuccess: async (_data, notificationId) => {
-      await queryClient.invalidateQueries({
+    onMutate: async (notificationId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
         queryKey: notificationKeys.all(workspaceId),
       });
-      await queryClient.removeQueries({
+
+      // Snapshot previous values
+      const previousNotifications = queryClient.getQueryData<{
+        data: Notification[];
+        meta: { pagination: { total: number } };
+      }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}));
+
+      const previousUnreadCount = queryClient.getQueryData<{ count: number }>(
+        notificationKeys.unreadCount(workspaceId),
+      );
+
+      // Optimistically remove from list
+      if (previousNotifications) {
+        const deletedNotification = previousNotifications.data.find(
+          (n) => n.id === notificationId,
+        );
+        queryClient.setQueryData<{
+          data: Notification[];
+          meta: { pagination: { total: number } };
+        }>(notificationKeys.list(workspaceId, queryToInvalidate ?? {}), {
+          ...previousNotifications,
+          data: previousNotifications.data.filter((n) => n.id !== notificationId),
+          meta: {
+            ...previousNotifications.meta,
+            pagination: {
+              ...previousNotifications.meta.pagination,
+              total: Math.max(
+                0,
+                (previousNotifications.meta.pagination.total ?? 0) - 1,
+              ),
+            },
+          },
+        });
+
+        // Update unread count if deleted was unread
+        if (deletedNotification && !deletedNotification.isRead && previousUnreadCount) {
+          queryClient.setQueryData<{ count: number }>(
+            notificationKeys.unreadCount(workspaceId),
+            { count: Math.max(0, previousUnreadCount.count - 1) },
+          );
+        }
+      }
+
+      // Remove detail cache
+      queryClient.removeQueries({
         queryKey: notificationKeys.detail(workspaceId, notificationId),
+      });
+
+      // Return rollback context
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_error, _notificationId, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          notificationKeys.list(workspaceId, queryToInvalidate ?? {}),
+          context.previousNotifications,
+        );
+      }
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(
+          notificationKeys.unreadCount(workspaceId),
+          context.previousUnreadCount,
+        );
+      }
+    },
+    onSettled: async () => {
+      // Always refetch after error or success to ensure sync
+      await queryClient.invalidateQueries({
+        queryKey: notificationKeys.all(workspaceId),
       });
       await queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(workspaceId),
       });
-      if (queryToInvalidate) {
-        await queryClient.invalidateQueries({
-          queryKey: notificationKeys.list(workspaceId, queryToInvalidate),
-        });
-      }
     },
   });
 }

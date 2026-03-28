@@ -13,6 +13,7 @@ import { TaskNotificationsListener } from './listeners/task-notifications.listen
 import { NotificationsGateway } from './gateways/notifications.gateway';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { NotificationSeeder } from './seeds/notification-seeder';
 
 @Module({
   imports: [
@@ -39,7 +40,13 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     NotificationsGateway,
     TaskNotificationsListener,
     WsJwtGuard,
+    NotificationSeeder,
   ],
-  exports: [NotificationsService, NotificationsRepository, NotificationsGateway],
+  exports: [
+    NotificationsService,
+    NotificationsRepository,
+    NotificationsGateway,
+    NotificationSeeder,
+  ],
 })
 export class NotificationsModule {}

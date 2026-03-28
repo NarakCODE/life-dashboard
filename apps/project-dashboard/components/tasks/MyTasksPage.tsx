@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { Plus, ClipboardText } from "@phosphor-icons/react/dist/ssr";
 
 import type { ProjectTask } from "@/lib/data/project-details";
 import {
@@ -29,6 +29,15 @@ import {
   PageToolbar,
   PageLayout,
 } from "@/components/page-layout";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskProjectsQuery } from "@/lib/projects/projects-query";
 import {
@@ -434,11 +443,16 @@ export function MyTasksPage() {
       />
 
       <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-4 py-4">
-        {isPending && (
-          <p className="text-sm text-muted-foreground">Loading tasks...</p>
-        )}
+        {isPending && <TasksSkeleton />}
         {error && (
-          <p className="text-sm text-destructive">Failed to load tasks.</p>
+          <Empty className="border-destructive/50 bg-destructive/10">
+            <EmptyHeader>
+              <EmptyTitle>Failed to load tasks</EmptyTitle>
+              <EmptyDescription>
+                {error.message || "Something went wrong while loading your tasks."}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
         {isMutating && (
           <p className="text-xs text-muted-foreground">
@@ -446,9 +460,25 @@ export function MyTasksPage() {
           </p>
         )}
         {isEmpty && (
-          <p className="text-sm text-muted-foreground">
-            No tasks available yet.
-          </p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ClipboardText className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No tasks yet</EmptyTitle>
+              <EmptyDescription>
+                {viewMode === "my-tasks"
+                  ? "You don't have any assigned tasks. Create a new task to get started."
+                  : "This workspace doesn't have any tasks yet. Create the first one!"}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onClick={() => openCreateTask()}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Create Task
+              </Button>
+            </EmptyContent>
+          </Empty>
         )}
 
         {!isPending && !isEmpty && viewOptions.viewType === "list" && (
@@ -492,5 +522,35 @@ export function MyTasksPage() {
         editingTask={editingTask}
       />
     </PageLayout>
+  );
+}
+
+function TasksSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Project Group Skeleton */}
+      {Array.from({ length: 2 }).map((_, groupIndex) => (
+        <div key={groupIndex} className="rounded-lg border">
+          {/* Project Header Skeleton */}
+          <div className="flex items-center gap-3 border-b p-4">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-5 w-48 rounded" />
+            <Skeleton className="ml-auto h-8 w-8 rounded" />
+          </div>
+          {/* Task Rows Skeleton */}
+          <div className="divide-y">
+            {Array.from({ length: 3 }).map((_, taskIndex) => (
+              <div key={taskIndex} className="flex items-center gap-3 p-4">
+                <Skeleton className="h-5 w-5 rounded" />
+                <Skeleton className="h-5 w-5 rounded" />
+                <Skeleton className="h-4 flex-1 rounded" />
+                <Skeleton className="h-6 w-20 rounded" />
+                <Skeleton className="h-6 w-6 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

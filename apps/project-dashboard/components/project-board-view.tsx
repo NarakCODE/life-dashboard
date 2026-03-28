@@ -71,7 +71,10 @@ export function ProjectBoardView({
   const groups = useMemo(() => {
     const m = new Map<ProjectStatus, ProjectSummary[]>()
     for (const s of COLUMN_ORDER) m.set(s, [])
-    for (const p of items) m.get(p.status)!.push(p)
+    for (const p of items) {
+      const arr = m.get(p.status)
+      if (arr) arr.push(p)
+    }
     return m
   }, [items])
 

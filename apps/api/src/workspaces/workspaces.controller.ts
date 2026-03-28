@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { WorkspacesService } from './workspaces.service';
@@ -213,6 +214,16 @@ export class WorkspacesController {
 
   // Join Requests / Public Join Link Endpoints
 
+  @Get(':workspaceId/join-link')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @ApiOperation({ summary: 'Get existing join link (returns 404 if not exists)' })
+  async getJoinLink(@Param('workspaceId') workspaceId: string) {
+    const data = await this.workspacesService.getJoinLink(workspaceId);
+    if (!data) throw new NotFoundException('No join link exists');
+    return { success: true, data };
+  }
+
   @Post(':workspaceId/join-link')
   @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
   @RequireWorkspaceRole(WorkspaceRole.ADMIN)
@@ -220,6 +231,15 @@ export class WorkspacesController {
   async generateJoinLink(@Param('workspaceId') workspaceId: string) {
     const data = await this.workspacesService.generateJoinLink(workspaceId);
     return { success: true, data };
+  }
+
+  @Delete(':workspaceId/join-link')
+  @UseGuards(WorkspaceAccessGuard, WorkspaceRoleGuard)
+  @RequireWorkspaceRole(WorkspaceRole.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete the public join link' })
+  async deleteJoinLink(@Param('workspaceId') workspaceId: string) {
+    await this.workspacesService.deleteJoinLink(workspaceId);
   }
 
   @Patch(':workspaceId/join-link')

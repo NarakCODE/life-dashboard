@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, MinLength, IsOptional, MaxLength } from 'class-validator';
 
 export class DeleteAccountDto {
-  @ApiProperty({ description: 'Current password for confirmation', minLength: 8 })
+  @ApiProperty({
+    description: 'Current password for confirmation',
+    minLength: 8,
+  })
   @IsString()
   @MinLength(8)
   password!: string;

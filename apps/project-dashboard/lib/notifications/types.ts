@@ -1,8 +1,13 @@
 export enum NotificationType {
+  TASK_ASSIGNED = "task_assigned",
   TASK_DUE = "task_due",
   HABIT_REMINDER = "habit_reminder",
   GOAL_MILESTONE = "goal_milestone",
   BUDGET_ALERT = "budget_alert",
+  PROJECT_MENTION = "project_mention",
+  CHAT_MESSAGE = "chat_message",
+  WORKSPACE_INVITATION = "workspace_invitation",
+  COMMENT_REPLY = "comment_reply",
   SYSTEM = "system",
 }
 
@@ -65,10 +70,15 @@ export interface CreateNotificationInput {
 }
 
 export const NOTIFICATION_TYPE_OPTIONS = [
+  { id: NotificationType.TASK_ASSIGNED, label: "Task Assigned", icon: "👤", color: "blue" },
   { id: NotificationType.TASK_DUE, label: "Task Due", icon: "📋", color: "blue" },
   { id: NotificationType.HABIT_REMINDER, label: "Habit Reminder", icon: "🔄", color: "purple" },
   { id: NotificationType.GOAL_MILESTONE, label: "Goal Milestone", icon: "🎯", color: "emerald" },
   { id: NotificationType.BUDGET_ALERT, label: "Budget Alert", icon: "💰", color: "amber" },
+  { id: NotificationType.PROJECT_MENTION, label: "Mention", icon: "💬", color: "indigo" },
+  { id: NotificationType.CHAT_MESSAGE, label: "Chat", icon: "💭", color: "cyan" },
+  { id: NotificationType.WORKSPACE_INVITATION, label: "Invitation", icon: "📧", color: "violet" },
+  { id: NotificationType.COMMENT_REPLY, label: "Reply", icon: "↩️", color: "pink" },
   { id: NotificationType.SYSTEM, label: "System", icon: "⚙️", color: "gray" },
 ] as const;
 

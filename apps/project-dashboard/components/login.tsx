@@ -1,0 +1,338 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { FlaskConical, Rocket, LoaderCircle } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Logo } from "@/components/logo";
+import { PasswordInput } from "@/components/auth/password-input";
+import { VerificationStatus } from "@/components/auth/verification-status";
+import {
+  useLoginMutation,
+  useResendVerificationMutation,
+  useDevBootstrapMutation,
+} from "@/lib/auth/auth-query";
+import { getErrorMessage } from "@/components/auth/auth-error";
+
+const formSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+function isUnverifiedEmailErrorMessage(message: string | undefined) {
+  return message?.toLowerCase().includes("not verified") ?? false;
+}
+
+const Login = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const loginMutation = useLoginMutation();
+  const resendMutation = useResendVerificationMutation();
+  const devBootstrapMutation = useDevBootstrapMutation();
+  const nextTarget = searchParams.get("next") || "/";
+  const [isDevelopment, setIsDevelopment] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    resolver: zodResolver(formSchema),
+  });
+
+  useEffect(() => {
+    setIsDevelopment(window.location.hostname === "localhost");
+  }, []);
+
+  const emailValue = form.watch("email");
+  const rootError = form.formState.errors.root?.message;
+  const hasUnverifiedEmailError = isUnverifiedEmailErrorMessage(rootError);
+
+  async function handleResendVerification() {
+    try {
+      await resendMutation.mutateAsync({ email: emailValue });
+    } catch (error) {
+      form.setError("root", {
+        message: getErrorMessage(error, "Unable to resend verification email"),
+      });
+    }
+  }
+
+  async function handleDevBootstrap() {
+    try {
+      await devBootstrapMutation.mutateAsync();
+      router.replace(nextTarget);
+    } catch (error) {
+      form.setError("root", {
+        message: getErrorMessage(
+          error,
+          "Unable to bootstrap a local dev session",
+        ),
+      });
+    }
+  }
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await loginMutation.mutateAsync(data);
+      router.replace(nextTarget);
+    } catch (error) {
+      const message = getErrorMessage(error, "Unable to sign in");
+
+      if (isUnverifiedEmailErrorMessage(message)) {
+        const params = new URLSearchParams({
+          email: data.email,
+          message,
+        });
+        router.push(`/verify-email?${params.toString()}`);
+        return;
+      }
+
+      form.setError("root", { message });
+    }
+  });
+
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="grid h-full w-full lg:grid-cols-2">
+        <div className="relative m-auto flex w-full max-w-sm flex-col items-center p-8 outline-0 outline-border/40 outline-offset-0.5 sm:outline-2 dark:outline-border/80">
+          <div className="absolute inset-x-0 top-0 w-[calc(100%+4rem)] -translate-x-8 border-t max-sm:hidden" />
+          <div className="absolute inset-x-0 bottom-0 w-[calc(100%+4rem)] -translate-x-8 border-b max-sm:hidden" />
+          <div className="absolute inset-y-0 left-0 h-[calc(100%+4rem)] -translate-y-8 border-s max-sm:hidden" />
+          <div className="absolute inset-y-0 right-0 h-[calc(100%+4rem)] -translate-y-8 border-e max-sm:hidden" />
+
+          <div className="absolute inset-x-0 -top-1 w-[calc(100%+3rem)] -translate-x-6 border-t max-sm:hidden" />
+          <div className="absolute inset-x-0 -bottom-1 w-[calc(100%+3rem)] -translate-x-6 border-b max-sm:hidden" />
+          <div className="absolute inset-y-0 -left-1 h-[calc(100%+3rem)] -translate-y-6 border-s max-sm:hidden" />
+          <div className="absolute inset-y-0 -right-1 h-[calc(100%+3rem)] -translate-y-6 border-e max-sm:hidden" />
+
+          <Logo className="h-9 w-9" />
+          <p className="mt-4 font-semibold text-xl tracking-tight">
+            Sign in to your account
+          </p>
+          <p className="mt-1 text-center text-muted-foreground text-sm">
+            Use your email and password to continue
+          </p>
+
+          <Button className="mt-8 w-full gap-3" variant="outline" disabled>
+            <GoogleLogo />
+            Continue with Google
+          </Button>
+
+          <div className="my-7 flex w-full items-center justify-center overflow-hidden">
+            <Separator />
+            <span className="px-2 text-sm">OR</span>
+            <Separator />
+          </div>
+
+          <Form {...form}>
+            <form className="w-full space-y-4" onSubmit={onSubmit}>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        autoComplete="email"
+                        placeholder="name@company.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between gap-4">
+                      <FormLabel>Password</FormLabel>
+                      <span className="text-xs text-muted-foreground">
+                        Forgot password is not yet supported
+                      </span>
+                    </div>
+                    <FormControl>
+                      <PasswordInput
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {rootError ? (
+                <VerificationStatus
+                  variant={hasUnverifiedEmailError ? "warning" : "error"}
+                  title={
+                    hasUnverifiedEmailError
+                      ? "Email verification required"
+                      : "Login failed"
+                  }
+                  description={rootError}
+                />
+              ) : null}
+
+              {hasUnverifiedEmailError ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={resendMutation.isPending || !emailValue}
+                    onClick={() => void handleResendVerification()}
+                  >
+                    {resendMutation.isPending ? (
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {resendMutation.isPending
+                      ? "Sending..."
+                      : "Resend verification"}
+                  </Button>
+                  <Button asChild className="w-full">
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(emailValue)}`}
+                    >
+                      Verify email
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+
+              {resendMutation.isSuccess ? (
+                <VerificationStatus
+                  variant="success"
+                  title="Verification sent"
+                  description={resendMutation.data.message}
+                />
+              ) : null}
+
+              <Button
+                className="mt-4 w-full"
+                type="submit"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {loginMutation.isPending ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          </Form>
+
+          <div className="mt-5 space-y-5">
+            <p className="text-center text-sm">
+              Don&apos;t have an account?{" "}
+              <Link
+                className="ml-1 text-muted-foreground underline"
+                href="/register"
+              >
+                Create account
+              </Link>
+            </p>
+          </div>
+
+          {isDevelopment ? (
+            <Card className="mt-8 w-full border-dashed border-border/70 bg-muted/20 shadow-none">
+              <CardHeader className="gap-2 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FlaskConical className="text-muted-foreground h-4 w-4" />
+                  Local Dev Access
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Bootstrap a verified local session instantly for testing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={devBootstrapMutation.isPending}
+                  onClick={() => void handleDevBootstrap()}
+                >
+                  {devBootstrapMutation.isPending ? (
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Rocket className="mr-2 h-4 w-4" />
+                  )}
+                  {devBootstrapMutation.isPending
+                    ? "Bootstrapping..."
+                    : "Use dev account"}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+        <div className="hidden border-l bg-muted lg:block" />
+      </div>
+    </div>
+  );
+};
+
+const GoogleLogo = () => (
+  <svg
+    className="inline-block size-lg shrink-0 align-sub text-inherit"
+    fill="none"
+    height="1.2em"
+    id="icon-google"
+    viewBox="0 0 16 16"
+    width="1.2em"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <g clipPath="url(#clip0)">
+      <path
+        d="M15.6823 8.18368C15.6823 7.63986 15.6382 7.0931 15.5442 6.55811H7.99829V9.63876H12.3194C12.1401 10.6323 11.564 11.5113 10.7203 12.0698V14.0687H13.2983C14.8122 12.6753 15.6823 10.6176 15.6823 8.18368Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M7.99812 16C10.1558 16 11.9753 15.2915 13.3011 14.0687L10.7231 12.0698C10.0058 12.5578 9.07988 12.8341 8.00106 12.8341C5.91398 12.8341 4.14436 11.426 3.50942 9.53296H0.849121V11.5936C2.2072 14.295 4.97332 16 7.99812 16Z"
+        fill="#34A853"
+      />
+      <path
+        d="M3.50665 9.53295C3.17154 8.53938 3.17154 7.4635 3.50665 6.46993V4.4093H0.849292C-0.285376 6.66982 -0.285376 9.33306 0.849292 11.5936L3.50665 9.53295Z"
+        fill="#FBBC04"
+      />
+      <path
+        d="M7.99812 3.16589C9.13867 3.14825 10.241 3.57743 11.067 4.36523L13.3511 2.0812C11.9048 0.723121 9.98526 -0.0235266 7.99812 -1.02057e-05C4.97332 -1.02057e-05 2.2072 1.70493 0.849121 4.40932L3.50648 6.46995C4.13848 4.57394 5.91104 3.16589 7.99812 3.16589Z"
+        fill="#EA4335"
+      />
+    </g>
+    <defs>
+      <clipPath id="clip0">
+        <rect fill="white" height="16" width="15.6825" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+export default Login;

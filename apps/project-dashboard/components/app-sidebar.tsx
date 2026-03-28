@@ -32,6 +32,7 @@ import {
   CheckSquareIcon,
   FolderIcon,
   UsersIcon,
+  UsersThreeIcon,
   CurrencyDollarIcon,
   CreditCardIcon,
   ChartBarIcon,
@@ -85,6 +86,7 @@ const navItemIcons: Record<
   "my-tasks": CheckSquareIcon,
   projects: FolderIcon,
   clients: UsersIcon,
+  members: UsersThreeIcon,
   budgets: CurrencyDollarIcon,
   transactions: CreditCardIcon,
   notifications: BellIcon,
@@ -211,6 +213,8 @@ export function AppSidebar() {
     if (id === "inbox") return buildWorkspacePath(currentWorkspaceId, "/inbox");
     if (id === "clients")
       return buildWorkspacePath(currentWorkspaceId, "/clients");
+    if (id === "members")
+      return buildWorkspacePath(currentWorkspaceId, "/members");
     if (id === "budgets")
       return buildWorkspacePath(currentWorkspaceId, "/budgets");
     if (id === "transactions")
@@ -246,6 +250,9 @@ export function AppSidebar() {
     }
     if (id === "clients") {
       return scopedPathname.startsWith("/clients");
+    }
+    if (id === "members") {
+      return scopedPathname.startsWith("/members");
     }
     if (id === "budgets") {
       return scopedPathname.startsWith("/budgets");

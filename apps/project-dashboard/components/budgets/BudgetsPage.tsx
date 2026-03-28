@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  BarChart3,
   CalendarDays,
+  Info,
   MoreHorizontal,
   PencilLine,
   PiggyBank,
@@ -12,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader, PageToolbar, PageToolbarResponsive, PageLayout } from "@/components/page-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -26,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+
 import {
   Dialog,
   DialogContent,
@@ -53,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useBudgetSummaryQuery,
@@ -188,31 +192,218 @@ function formatBudgetDateRange(budget: Budget) {
   return `Until ${formatter.format(new Date(budget.endDate as string))}`;
 }
 
-function SummaryCard({
-  title,
-  value,
-  detail,
-  tone = "default",
-}: {
+interface SummaryCardProps {
   title: string;
   value: string;
-  detail: string;
-  tone?: "default" | "danger" | "success";
-}) {
+  description: string;
+  icon: ReactNode;
+  tooltip: string;
+  tone?: "default" | "danger" | "success" | "warning";
+}
+
+function SummaryCard({ title, value, description, icon, tooltip, tone = "default" }: SummaryCardProps) {
+  const toneClass =
+    tone === "success"
+      ? "text-emerald-600"
+      : tone === "danger"
+        ? "text-rose-600"
+        : tone === "warning"
+          ? "text-amber-600"
+          : "text-muted-foreground";
+
   return (
-    <Card
-      className={cn(
-        "border-border/60 bg-card/70",
-        tone === "danger" && "border-rose-200/70 bg-rose-50/50",
-        tone === "success" && "border-emerald-200/70 bg-emerald-50/40",
-      )}
-    >
-      <CardContent className="space-y-2 p-4">
-        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-          {title}
-        </p>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-        <p className="text-sm text-muted-foreground">{detail}</p>
+    <Card className="border-border/60 bg-card/70">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                aria-label={`Info about ${title}`}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[200px] text-xs">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className={cn("h-8 w-8 rounded-full bg-muted/40 flex items-center justify-center", toneClass)}>
+          {icon}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="text-2xl font-semibold text-foreground">{value}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface ChartDataItem {
+  id: string;
+  name: string;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  isOverBudget: boolean;
+  percentUsed: number;
+}
+
+interface SpendingSummaryChartProps {
+  data: ChartDataItem[];
+  currency: string;
+  isLoading: boolean;
+}
+
+function SpendingSummaryChart({ data, currency, isLoading }: SpendingSummaryChartProps) {
+  const formatCurrency = (value: number) => {
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0,
+      }).format(value);
+    } catch {
+      return `${currency} ${value.toFixed(0)}`;
+    }
+  };
+
+  const chartData = useMemo(() => {
+    const maxBudgeted = Math.max(...data.map((d) => d.budgeted), 1);
+    return data.map((item) => ({
+      ...item,
+      budgetedHeight: Math.round((item.budgeted / maxBudgeted) * 100),
+      spentHeight: Math.round((item.spent / maxBudgeted) * 100),
+    }));
+  }, [data]);
+
+  if (isLoading) {
+    return (
+      <Card className="border-border/60 bg-card/70">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-base font-semibold">Spending Summary</CardTitle>
+            <p className="text-xs text-muted-foreground">Budgeted vs actual spending</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[200px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <Card className="border-border/60 bg-card/70">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-base font-semibold">Spending Summary</CardTitle>
+            <p className="text-xs text-muted-foreground">Budgeted vs actual spending</p>
+          </div>
+        </CardHeader>
+        <CardContent className="h-[200px] flex items-center justify-center">
+          <div className="rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground">
+            No budget data available to display
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-border/60 bg-card/70">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+        <div>
+          <CardTitle className="text-base font-semibold">Spending Summary</CardTitle>
+          <p className="text-xs text-muted-foreground">Budgeted vs actual spending</p>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {data.length} budgets
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex flex-col flex-1">
+          <div
+            className="grid gap-4 items-end flex-1 min-h-[180px]"
+            style={{ gridTemplateColumns: `repeat(${chartData.length}, minmax(0, 1fr))` }}
+          >
+            {chartData.map((item) => (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <div className="flex h-full w-full items-end justify-center gap-1 rounded-md p-1 transition-colors hover:bg-muted/50">
+                    {/* Budgeted bar */}
+                    <div
+                      className="w-full max-w-[24px] rounded-t-md bg-primary/30"
+                      style={{ height: `${Math.max(8, item.budgetedHeight)}%` }}
+                    />
+                    {/* Spent bar */}
+                    <div
+                      className={cn(
+                        "w-full max-w-[24px] rounded-t-md",
+                        item.isOverBudget ? "bg-rose-500/70" : "bg-emerald-500/70"
+                      )}
+                      style={{ height: `${Math.max(8, item.spentHeight)}%` }}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <div className="space-y-1">
+                    <p className="font-medium">{item.name}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Budgeted:</span>
+                      <span>{formatCurrency(item.budgeted)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Spent:</span>
+                      <span className={item.isOverBudget ? "text-rose-500" : "text-emerald-500"}>
+                        {formatCurrency(item.spent)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Used:</span>
+                      <span>{item.percentUsed.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+          <div
+            className="grid gap-4 mt-3"
+            style={{ gridTemplateColumns: `repeat(${chartData.length}, minmax(0, 1fr))` }}
+          >
+            {chartData.map((item) => (
+              <div key={`label-${item.id}`} className="flex flex-col items-center gap-1 px-1">
+                <span className="text-[10px] text-muted-foreground text-center leading-tight truncate w-full">
+                  {item.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-primary/40" />
+            Budgeted
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Spent (within budget)
+          </span>
+          {data.some((d) => d.isOverBudget) && (
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+              Spent (over budget)
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -220,18 +411,33 @@ function SummaryCard({
 
 function BudgetsSkeleton() {
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} className="border-border/60">
-            <CardContent className="space-y-3 p-4">
-              <Skeleton className="h-3 w-28" />
+          <Card key={index} className="border-border/60 bg-card/70">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </CardHeader>
+            <CardContent className="space-y-2">
               <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-40" />
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <Card className="border-border/60 bg-card/70">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[200px] w-full" />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -653,6 +859,19 @@ export function BudgetsPage() {
     };
   }, [visibleBudgetRows]);
 
+  // Prepare chart data - group by budget name with spending data
+  const chartData = useMemo<ChartDataItem[]>(() => {
+    return visibleBudgetRows.map(({ budget, summary }) => ({
+      id: budget.id,
+      name: budget.name.length > 18 ? `${budget.name.slice(0, 18)}...` : budget.name,
+      budgeted: budget.amount,
+      spent: summary?.actualSpending ?? 0,
+      remaining: summary?.remainingAmount ?? budget.amount,
+      isOverBudget: summary?.isOverBudget ?? false,
+      percentUsed: summary?.percentUsed ?? 0,
+    }));
+  }, [visibleBudgetRows]);
+
   const isEmpty = !isBudgetsPending && budgets.length === 0;
   const handleCreateBudget = async (
     input: CreateBudgetInput | UpdateBudgetInput,
@@ -809,32 +1028,51 @@ export function BudgetsPage() {
             <SummaryCard
               title="Planned"
               value={formatCurrency(metrics.planned, metrics.primaryCurrency)}
-              detail={
+              description={
                 metrics.hasMixedCurrencies
                   ? "Across mixed currencies"
                   : "Visible budgets total"
               }
+              tooltip="Total budgeted amount across all visible budgets in the current filter."
+              icon={<Wallet className="h-4 w-4" />}
             />
             <SummaryCard
               title="Spent"
               value={formatCurrency(metrics.spent, metrics.primaryCurrency)}
-              detail={
+              description={
                 isSummaryPending
                   ? "Refreshing spending snapshot"
                   : "Matched against expense transactions"
               }
+              tooltip="Total actual spending matched against budgets from expense transactions."
+              icon={<BarChart3 className="h-4 w-4" />}
             />
             <SummaryCard
               title="Remaining"
               value={formatCurrency(metrics.remaining, metrics.primaryCurrency)}
-              detail="Budget headroom across visible rows"
+              description="Budget headroom across visible rows"
+              tooltip="Remaining budget available across all visible budgets."
+              icon={<PiggyBank className="h-4 w-4" />}
               tone={metrics.remaining < 0 ? "danger" : "success"}
             />
             <SummaryCard
               title="Watchlist"
               value={String(metrics.overBudgetCount)}
-              detail="Budgets already over plan"
+              description="Budgets already over plan"
+              tooltip="Number of budgets where actual spending exceeds the planned amount."
+              icon={<AlertTriangle className="h-4 w-4" />}
               tone={metrics.overBudgetCount > 0 ? "danger" : "default"}
+            />
+          </div>
+        ) : null}
+
+        {/* Spending Summary Chart */}
+        {!isBudgetsPending && !isEmpty ? (
+          <div className="grid gap-4">
+            <SpendingSummaryChart
+              data={chartData}
+              currency={metrics.primaryCurrency}
+              isLoading={isSummaryPending}
             />
           </div>
         ) : null}

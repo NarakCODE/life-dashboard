@@ -361,7 +361,7 @@ function DayColumnDroppable({
             variant="ghost"
             size="icon"
             className="h-7 w-7 rounded-lg"
-            onClick={() => onAddTask?.({ /* TODO: add date context */ })}
+            onClick={() => onAddTask?.({ dueDate: date.toISOString() })}
             aria-label="Add task"
           >
             <Plus className="h-4 w-4" />
@@ -393,7 +393,7 @@ function DayColumnDroppable({
             variant="ghost"
             size="sm"
             className="w-full justify-start"
-            onClick={() => onAddTask?.({ /* TODO: add date context */ })}
+            onClick={() => onAddTask?.({ dueDate: date.toISOString() })}
           >
             <Plus className="mr-1 h-4 w-4" />
             Add task

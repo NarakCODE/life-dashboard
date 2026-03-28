@@ -4,16 +4,26 @@ import {
   CheckCircle,
   CurrencyDollar,
   Target,
+  UserCircle,
+  ChatCircleText,
+  Envelope,
+  ChatTeardropText,
+  At,
 } from "@phosphor-icons/react/dist/ssr"
 
 import type { Notification, NotificationType } from "@/lib/notifications/types"
 import { buildWorkspacePath } from "@/lib/workspaces/workspace-routing"
 
 const notificationLabels: Record<NotificationType, string> = {
+  task_assigned: "Task Assigned",
   task_due: "Task",
   habit_reminder: "Habit",
   goal_milestone: "Goal",
   budget_alert: "Budget",
+  project_mention: "Mention",
+  chat_message: "Chat",
+  workspace_invitation: "Invitation",
+  comment_reply: "Reply",
   system: "System",
 }
 
@@ -21,10 +31,15 @@ const notificationIcons: Record<
   NotificationType,
   React.ComponentType<{ className?: string }>
 > = {
+  task_assigned: UserCircle,
   task_due: CheckCircle,
   habit_reminder: Target,
   goal_milestone: ChartLineUp,
   budget_alert: CurrencyDollar,
+  project_mention: At,
+  chat_message: ChatCircleText,
+  workspace_invitation: Envelope,
+  comment_reply: ChatTeardropText,
   system: Bell,
 }
 

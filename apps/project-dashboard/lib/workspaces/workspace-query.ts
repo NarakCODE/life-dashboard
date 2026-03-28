@@ -34,8 +34,10 @@ import {
   revokeInvitation,
   removeMember,
   leaveWorkspace,
+  getJoinLink,
   createJoinLink,
   updateJoinLink,
+  deleteJoinLink,
   getJoinLinkInfo,
   createJoinRequest,
   getJoinRequests,
@@ -122,10 +124,17 @@ export const workspaceQueries = {
 
   joinLink: (workspaceId: string) => ({
     queryKey: workspaceKeys.joinLinkByWorkspace(workspaceId),
-    queryFn: () => createJoinLink(workspaceId),
+    queryFn: () => getJoinLink(workspaceId),
     enabled: Boolean(workspaceId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: (failureCount: number, error: ApiError) => {
+      // Don't retry on 404 (expected when no link exists)
+      if (error instanceof ApiError && error.statusCode === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   }),
 
   joinRequests: (workspaceId: string) => ({
@@ -212,7 +221,7 @@ export function useWorkspaceInvitationsQuery(
 export function useJoinLinkQuery(
   workspaceId: string,
   options?: Omit<
-    UseQueryOptions<WorkspaceJoinLink, ApiError>,
+    UseQueryOptions<WorkspaceJoinLink | null, ApiError>,
     "queryKey" | "queryFn"
   >,
 ) {
@@ -568,6 +577,22 @@ export function useUpdateJoinLinkMutation() {
       });
       queryClient.invalidateQueries({
         queryKey: workspaceKeys.detail(variables.workspaceId),
+      });
+    },
+  });
+}
+
+export function useDeleteJoinLinkMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workspaceId: string) => deleteJoinLink(workspaceId),
+    onSuccess: (_data, workspaceId) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.joinLinkByWorkspace(workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(workspaceId),
       });
     },
   });

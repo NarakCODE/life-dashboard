@@ -1,4 +1,5 @@
 import { apiRequest, apiRequestEnvelope } from "@/lib/api/api-client"
+import { ApiError } from "@/lib/api/api-client"
 import type {
   Workspace,
   CreateWorkspaceInput,
@@ -177,6 +178,26 @@ export function leaveWorkspace(workspaceId: string) {
 // Join Link Management (Admin only)
 // ============================================================================
 
+// GET existing join link (returns null if not exists)
+export async function getJoinLink(
+  workspaceId: string,
+): Promise<WorkspaceJoinLink | null> {
+  try {
+    const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinLink>>({
+      path: `/workspaces/${workspaceId}/join-link`,
+      method: "GET",
+      auth: "required",
+      workspaceId,
+    })
+    return response.data.data ?? response.data
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) {
+      return null // No link exists yet
+    }
+    throw error
+  }
+}
+
 export async function createJoinLink(
   workspaceId: string,
 ): Promise<WorkspaceJoinLink> {
@@ -184,6 +205,7 @@ export async function createJoinLink(
     path: `/workspaces/${workspaceId}/join-link`,
     method: "POST",
     auth: "required",
+    workspaceId,
   })
   return response.data.data ?? response.data
 }
@@ -197,8 +219,18 @@ export async function updateJoinLink(
     method: "PATCH",
     body: input,
     auth: "required",
+    workspaceId,
   })
   return response.data.data ?? response.data
+}
+
+export async function deleteJoinLink(workspaceId: string): Promise<void> {
+  return apiRequest<void>({
+    path: `/workspaces/${workspaceId}/join-link`,
+    method: "DELETE",
+    auth: "required",
+    workspaceId,
+  })
 }
 
 export async function getJoinLinkInfo(token: string): Promise<WorkspaceJoinInfo> {

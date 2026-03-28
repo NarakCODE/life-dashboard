@@ -4,6 +4,7 @@ export type NavItemId =
   | "my-tasks"
   | "projects"
   | "clients"
+  | "members"
   | "budgets"
   | "transactions"
   | "notifications"
@@ -35,6 +36,7 @@ export const navItems: NavItem[] = [
   { id: "my-tasks", label: "My task" },
   { id: "projects", label: "Projects" },
   { id: "clients", label: "Clients" },
+  { id: "members", label: "Members" },
   { id: "budgets", label: "Budgets" },
   { id: "transactions", label: "Transactions" },
   { id: "notifications", label: "Notifications" },

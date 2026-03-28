@@ -9,6 +9,10 @@ export enum NotificationType {
   HABIT_REMINDER = 'habit_reminder',
   GOAL_MILESTONE = 'goal_milestone',
   BUDGET_ALERT = 'budget_alert',
+  PROJECT_MENTION = 'project_mention',
+  CHAT_MESSAGE = 'chat_message',
+  WORKSPACE_INVITATION = 'workspace_invitation',
+  COMMENT_REPLY = 'comment_reply',
   SYSTEM = 'system',
 }
 

@@ -37,6 +37,7 @@ export type CreateTaskContext = {
   projectId?: string;
   workstreamId?: string;
   workstreamName?: string;
+  dueDate?: string;
 };
 
 interface TaskQuickCreateModalProps {
