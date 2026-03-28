@@ -1,5 +1,47 @@
 # Lessons Learned
 
+## Date: 2026-03-27
+
+### Lesson: API Error Parsers Must Accept Standard Nest Exception Bodies
+
+**Context**: Fixed the login flow after the backend returned a 401 unverified-email response with the plain Nest shape `{ message, error, statusCode }`.
+
+**Mistake/Risk Avoided**:
+- The shared frontend API parser only recognized a stricter custom error shape that also required `success: false`, `timestamp`, and `path`.
+- That caused the client to throw a generic `"Request failed"` error even though the backend had already returned the exact user-facing message needed by the login form.
+
+**Root Cause**:
+- I assumed all error responses would pass through the custom HTTP exception filter shape.
+- The real login failure path produced a standard Nest exception body, so the parser contract was narrower than the backend behavior.
+
+**Preventative Rule**:
+1. Accept the minimal stable error contract first: `statusCode`, `message`, and `error`.
+2. Treat optional fields like `success`, `timestamp`, `path`, and `errors` as enrichments, not requirements.
+3. When wiring user-facing auth flows, verify both success and failure payloads against the actual backend responses.
+
+**Applied In**: `apps/project-dashboard/lib/api/api-client.ts` now preserves backend messages from plain Nest exception payloads, including the login unverified-email response.
+
+## Date: 2026-03-27
+
+### Lesson: Use `pnpm exec` When Running Local Binaries From A Package Directory
+
+**Context**: Verified the onboarding page refactor in `apps/project-dashboard` with a file-scoped ESLint run.
+
+**Mistake/Risk Avoided**:
+- I first ran `pnpm --dir apps/project-dashboard eslint ...`, which made pnpm interpret `apps/project-dashboard` as the command target instead of invoking the local `eslint` binary.
+- That wasted a verification attempt and could have obscured whether the edited file itself was actually valid.
+
+**Root Cause**:
+- I mixed pnpm directory selection with direct binary execution syntax.
+- In this repo, local package binaries should be run from the package directory with `pnpm exec ...` unless there is a script entry for the exact command.
+
+**Preventative Rule**:
+1. When targeting a package-local binary, run it from that package directory with `pnpm exec <binary> ...`.
+2. Use `pnpm run <script>` only for defined package scripts, and avoid assuming bare binaries will resolve through `pnpm --dir`.
+3. If a verification command fails immediately with a pnpm command-resolution error, correct the invocation before interpreting it as a code issue.
+
+**Applied In**: `apps/project-dashboard/components/onboarding/OnboardingPage.tsx` verification now uses `pnpm exec eslint components/onboarding/OnboardingPage.tsx` from `apps/project-dashboard`.
+
 ## Date: 2026-03-24
 
 ### Lesson: Mongoose Typed Filters Need Null-Safe Sentinels

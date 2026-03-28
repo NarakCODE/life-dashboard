@@ -1,5 +1,36 @@
 # Tasks TODO List
 
+## Current Task: Auth Response Shape Alignment
+
+- [x] Inspect the login route, auth client path, and backend auth controller response shape
+- [x] Align the frontend auth success response handling with the backend auth controller contract
+- [x] Align the frontend auth error response handling with the backend auth controller contract
+- [x] Align the login UX with the unverified-email backend flow by redirecting to OTP verification
+- [x] Verify the touched auth frontend files with targeted checks
+
+### Result
+
+- Confirmed the login route page is only a wrapper and that the real response-shape boundary for the login flow is `apps/project-dashboard/lib/auth/auth-client.ts`.
+- Hardened auth response parsing so token and `/auth/me` consumers tolerate either a direct DTO payload or an extra nested `data` object if the backend/controller path returns one.
+- Aligned frontend auth types with the backend `MeResponseDto` contract by treating `defaultWorkspaceId` as nullable and normalizing optional onboarding fields to `null`.
+- Updated the shared API client error parser to accept plain Nest error payloads like `{ message, error, statusCode }`, so login now preserves the backend unverified-email message instead of falling back to a generic request error.
+- Updated the login form so an unverified-email backend response now redirects directly to `/verify-email?email=...` instead of leaving the user on the login page.
+- Updated the verify-email page to surface the backend message as a warning state: `Email verification required` with the backend description preserved after redirect.
+- Targeted ESLint passed for `apps/project-dashboard/components/auth/LoginForm.tsx`, `apps/project-dashboard/components/auth/VerifyEmailForm.tsx`, `apps/project-dashboard/lib/api/api-client.ts`, `apps/project-dashboard/lib/auth/auth-client.ts`, and `apps/project-dashboard/lib/auth/types.ts`.
+
+## Current Task: Onboarding Workspace Creation Flow
+
+- [x] Inspect the current onboarding page, reference wizard step UI, and onboarding data shape
+- [x] Refactor the onboarding page into an in-page StepMode-inspired workspace creation flow
+- [x] Verify the touched onboarding file with targeted frontend checks
+
+### Result
+
+- Reworked the onboarding experience into a centered in-page workspace creation flow with a StepMode-inspired shell instead of the previous generic two-card form layout.
+- Kept the existing backend onboarding behavior and mutations intact while upgrading the step UI to use stronger step framing, rounded surfaces, and selection-card interactions for planning preferences.
+- Enhanced the workspace creation step with a more explicit workspace naming panel and starter-direction choices without introducing new backend requirements.
+- Targeted ESLint passed for `apps/project-dashboard/components/onboarding/OnboardingPage.tsx`.
+
 ## Current Task: Chats Direct Messages
 
 - [x] Read the DM endpoint summary and current chats page integration

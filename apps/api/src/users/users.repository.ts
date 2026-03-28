@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
+import {
+  User,
+  UserDocument,
+  UserRole,
+  UserStatus,
+} from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 
 /**
@@ -72,10 +77,7 @@ export class UsersRepository {
       .exec();
   }
 
-  async updateEmail(
-    id: string | Types.ObjectId,
-    email: string,
-  ): Promise<void> {
+  async updateEmail(id: string | Types.ObjectId, email: string): Promise<void> {
     await this.userModel
       .findByIdAndUpdate(id, {
         email: email.toLowerCase(),
@@ -110,8 +112,12 @@ export class UsersRepository {
   }
 
   async markDeleted(id: string | Types.ObjectId): Promise<void> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) return;
+
     await this.userModel.findByIdAndUpdate(id, {
       status: UserStatus.DELETED,
+      email: `${user.email}.deleted.${Date.now()}`,
       deletedAt: new Date(),
       refreshTokenHash: null,
       isEmailVerified: false,

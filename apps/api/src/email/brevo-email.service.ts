@@ -69,6 +69,19 @@ export class BrevoEmailService {
     to: { email: string; name: string };
     code: string;
   }): Promise<void> {
+    // Helpful dev logging bypass
+    const nodeEnv = this.config.get<string>(
+      'app.nodeEnv',
+      process.env.NODE_ENV || 'development',
+    );
+    if (nodeEnv !== 'production') {
+      this.logger.log(
+        `\n=========================================\n` +
+          `[DEV MODE] OTP for ${params.to.email}\n` +
+          `VERIFICATION CODE: ${params.code}\n` +
+          `=========================================\n`,
+      );
+    }
     const appUrl = this.config.get<string>(
       'email.appUrl',
       'http://localhost:3000',

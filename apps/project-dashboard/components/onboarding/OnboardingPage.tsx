@@ -22,15 +22,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/hooks/use-auth"
@@ -45,51 +36,55 @@ import {
   normalizeNextTarget,
   resolvePostOnboardingPath,
 } from "@/lib/onboarding/onboarding-utils"
-import type {
-  OnboardingState,
-  OnboardingStep,
-} from "@/lib/onboarding/types"
+import type { OnboardingState, OnboardingStep } from "@/lib/onboarding/types"
+import { cn } from "@/lib/utils"
 
 const stepDefinitions: Array<{
   id: OnboardingStep
   label: string
   title: string
   description: string
+  eyebrow: string
   icon: typeof UserRound
 }> = [
   {
     id: "profile",
     label: "Profile",
-    title: "Personalize your account",
-    description: "Set the name that appears across your workspace and activity history.",
+    title: "Make the workspace yours",
+    description: "Set the identity that appears across activity, mentions, and collaboration.",
+    eyebrow: "Your account",
     icon: UserRound,
   },
   {
     id: "workspace",
     label: "Workspace",
-    title: "Name your workspace",
-    description: "Create the base identity for your dashboard, projects, and collaboration space.",
+    title: "Create your new workspace",
+    description: "Choose the name that anchors projects, teammates, and everything you organize here.",
+    eyebrow: "Workspace setup",
     icon: Workflow,
   },
   {
     id: "preferences",
     label: "Preferences",
-    title: "Shape your planning style",
-    description: "Capture a few defaults so the dashboard can feel tailored from the first session.",
+    title: "Choose how you plan",
+    description: "Pick the workflow defaults that should shape your first dashboard experience.",
+    eyebrow: "Working style",
     icon: Settings2,
   },
   {
     id: "invites",
     label: "Invites",
-    title: "Plan your collaborators",
-    description: "Store the first teammates you want to invite so setup is not lost.",
+    title: "Decide who joins first",
+    description: "Keep your starter collaborators ready so the workspace can launch without losing momentum.",
+    eyebrow: "Collaboration",
     icon: UsersRound,
   },
   {
     id: "review",
     label: "Review",
-    title: "Review and finish",
-    description: "Check the setup summary and activate your workspace.",
+    title: "Review and launch",
+    description: "Confirm the setup choices, then finish onboarding and enter the app.",
+    eyebrow: "Ready to go",
     icon: Sparkles,
   },
 ] as const
@@ -112,12 +107,65 @@ const previousStepById: Record<OnboardingStep, OnboardingStep | null> = {
   review: "invites",
 }
 
+const focusAreaOptions = [
+  {
+    value: "personal",
+    label: "Personal HQ",
+    description: "Focus on tasks, habits, and your own planning system.",
+    accent: "Solo-first",
+  },
+  {
+    value: "team",
+    label: "Team collaboration",
+    description: "Coordinate shared work, updates, and teammate visibility.",
+    accent: "Shared workflows",
+  },
+  {
+    value: "projects",
+    label: "Project delivery",
+    description: "Structure the workspace around milestones, owners, and execution.",
+    accent: "Execution-led",
+  },
+  {
+    value: "wellness",
+    label: "Wellness tracking",
+    description: "Shape the dashboard around routines, energy, and personal health signals.",
+    accent: "Habit-led",
+  },
+] as const
+
+const planningCadenceOptions = [
+  {
+    value: "daily",
+    label: "Daily focus",
+    description: "Reset priorities every day and keep short planning loops.",
+  },
+  {
+    value: "weekly",
+    label: "Weekly rhythm",
+    description: "Plan in weekly cycles with enough room for structure and flexibility.",
+  },
+  {
+    value: "monthly",
+    label: "Monthly goals",
+    description: "Track larger outcomes and keep the workspace oriented around longer horizons.",
+  },
+] as const
+
 interface OnboardingDraft {
   displayName: string
   workspaceName: string
   focusArea: string
   planningCadence: string
   invitees: string
+}
+
+interface ChoiceCardProps {
+  title: string
+  description: string
+  isSelected: boolean
+  onClick: () => void
+  accent?: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -189,6 +237,60 @@ function parseInvitees(rawValue: string) {
     .filter(Boolean)
 }
 
+function ChoiceCard({
+  title,
+  description,
+  isSelected,
+  onClick,
+  accent,
+}: ChoiceCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative flex w-full flex-col gap-6 rounded-[28px] border bg-background p-5 text-left transition-all duration-200",
+        "hover:border-foreground/15 hover:shadow-sm",
+        isSelected
+          ? "border-emerald-500/70 bg-emerald-50/60 shadow-sm"
+          : "border-border/60",
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        {accent ? (
+          <Badge
+            variant="outline"
+            className={cn(
+              "rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.18em]",
+              isSelected
+                ? "border-emerald-500/40 bg-emerald-100/70 text-emerald-700"
+                : "border-border/70 bg-muted/40 text-muted-foreground",
+            )}
+          >
+            {accent}
+          </Badge>
+        ) : (
+          <span />
+        )}
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-full border",
+            isSelected
+              ? "border-emerald-600 bg-emerald-600 text-white"
+              : "border-border bg-background text-transparent",
+          )}
+        >
+          <Check className="size-4" />
+        </span>
+      </div>
+      <div className="space-y-1">
+        <p className="text-base font-semibold text-foreground">{title}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+    </button>
+  )
+}
+
 function StepStatusBadge({
   isActive,
   isComplete,
@@ -214,26 +316,28 @@ function StepStatusBadge({
 
 function LoadingState() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="border-border/60 bg-card/80">
-          <CardContent className="space-y-4 p-5">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 bg-card/90">
-          <CardContent className="space-y-5 p-6">
-            <Skeleton className="h-8 w-56" />
-            <Skeleton className="h-4 w-80" />
-            <Skeleton className="h-11 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-11 w-40" />
-          </CardContent>
-        </Card>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-6">
+      <div className="rounded-[32px] border border-border/60 bg-muted/35 p-4 shadow-sm md:p-6">
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="rounded-[28px] border border-border/60 bg-background/80 p-5">
+            <div className="space-y-4">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-20 w-full rounded-3xl" />
+              <Skeleton className="h-20 w-full rounded-3xl" />
+              <Skeleton className="h-20 w-full rounded-3xl" />
+            </div>
+          </div>
+          <div className="rounded-[28px] border border-border/60 bg-background/95 p-6">
+            <div className="space-y-5">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-10 w-72" />
+              <Skeleton className="h-4 w-full max-w-xl" />
+              <Skeleton className="h-40 w-full rounded-[28px]" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -456,24 +560,44 @@ export function OnboardingPage() {
   function renderStepBody() {
     if (activeStep === "profile") {
       return (
-        <div className="grid gap-5">
-          <div className="grid gap-2">
-            <Label htmlFor="displayName">Display name</Label>
-            <Input
-              id="displayName"
-              value={draft.displayName}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  displayName: event.target.value,
-                }))
-              }
-              autoComplete="name"
-              placeholder="Your name"
-            />
-            <p className="text-sm text-muted-foreground">
-              This is applied directly to your account profile and also stored in onboarding progress.
-            </p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+          <div className="rounded-[28px] border border-border/60 bg-background p-6">
+            <div className="grid gap-3">
+              <Label htmlFor="displayName">Display name</Label>
+              <Input
+                id="displayName"
+                value={draft.displayName}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    displayName: event.target.value,
+                  }))
+                }
+                autoComplete="name"
+                placeholder="Your name"
+                className="h-12 rounded-2xl"
+              />
+              <p className="text-sm leading-6 text-muted-foreground">
+                This name is applied to your account profile and carried into workspace activity.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-border/60 bg-muted/35 p-6">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">What this controls</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Mentions, comments, notifications, and recent activity will use this identity from the first session.
+              </p>
+              <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Preview
+                </p>
+                <p className="mt-2 text-base font-semibold text-foreground">
+                  {draft.displayName.trim() || "Your name"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -481,23 +605,53 @@ export function OnboardingPage() {
 
     if (activeStep === "workspace") {
       return (
-        <div className="grid gap-5">
-          <div className="grid gap-2">
-            <Label htmlFor="workspaceName">Workspace name</Label>
-            <Input
-              id="workspaceName"
-              value={draft.workspaceName}
-              onChange={(event) =>
+        <div className="grid gap-4">
+          <div className="rounded-[28px] border border-border/60 bg-background p-6">
+            <div className="grid gap-3">
+              <Label htmlFor="workspaceName">Workspace name</Label>
+              <Input
+                id="workspaceName"
+                value={draft.workspaceName}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    workspaceName: event.target.value,
+                  }))
+                }
+                placeholder="Personal HQ"
+                className="h-12 rounded-2xl text-base"
+              />
+              <p className="text-sm leading-6 text-muted-foreground">
+                This becomes the visible workspace name after onboarding is completed.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <ChoiceCard
+              title="Use a personal workspace"
+              description="Keep things centered on your own planning system. You can still invite collaborators later."
+              accent="Recommended"
+              isSelected={draft.focusArea === "personal"}
+              onClick={() =>
                 setDraft((current) => ({
                   ...current,
-                  workspaceName: event.target.value,
+                  focusArea: "personal",
                 }))
               }
-              placeholder="Personal HQ"
             />
-            <p className="text-sm text-muted-foreground">
-              This becomes the visible name of the workspace when onboarding is completed.
-            </p>
+            <ChoiceCard
+              title="Start with a team-ready workspace"
+              description="Bias the experience toward collaboration, shared visibility, and multi-person planning."
+              accent="Team-ready"
+              isSelected={draft.focusArea !== "personal"}
+              onClick={() =>
+                setDraft((current) => ({
+                  ...current,
+                  focusArea: "team",
+                }))
+              }
+            />
           </div>
         </div>
       )
@@ -505,74 +659,93 @@ export function OnboardingPage() {
 
     if (activeStep === "preferences") {
       return (
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="focusArea">Primary focus</Label>
-            <Select
-              value={draft.focusArea}
-              onValueChange={(value) =>
-                setDraft((current) => ({
-                  ...current,
-                  focusArea: value,
-                }))
-              }
-            >
-              <SelectTrigger id="focusArea">
-                <SelectValue placeholder="Choose a focus area" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal">Personal productivity</SelectItem>
-                <SelectItem value="team">Team collaboration</SelectItem>
-                <SelectItem value="projects">Project delivery</SelectItem>
-                <SelectItem value="wellness">Wellness tracking</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="grid gap-6">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Primary focus</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {focusAreaOptions.map((option) => (
+                <ChoiceCard
+                  key={option.value}
+                  title={option.label}
+                  description={option.description}
+                  accent={option.accent}
+                  isSelected={draft.focusArea === option.value}
+                  onClick={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      focusArea: option.value,
+                    }))
+                  }
+                />
+              ))}
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="planningCadence">Planning cadence</Label>
-            <Select
-              value={draft.planningCadence}
-              onValueChange={(value) =>
-                setDraft((current) => ({
-                  ...current,
-                  planningCadence: value,
-                }))
-              }
-            >
-              <SelectTrigger id="planningCadence">
-                <SelectValue placeholder="Choose a planning rhythm" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily focus</SelectItem>
-                <SelectItem value="weekly">Weekly planning</SelectItem>
-                <SelectItem value="monthly">Monthly goals</SelectItem>
-              </SelectContent>
-            </Select>
+
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Planning cadence</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {planningCadenceOptions.map((option) => (
+                <ChoiceCard
+                  key={option.value}
+                  title={option.label}
+                  description={option.description}
+                  isSelected={draft.planningCadence === option.value}
+                  onClick={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      planningCadence: option.value,
+                    }))
+                  }
+                />
+              ))}
+            </div>
           </div>
         </div>
       )
     }
 
     if (activeStep === "invites") {
+      const inviteCount = parseInvitees(draft.invitees).length
+
       return (
-        <div className="grid gap-5">
-          <div className="grid gap-2">
-            <Label htmlFor="invitees">Invite list</Label>
-            <Textarea
-              id="invitees"
-              value={draft.invitees}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  invitees: event.target.value,
-                }))
-              }
-              rows={7}
-              placeholder={"alex@example.com\nsam@example.com"}
-            />
-            <p className="text-sm text-muted-foreground">
-              These collaborators will receive workspace invitations when you complete setup. Existing users will also see the invite in their notifications.
-            </p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+          <div className="rounded-[28px] border border-border/60 bg-background p-6">
+            <div className="grid gap-3">
+              <Label htmlFor="invitees">Invite list</Label>
+              <Textarea
+                id="invitees"
+                value={draft.invitees}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    invitees: event.target.value,
+                  }))
+                }
+                rows={8}
+                placeholder={"alex@example.com\nsam@example.com"}
+                className="rounded-2xl"
+              />
+              <p className="text-sm leading-6 text-muted-foreground">
+                Add one email per line or separate them with commas. Invitations are sent after setup is completed.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-border/60 bg-muted/35 p-6">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Launch snapshot</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  You can finish onboarding without invites and add people later from workspace settings.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Invite count
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{inviteCount}</p>
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -582,7 +755,7 @@ export function OnboardingPage() {
 
     return (
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-border/60 bg-muted/20">
+        <Card className="rounded-[28px] border-border/60 bg-background shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Profile</CardTitle>
           </CardHeader>
@@ -591,7 +764,7 @@ export function OnboardingPage() {
             <p className="text-muted-foreground">Account name across the workspace</p>
           </CardContent>
         </Card>
-        <Card className="border-border/60 bg-muted/20">
+        <Card className="rounded-[28px] border-border/60 bg-background shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Workspace</CardTitle>
           </CardHeader>
@@ -600,18 +773,23 @@ export function OnboardingPage() {
             <p className="text-muted-foreground">Workspace display name</p>
           </CardContent>
         </Card>
-        <Card className="border-border/60 bg-muted/20">
+        <Card className="rounded-[28px] border-border/60 bg-background shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Preferences</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
-            <p className="font-medium capitalize text-foreground">{draft.focusArea}</p>
+            <p className="font-medium text-foreground">
+              {focusAreaOptions.find((option) => option.value === draft.focusArea)?.label ?? draft.focusArea}
+            </p>
             <p className="text-muted-foreground">
-              Planning cadence: <span className="capitalize">{draft.planningCadence}</span>
+              Planning cadence:{" "}
+              <span className="font-medium text-foreground">
+                {planningCadenceOptions.find((option) => option.value === draft.planningCadence)?.label ?? draft.planningCadence}
+              </span>
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/60 bg-muted/20">
+        <Card className="rounded-[28px] border-border/60 bg-background shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Collaborators</CardTitle>
           </CardHeader>
@@ -679,118 +857,143 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 py-4 lg:py-8">
-      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <Card className="border-border/60 bg-card/80 shadow-sm">
-          <CardHeader className="gap-4">
-            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Rocket className="size-5" />
-            </div>
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">Finish your workspace setup</CardTitle>
-              <CardDescription className="text-sm leading-6">
-                We use the onboarding state from the backend to guide setup and keep incomplete users away from workspace-bound routes.
-              </CardDescription>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(completionProgress)}%</span>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-6 lg:py-8">
+      <div className="rounded-[32px] border border-border/60 bg-muted/35 p-4 shadow-sm md:p-6">
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="rounded-[28px] border border-border/60 bg-background/80 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Rocket className="size-5" />
               </div>
-              <Progress value={completionProgress} className="h-2" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">New workspace</p>
+                <p className="text-sm text-muted-foreground">
+                  {Math.round(completionProgress)}% complete
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {stepDefinitions.map((step, index) => {
-              const Icon = step.icon
-              const isActive = step.id === activeStep
-              const isComplete = completedSteps.includes(step.id)
 
-              return (
-                <div
-                  key={step.id}
-                  className={`rounded-2xl border px-4 py-3 transition ${
-                    isActive
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/50 bg-background/70"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-foreground transition-[width]"
+                style={{ width: `${completionProgress}%` }}
+              />
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {stepDefinitions.map((step, index) => {
+                const Icon = step.icon
+                const isActive = step.id === activeStep
+                const isComplete = completedSteps.includes(step.id)
+
+                return (
+                  <div
+                    key={step.id}
+                    className={cn(
+                      "rounded-[24px] border p-4 transition",
+                      isActive
+                        ? "border-foreground/10 bg-muted/45"
+                        : "border-border/60 bg-background",
+                    )}
+                  >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`mt-0.5 inline-flex size-9 items-center justify-center rounded-xl ${
+                        className={cn(
+                          "mt-0.5 flex size-10 items-center justify-center rounded-2xl",
                           isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        }`}
+                            ? "bg-foreground text-background"
+                            : "bg-muted text-muted-foreground",
+                        )}
                       >
                         <Icon className="size-4" />
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
-                          {index + 1}. {step.label}
-                        </p>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {index + 1}. {step.label}
+                          </p>
+                          <StepStatusBadge isActive={isActive} isComplete={isComplete} />
+                        </div>
                         <p className="text-xs leading-5 text-muted-foreground">
                           {step.description}
                         </p>
                       </div>
                     </div>
-                    <StepStatusBadge isActive={isActive} isComplete={isComplete} />
                   </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-border/60 bg-background/95 p-6">
+            <div className="flex h-full flex-col gap-6">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-foreground/10 bg-muted/40 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-foreground"
+                  >
+                    {activeDefinition.eyebrow}
+                  </Badge>
+                  <Badge variant="secondary" className="rounded-full px-3 py-1">
+                    Step {activeStepIndex + 1} of {stepDefinitions.length}
+                  </Badge>
+                  {onboardingState?.session?.workspaceId ? (
+                    <Badge variant="secondary" className="rounded-full px-3 py-1">
+                      Workspace linked
+                    </Badge>
+                  ) : null}
                 </div>
-              )
-            })}
-          </CardContent>
-        </Card>
 
-        <Card className="border-border/60 bg-card/95 shadow-sm">
-          <CardHeader className="gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
-                {activeDefinition.label}
-              </Badge>
-              {onboardingState?.session?.workspaceId ? (
-                <Badge variant="secondary">Workspace linked</Badge>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <CardTitle className="text-3xl tracking-tight">
-                {activeDefinition.title}
-              </CardTitle>
-              <CardDescription className="max-w-2xl text-base leading-7">
-                {activeDefinition.description}
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {renderStepBody()}
-
-            <Separator />
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-muted-foreground">
-                {activeStep === "review"
-                  ? "Completing setup activates the workspace flow and returns you to the app."
-                  : "Your progress is stored on the backend after each step."}
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                    {activeDefinition.title}
+                  </h1>
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                    {activeDefinition.description}
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void moveToPreviousStep()}
-                  disabled={!previousStepById[activeStep] || isBusy}
-                >
-                  <ArrowLeft className="mr-2 size-4" />
-                  Back
-                </Button>
-                <Button type="button" onClick={() => void handlePrimaryAction()} disabled={isBusy}>
-                  {isBusy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
-                  {activeStep === "review" ? "Complete setup" : "Save and continue"}
-                </Button>
+
+              <div className="rounded-[28px] bg-muted/35 p-4 md:p-5">
+                {renderStepBody()}
+              </div>
+
+              <div className="mt-auto flex flex-col gap-4 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+                  {activeStep === "review"
+                    ? "Completing setup creates the workspace context and returns you to the app."
+                    : "Each step is saved to the backend before you move forward, so onboarding progress is preserved."}
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => void moveToPreviousStep()}
+                    disabled={!previousStepById[activeStep] || isBusy}
+                    className="h-10 rounded-xl px-4"
+                  >
+                    <ArrowLeft className="mr-2 size-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void handlePrimaryAction()}
+                    disabled={isBusy}
+                    className="h-10 rounded-xl px-4"
+                  >
+                    {isBusy ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : (
+                      <ArrowRight className="mr-2 size-4" />
+                    )}
+                    {activeStep === "review" ? "Complete setup" : "Continue"}
+                  </Button>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

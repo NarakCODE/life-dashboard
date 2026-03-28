@@ -12,7 +12,7 @@ export interface AuthUser {
   displayName: string;
   avatarUrl?: string | null;
   isEmailVerified: boolean;
-  defaultWorkspaceId: string;
+  defaultWorkspaceId: string | null;
   activeWorkspaceId: string | null;
   onboarding: OnboardingSummary;
   createdAt: string;

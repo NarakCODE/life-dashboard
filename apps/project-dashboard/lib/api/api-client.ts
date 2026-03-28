@@ -8,13 +8,13 @@ export interface ApiEnvelopeWithMeta<T, M> {
 }
 
 interface ApiErrorPayload {
-  success: false
   statusCode: number
   message: string
   errors?: string[]
   error: string
-  timestamp: string
-  path: string
+  success?: false
+  timestamp?: string
+  path?: string
 }
 
 interface ApiRequestOptions {
@@ -33,12 +33,9 @@ function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
   const candidate = value as Partial<ApiErrorPayload>
 
   return (
-    candidate.success === false &&
     typeof candidate.statusCode === "number" &&
     typeof candidate.message === "string" &&
-    typeof candidate.error === "string" &&
-    typeof candidate.timestamp === "string" &&
-    typeof candidate.path === "string"
+    typeof candidate.error === "string"
   )
 }
 
@@ -92,7 +89,10 @@ async function parseError(response: Response) {
   return new ApiError({
     success: false,
     statusCode: response.status,
-    message: "Request failed",
+    message:
+      payload && typeof payload === "object" && "message" in payload && typeof (payload as { message?: unknown }).message === "string"
+        ? (payload as { message: string }).message
+        : "Request failed",
     error: "RequestError",
     timestamp: new Date().toISOString(),
     path: response.url,

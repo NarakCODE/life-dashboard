@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStateInline } from "@/components/ui/empty-state";
 import { Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { JoinLinkSettings } from "@/components/workspaces/JoinLinkSettings";
+import { JoinRequestsButton } from "@/components/members";
 
 export default function MembersPage() {
   return (
@@ -96,7 +98,14 @@ function MembersContent() {
 
   return (
     <div className="flex-1 overflow-auto p-4 lg:p-6">
-      <div className="max-w-5xl">
+      <div className="max-w-5xl space-y-6">
+        {/* Join Link Settings (Admin only) */}
+        {canManageMembers && <JoinLinkSettings workspaceId={workspaceId} />}
+
+        {/* Join Requests Button (Admin only) */}
+        {canManageMembers && <JoinRequestsButton workspaceId={workspaceId} />}
+
+        {/* Members List */}
         {members.length === 0 ? (
           <EmptyStateInline
             icon={Users}
@@ -112,6 +121,7 @@ function MembersContent() {
           />
         )}
 
+        {/* Pending Invitations */}
         {invitations.length > 0 && (
           <PendingInvitationsList
             workspaceId={workspaceId}

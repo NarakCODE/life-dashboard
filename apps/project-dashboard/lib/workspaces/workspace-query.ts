@@ -13,6 +13,10 @@ import type {
   InviteMemberInput,
   WorkspaceContext,
   WorkspaceInvitation,
+  WorkspaceJoinRequest,
+  WorkspaceJoinLink,
+  WorkspaceJoinInfo,
+  UpdateJoinLinkInput,
 } from "./workspace-types";
 import {
   getWorkspaces,
@@ -30,6 +34,13 @@ import {
   revokeInvitation,
   removeMember,
   leaveWorkspace,
+  createJoinLink,
+  updateJoinLink,
+  getJoinLinkInfo,
+  createJoinRequest,
+  getJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
 } from "./workspace-client";
 
 // ============================================================================
@@ -49,6 +60,15 @@ export const workspaceKeys = {
   myInvitations: () => [...workspaceKeys.invitations(), "mine"] as const,
   workspaceInvitations: (workspaceId: string) =>
     [...workspaceKeys.invitations(), "workspace", workspaceId] as const,
+  joinLink: () => [...workspaceKeys.all, "join-link"] as const,
+  joinLinkByWorkspace: (workspaceId: string) =>
+    [...workspaceKeys.joinLink(), workspaceId] as const,
+  joinRequests: () => [...workspaceKeys.all, "join-requests"] as const,
+  joinRequestsByWorkspace: (workspaceId: string) =>
+    [...workspaceKeys.joinRequests(), workspaceId] as const,
+  joinInfo: () => [...workspaceKeys.all, "join-info"] as const,
+  joinInfoByToken: (token: string) =>
+    [...workspaceKeys.joinInfo(), token] as const,
 } as const;
 
 // ============================================================================
@@ -97,6 +117,30 @@ export const workspaceQueries = {
     queryFn: () => getWorkspaceInvitations(workspaceId),
     enabled: Boolean(workspaceId),
     staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  }),
+
+  joinLink: (workspaceId: string) => ({
+    queryKey: workspaceKeys.joinLinkByWorkspace(workspaceId),
+    queryFn: () => createJoinLink(workspaceId),
+    enabled: Boolean(workspaceId),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  }),
+
+  joinRequests: (workspaceId: string) => ({
+    queryKey: workspaceKeys.joinRequestsByWorkspace(workspaceId),
+    queryFn: () => getJoinRequests(workspaceId),
+    enabled: Boolean(workspaceId),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  }),
+
+  joinInfo: (token: string) => ({
+    queryKey: workspaceKeys.joinInfoByToken(token),
+    queryFn: () => getJoinLinkInfo(token),
+    enabled: Boolean(token),
+    staleTime: 5 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   }),
 };
@@ -161,6 +205,45 @@ export function useWorkspaceInvitationsQuery(
 ) {
   return useQuery({
     ...workspaceQueries.workspaceInvitations(workspaceId),
+    ...options,
+  });
+}
+
+export function useJoinLinkQuery(
+  workspaceId: string,
+  options?: Omit<
+    UseQueryOptions<WorkspaceJoinLink, ApiError>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    ...workspaceQueries.joinLink(workspaceId),
+    ...options,
+  });
+}
+
+export function useJoinRequestsQuery(
+  workspaceId: string,
+  options?: Omit<
+    UseQueryOptions<WorkspaceJoinRequest[], ApiError>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    ...workspaceQueries.joinRequests(workspaceId),
+    ...options,
+  });
+}
+
+export function useJoinInfoQuery(
+  token: string,
+  options?: Omit<
+    UseQueryOptions<WorkspaceJoinInfo, ApiError>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    ...workspaceQueries.joinInfo(token),
     ...options,
   });
 }
@@ -452,6 +535,103 @@ export function useLeaveWorkspaceMutation() {
 }
 
 // ============================================================================
+// Join Link Mutations
+// ============================================================================
+
+export function useCreateJoinLinkMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workspaceId: string) => createJoinLink(workspaceId),
+    onSuccess: (_data, workspaceId) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.joinLinkByWorkspace(workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(workspaceId),
+      });
+    },
+  });
+}
+
+export function useUpdateJoinLinkMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (variables: {
+      workspaceId: string;
+      input: UpdateJoinLinkInput;
+    }) => updateJoinLink(variables.workspaceId, variables.input),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.joinLinkByWorkspace(variables.workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(variables.workspaceId),
+      });
+    },
+  });
+}
+
+// ============================================================================
+// Join Request Mutations
+// ============================================================================
+
+export function useCreateJoinRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (token: string) => createJoinRequest(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.context() });
+    },
+  });
+}
+
+export function useApproveJoinRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      workspaceId,
+      requestId,
+    }: {
+      workspaceId: string;
+      requestId: string;
+    }) => approveJoinRequest(workspaceId, requestId),
+    onSuccess: (_data, { workspaceId }) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.joinRequestsByWorkspace(workspaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.detail(workspaceId),
+      });
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
+    },
+  });
+}
+
+export function useRejectJoinRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      workspaceId,
+      requestId,
+    }: {
+      workspaceId: string;
+      requestId: string;
+    }) => rejectJoinRequest(workspaceId, requestId),
+    onSuccess: (_data, { workspaceId }) => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.joinRequestsByWorkspace(workspaceId),
+      });
+    },
+  });
+}
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -462,4 +642,8 @@ export type {
   InviteMemberInput,
   WorkspaceContext,
   WorkspaceInvitation,
+  WorkspaceJoinRequest,
+  WorkspaceJoinLink,
+  WorkspaceJoinInfo,
+  UpdateJoinLinkInput,
 };

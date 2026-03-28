@@ -42,6 +42,10 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
+function isUnverifiedEmailErrorMessage(message: string | undefined) {
+  return message?.toLowerCase().includes("not verified") ?? false
+}
+
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -77,8 +81,20 @@ export function LoginForm() {
       await loginMutation.mutateAsync(values)
       router.replace(nextTarget)
     } catch (error) {
+      const message = getErrorMessage(error, "Unable to sign in")
+
+      if (isUnverifiedEmailErrorMessage(message)) {
+        const params = new URLSearchParams({
+          email: values.email,
+          message,
+        })
+
+        router.push(`/verify-email?${params.toString()}`)
+        return
+      }
+
       form.setError("root", {
-        message: getErrorMessage(error, "Unable to sign in"),
+        message,
       })
     }
   })
@@ -95,7 +111,7 @@ export function LoginForm() {
   }
 
   const emailValue = form.watch("email")
-  const hasUnverifiedEmailError = form.formState.errors.root?.message?.toLowerCase().includes("not verified")
+  const hasUnverifiedEmailError = isUnverifiedEmailErrorMessage(form.formState.errors.root?.message)
 
   return (
     <AuthFormWrapper

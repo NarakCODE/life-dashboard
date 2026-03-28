@@ -6,6 +6,12 @@ import type {
   WorkspaceInvitation,
   InviteMemberInput,
   WorkspaceContext,
+  WorkspaceJoinRequest,
+  WorkspaceJoinLink,
+  WorkspaceJoinInfo,
+  CreateJoinLinkInput,
+  UpdateJoinLinkInput,
+  CreateJoinRequestInput,
 } from "./workspace-types"
 
 // Handle double-wrapped API response: { success: true, data: { success: true, data: [...] } }
@@ -165,4 +171,91 @@ export function leaveWorkspace(workspaceId: string) {
     method: "POST",
     auth: "required",
   })
+}
+
+// ============================================================================
+// Join Link Management (Admin only)
+// ============================================================================
+
+export async function createJoinLink(
+  workspaceId: string,
+): Promise<WorkspaceJoinLink> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinLink>>({
+    path: `/workspaces/${workspaceId}/join-link`,
+    method: "POST",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
+export async function updateJoinLink(
+  workspaceId: string,
+  input: UpdateJoinLinkInput,
+): Promise<WorkspaceJoinLink> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinLink>>({
+    path: `/workspaces/${workspaceId}/join-link`,
+    method: "PATCH",
+    body: input,
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
+export async function getJoinLinkInfo(token: string): Promise<WorkspaceJoinInfo> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinInfo>>({
+    path: `/workspaces/join/${token}`,
+    method: "GET",
+    auth: "none",
+  })
+  return response.data.data ?? response.data
+}
+
+// ============================================================================
+// Join Request Management
+// ============================================================================
+
+export async function createJoinRequest(
+  token: string,
+): Promise<WorkspaceJoinRequest> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinRequest>>({
+    path: `/workspaces/join/${token}/request`,
+    method: "POST",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
+export async function getJoinRequests(
+  workspaceId: string,
+): Promise<WorkspaceJoinRequest[]> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinRequest[]>>({
+    path: `/workspaces/${workspaceId}/join-requests`,
+    method: "GET",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
+export async function approveJoinRequest(
+  workspaceId: string,
+  requestId: string,
+): Promise<WorkspaceJoinRequest> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinRequest>>({
+    path: `/workspaces/${workspaceId}/join-requests/${requestId}/approve`,
+    method: "POST",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
+}
+
+export async function rejectJoinRequest(
+  workspaceId: string,
+  requestId: string,
+): Promise<WorkspaceJoinRequest> {
+  const response = await apiRequestEnvelope<DoubleWrappedResponse<WorkspaceJoinRequest>>({
+    path: `/workspaces/${workspaceId}/join-requests/${requestId}/reject`,
+    method: "POST",
+    auth: "required",
+  })
+  return response.data.data ?? response.data
 }

@@ -73,3 +73,41 @@ export interface WorkspaceContext {
   defaultWorkspaceId: string | null
   activeWorkspaceId: string | null
 }
+
+export interface WorkspaceJoinRequest {
+  id: string
+  workspaceId: string
+  userId: string
+  user: UserDetails
+  status: JoinRequestStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type JoinRequestStatus = "pending" | "approved" | "rejected"
+
+export interface WorkspaceJoinLink {
+  token: string
+  isEnabled: boolean
+  workspaceId: string
+  workspaceName: string
+}
+
+export interface CreateJoinLinkInput {
+  workspaceId: string
+}
+
+export interface UpdateJoinLinkInput {
+  isEnabled: boolean
+}
+
+export interface WorkspaceJoinInfo {
+  workspaceId: string
+  workspaceName: string
+  workspaceType: WorkspaceType
+  token: string
+}
+
+export interface CreateJoinRequestInput {
+  token: string
+}

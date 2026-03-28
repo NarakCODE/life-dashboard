@@ -52,6 +52,23 @@ interface BackendMeResponse {
   };
 }
 
+interface BackendWrappedData<T> {
+  data: T;
+}
+
+function unwrapBackendData<T>(response: T | BackendWrappedData<T>): T {
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    (response as BackendWrappedData<T>).data !== undefined
+  ) {
+    return (response as BackendWrappedData<T>).data
+  }
+
+  return response as T
+}
+
 /**
  * Transform backend nested MeResponseDto to flat AuthUser format
  */
@@ -62,29 +79,33 @@ function transformMeResponseToAuthUser(response: BackendMeResponse): AuthUser {
     displayName: response.profile.displayName,
     avatarUrl: response.profile.avatarUrl,
     isEmailVerified: response.identity.isEmailVerified,
-    defaultWorkspaceId: response.metadata.defaultWorkspaceId ,
+    defaultWorkspaceId: response.metadata.defaultWorkspaceId ?? null,
     activeWorkspaceId: response.metadata.activeWorkspaceId,
-    onboarding: response.metadata.onboarding,
+    onboarding: {
+      ...response.metadata.onboarding,
+      currentStep: response.metadata.onboarding.currentStep ?? null,
+      workspaceId: response.metadata.onboarding.workspaceId ?? null,
+    },
     createdAt: response.metadata.createdAt,
     updatedAt: response.metadata.updatedAt,
   };
 }
 
 export function login(input: LoginInput) {
-  return apiRequest<AuthTokens>({
+  return apiRequest<AuthTokens | BackendWrappedData<AuthTokens>>({
     path: "/auth/login",
     method: "POST",
     body: input,
     auth: "none",
-  });
+  }).then(unwrapBackendData);
 }
 
 export function devBootstrapSession() {
-  return apiRequest<AuthTokens>({
+  return apiRequest<AuthTokens | BackendWrappedData<AuthTokens>>({
     path: "/auth/dev-bootstrap",
     method: "POST",
     auth: "none",
-  });
+  }).then(unwrapBackendData);
 }
 
 export function register(input: RegisterInput) {
@@ -134,10 +155,10 @@ export function logout() {
 }
 
 export function getCurrentUser() {
-  return apiRequest<BackendMeResponse>({
+  return apiRequest<BackendMeResponse | BackendWrappedData<BackendMeResponse>>({
     path: "/auth/me",
     auth: "required",
-  }).then(transformMeResponseToAuthUser);
+  }).then(unwrapBackendData).then(transformMeResponseToAuthUser);
 }
 
 export interface UpdateProfileInput {
@@ -146,10 +167,10 @@ export interface UpdateProfileInput {
 }
 
 export function updateProfile(input: UpdateProfileInput) {
-  return apiRequest<BackendMeResponse>({
+  return apiRequest<BackendMeResponse | BackendWrappedData<BackendMeResponse>>({
     path: "/auth/me",
     method: "PATCH",
     body: input,
     auth: "required",
-  }).then(transformMeResponseToAuthUser);
+  }).then(unwrapBackendData).then(transformMeResponseToAuthUser);
 }

@@ -16,7 +16,7 @@ import { EmailVerificationService } from './services/email-verification.service'
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokensDto, JwtPayload } from './dto/auth-tokens.dto';
-import { UserDocument } from '../users/schemas/user.schema';
+import { UserDocument, UserStatus } from '../users/schemas/user.schema';
 
 const BCRYPT_ROUNDS = 10;
 const DEV_BOOTSTRAP_EMAIL = 'dev@life-dashboard.local';
@@ -50,7 +50,28 @@ export class AuthService {
   async register(dto: RegisterDto): Promise<{ message: string }> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
-      throw new ConflictException('Email is already registered');
+      if (existing.status === UserStatus.DELETED) {
+        await this.usersService.updateEmail(
+          existing._id,
+          `${existing.email}.deleted.${Date.now()}`,
+        );
+      } else if (!existing.isEmailVerified) {
+        // Unverified user is re-registering. Overwrite password and resend OTP.
+        const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+        await this.usersService.updatePassword(existing._id, passwordHash);
+
+        try {
+          await this.emailVerificationService.sendVerificationEmail(existing);
+        } catch {
+          // Ignore rate limit error so they can still see the message to go verify it.
+        }
+
+        throw new UnauthorizedException(
+          'Email not verified. A new verification code has been sent to your inbox.',
+        );
+      } else {
+        throw new ConflictException('Email is already registered');
+      }
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -79,8 +100,14 @@ export class AuthService {
     }
 
     if (!user.isEmailVerified) {
+      try {
+        await this.emailVerificationService.sendVerificationEmail(user);
+      } catch {
+        // Suppress rate limit errors here and just tell them it's unverified.
+      }
+
       throw new UnauthorizedException(
-        'Email not verified. Please check your inbox for the verification code.',
+        'Email not verified. A new verification code has been sent to your inbox.',
       );
     }
 

@@ -41,6 +41,9 @@ type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>
 export function VerifyEmailForm() {
   const searchParams = useSearchParams()
   const verificationEmail = searchParams.get("email") ?? ""
+  const verificationMessage =
+    searchParams.get("message") ??
+    "If you just registered, use the code from the verification email."
   const verifyMutation = useVerifyEmailMutation()
   const resendMutation = useResendVerificationMutation()
   const form = useForm<VerifyEmailFormValues>({
@@ -157,9 +160,9 @@ export function VerifyEmailForm() {
           />
         ) : (
           <VerificationStatus
-            variant="info"
-            title="Check your inbox"
-            description="If you just registered, use the code from the verification email."
+            variant={searchParams.get("message") ? "warning" : "info"}
+            title={searchParams.get("message") ? "Email verification required" : "Check your inbox"}
+            description={verificationMessage}
           />
         )}
 
