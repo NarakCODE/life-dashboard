@@ -1,6 +1,6 @@
 import { Exclude, Expose, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { OnboardingSummaryDto } from '../../onboarding/dto/onboarding-summary.dto';
+import { UserOnboardingSummaryDto } from '../../common/dto/user-onboarding-summary.dto';
 import { UserRole, UserStatus } from '../../users/schemas/user.schema';
 
 @Exclude()
@@ -76,9 +76,9 @@ export class AccountMetadataDto {
   activeWorkspaceId?: string | null;
 
   @Expose()
-  @Type(() => OnboardingSummaryDto)
-  @ApiProperty({ type: () => OnboardingSummaryDto })
-  onboarding!: OnboardingSummaryDto;
+  @Type(() => UserOnboardingSummaryDto)
+  @ApiProperty({ type: () => UserOnboardingSummaryDto })
+  onboarding!: UserOnboardingSummaryDto;
 
   constructor(partial: Partial<AccountMetadataDto>) {
     Object.assign(this, partial);

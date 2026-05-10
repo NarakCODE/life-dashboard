@@ -82,12 +82,11 @@ LOG [NotificationSeeder] ✅ Cleared 6 notifications
 | `goal_milestone` | 2 | "Milestone achieved! 🎉" |
 | `budget_alert` | 2 | "80% spent", "Budget exceeded!" |
 | `project_mention` | 2 | "You were mentioned" |
-| `chat_message` | 2 | "New message in #general" |
 | `workspace_invitation` | 2 | "New workspace invitation" |
 | `comment_reply` | 2 | "New reply to your comment" |
 | `system` | 3 | "Weekly summary", "Security alert" |
 
-**Total:** 22 notifications
+**Total:** 20 notifications
 
 ---
 

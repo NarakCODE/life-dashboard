@@ -26,6 +26,7 @@ export class WorkspaceMember {
   userId!: Types.ObjectId;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceRole),
   })
@@ -47,6 +48,7 @@ export class Workspace {
   createdBy!: Types.ObjectId;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceType),
     default: WorkspaceType.COLLABORATIVE,
@@ -55,6 +57,7 @@ export class Workspace {
   type!: WorkspaceType;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceStatus),
     default: WorkspaceStatus.ACTIVE,

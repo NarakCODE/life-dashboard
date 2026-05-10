@@ -23,12 +23,14 @@ export class WorkspaceInvitation {
   invitedBy!: Types.ObjectId;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceRole),
   })
   role!: WorkspaceRole;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(InvitationStatus),
     default: InvitationStatus.PENDING,

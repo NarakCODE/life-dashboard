@@ -19,12 +19,14 @@ export class WorkspaceMembership {
   userId!: Types.ObjectId;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceRole),
   })
   role!: WorkspaceRole;
 
   @Prop({
+    type: String,
     required: true,
     enum: Object.values(WorkspaceMembershipStatus),
     default: WorkspaceMembershipStatus.ACTIVE,

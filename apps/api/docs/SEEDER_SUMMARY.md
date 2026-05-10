@@ -55,12 +55,11 @@
 | `goal_milestone` | 2 | "Milestone achieved! 🎉" |
 | `budget_alert` | 2 | "80% spent", "Budget exceeded!" |
 | `project_mention` | 2 | "You were mentioned in a project" |
-| `chat_message` | 2 | "New message in #general", "DM from Lisa" |
 | `workspace_invitation` | 2 | "New workspace invitation" |
 | `comment_reply` | 2 | "New reply to your comment" |
 | `system` | 3 | "Weekly summary", "New feature", "Security alert" |
 
-**Total:** 22 notifications per user
+**Total:** 20 notifications per user
 
 ---
 

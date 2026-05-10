@@ -1,6 +1,7 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
+    "baseUrl": "./",
     "declaration": true,
     "declarationMap": true,
     "emitDecoratorMetadata": true,

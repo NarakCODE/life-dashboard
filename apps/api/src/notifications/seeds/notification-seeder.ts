@@ -345,50 +345,6 @@ Keep up the excellent work!`,
         daysAgo: 2,
       },
 
-      // CHAT_MESSAGE notifications
-      {
-        type: NotificationType.CHAT_MESSAGE,
-        title: 'New message in #general',
-        body: `Alex Thompson: "Hey team! Just a reminder that we have the sprint planning meeting at 2 PM today. Please come prepared with your updates!"
-
-- Channel: #general
-- Unread messages: 3
-- Last message: 15 minutes ago`,
-        data: {
-          channelId: new Types.ObjectId().toString(),
-          channelName: 'general',
-          channelType: 'public',
-          senderId: new Types.ObjectId().toString(),
-          senderName: 'Alex Thompson',
-          senderAvatar: 'https://api.dicebear.com/7.x/avataaars?seed=alex',
-          messagePreview: 'Hey team! Just a reminder...',
-          unreadCount: 3,
-          href: '/chat/channels/channel-001',
-        },
-        isRead: false,
-        daysAgo: 0,
-      },
-      {
-        type: NotificationType.CHAT_MESSAGE,
-        title: 'Direct message from Lisa Park',
-        body: `Lisa Park: "Thanks for helping with the code review! I've implemented your suggestions and pushed the changes. Can you take another look when you have a moment?"
-
-- Direct Message
-- Sent: 1 hour ago`,
-        data: {
-          channelId: new Types.ObjectId().toString(),
-          channelType: 'dm',
-          senderId: new Types.ObjectId().toString(),
-          senderName: 'Lisa Park',
-          senderAvatar: 'https://api.dicebear.com/7.x/avataaars?seed=lisa',
-          senderEmail: 'lisa@example.com',
-          messagePreview: 'Thanks for helping with the code review...',
-          href: '/chat/dms/user-002',
-        },
-        isRead: false,
-        daysAgo: 0,
-      },
-
       // WORKSPACE_INVITATION notifications
       {
         type: NotificationType.WORKSPACE_INVITATION,

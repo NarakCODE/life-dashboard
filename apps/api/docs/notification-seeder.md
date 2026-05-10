@@ -21,12 +21,11 @@ Seed realistic mock notifications for development and testing.
 | `goal_milestone` | 2 | Goal progress and milestone achievements |
 | `budget_alert` | 2 | Budget threshold and over-budget alerts |
 | `project_mention` | 2 | Mentions in project comments/updates |
-| `chat_message` | 2 | Channel messages and direct messages |
 | `workspace_invitation` | 2 | New invitations and approved join requests |
 | `comment_reply` | 2 | Replies and mentions in comments |
 | `system` | 3 | Weekly summary, feature announcements, security alerts |
 
-**Total:** 22 notifications per user
+**Total:** 20 notifications per user
 
 ## Usage
 

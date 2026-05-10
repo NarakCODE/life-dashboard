@@ -1,10 +1,16 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { OnboardingService } from '../../onboarding/onboarding.service';
-import { OnboardingSummaryDto } from '../../onboarding/dto/onboarding-summary.dto';
+import {
+  UserOnboardingStatus,
+  UserOnboardingSummaryDto,
+} from '../../common/dto/user-onboarding-summary.dto';
 import { UsersService } from '../../users/users.service';
 import { UploadService, type FileUpload } from '../../upload/upload.service';
-import { UploadType } from '../../upload/types/upload.types';
-import { AccountMetadataDto, IdentityDto, MeResponseDto, ProfileDto } from '../dto/me-response.dto';
+import {
+  AccountMetadataDto,
+  IdentityDto,
+  MeResponseDto,
+  ProfileDto,
+} from '../dto/me-response.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { UserStatus, UserDocument } from '../../users/schemas/user.schema';
 
@@ -12,16 +18,12 @@ import { UserStatus, UserDocument } from '../../users/schemas/user.schema';
 export class ProfileService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly onboardingService: OnboardingService,
     private readonly uploadService: UploadService,
   ) {}
 
   async getProfile(userId: string): Promise<MeResponseDto> {
-    const [user, onboarding] = await Promise.all([
-      this.usersService.findById(userId),
-      this.onboardingService.getSummary(userId),
-    ]);
-
+    const user = await this.usersService.findById(userId);
+    const onboarding = this.buildOnboardingSummary(user);
     return this.toResponseDto(user, onboarding);
   }
 
@@ -75,7 +77,10 @@ export class ProfileService {
     return result.url;
   }
 
-  private toResponseDto(user: UserDocument, onboarding: OnboardingSummaryDto) {
+  private toResponseDto(
+    user: UserDocument,
+    onboarding: UserOnboardingSummaryDto,
+  ) {
     return new MeResponseDto({
       identity: new IdentityDto({
         id: user._id.toString(),
@@ -97,6 +102,18 @@ export class ProfileService {
         activeWorkspaceId: user.activeWorkspaceId?.toString() ?? null,
         onboarding,
       }),
+    });
+  }
+
+  private buildOnboardingSummary(user: UserDocument): UserOnboardingSummaryDto {
+    return new UserOnboardingSummaryDto({
+      status: UserOnboardingStatus.COMPLETED,
+      requiresOnboarding: false,
+      currentStep: null,
+      workspaceId:
+        user.activeWorkspaceId?.toString() ??
+        user.defaultWorkspaceId?.toString() ??
+        null,
     });
   }
 }
