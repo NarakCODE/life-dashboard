@@ -35,6 +35,9 @@ import { PerformanceModule } from './performance/performance.module';
 import { FiltersModule } from './filters/filters.module';
 import { AuditModule } from './common/audit/audit.module';
 import { UploadModule } from './upload/upload.module';
+import { IssuesModule } from './issues/issues.module';
+import { CyclesModule } from './cycles/cycles.module';
+import { ViewsModule } from './views/views.module';
 
 @Module({
   imports: [
@@ -109,6 +112,7 @@ import { UploadModule } from './upload/upload.module';
     UsersModule,
     AuthModule,
     TasksModule,
+    IssuesModule,
     TransactionsModule,
     HabitsModule,
     HabitLogsModule,
@@ -125,6 +129,8 @@ import { UploadModule } from './upload/upload.module';
     FiltersModule,
     AuditModule,
     UploadModule,
+    CyclesModule,
+    ViewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

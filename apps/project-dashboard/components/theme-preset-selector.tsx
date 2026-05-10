@@ -109,7 +109,7 @@ export function ThemePresetSelector() {
               )}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent className="max-h-[280px]">
+          <SelectContent className="max-h-70">
             {THEME_PRESETS.map((preset) => {
               const isActive = selectedPreset === preset.value;
               return (

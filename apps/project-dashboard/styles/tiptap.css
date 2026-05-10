@@ -27,7 +27,7 @@
 
 .tiptap-editor ul[data-type="taskList"] li {
   display: flex;
-  align-items: flex-start; 
+  align-items: flex-start;
 }
 
 .tiptap-editor ul[data-type="taskList"] li > label {

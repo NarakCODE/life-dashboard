@@ -22,6 +22,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:projects": "ts-node tools/seeds/seed-projects.ts",
     "seed:projects:clear": "ts-node tools/seeds/seed-projects.ts --clear",
+    "seed:issues": "ts-node tools/seeds/seed-issues.ts",
+    "seed:issues:clear": "ts-node tools/seeds/seed-issues.ts --clear",
     "seed:notifications": "ts-node tools/seeds/seed-notifications.ts",
     "seed:notifications:clear": "ts-node tools/seeds/seed-notifications.ts --clear",
     "drop:chat-collections": "ts-node tools/maintenance/drop-chat-collections.ts"

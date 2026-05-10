@@ -21,8 +21,10 @@ describe('workspace permissions', () => {
     const viewerPermissions = getWorkspacePermissions(WorkspaceRole.VIEWER);
 
     expect(viewerPermissions).toContain(WorkspacePermission.TASK_READ);
+    expect(viewerPermissions).toContain(WorkspacePermission.ISSUE_READ);
     expect(viewerPermissions).toContain(WorkspacePermission.JOURNAL_READ);
     expect(viewerPermissions).not.toContain(WorkspacePermission.TASK_WRITE);
+    expect(viewerPermissions).not.toContain(WorkspacePermission.ISSUE_WRITE);
     expect(viewerPermissions).not.toContain(WorkspacePermission.MEMBER_INVITE);
   });
 });

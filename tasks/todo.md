@@ -1,5 +1,36 @@
 # Tasks TODO List
 
+## Current Task: Generate Issues Postman Collection
+
+- [x] Inspect the existing Postman collection structure and the implemented `issues` API contract
+- [x] Add an `issues` Postman collection and register it in the unified API collection/docs
+- [x] Verify the generated JSON and record the result
+
+### Result
+
+- Added `apps/api/postman/collections/13-issues.json` with workspace-scoped examples for create, list, my issues, get by id, update, and delete, including an automatic `issueId` environment capture after create.
+- Registered the same `13 - Issues` section in `apps/api/postman/life-dashboard.json` so the unified import stays aligned with the split collection set.
+- Updated `apps/api/postman/README.md` to document the new collection, import flow, and `issueId` environment variable.
+- Verified the new collection JSON parses successfully with `node -e "const fs=require('fs'); ['apps/api/postman/collections/13-issues.json','apps/api/postman/life-dashboard.json'].forEach((file)=>JSON.parse(fs.readFileSync(file,'utf8'))); console.log('json-ok')"`.
+
+## Current Task: Implement Issues Backend Module
+
+- [x] Inspect the existing `tasks`, `projects`, workspace permission, and seeding patterns in `apps/api`
+- [x] Add workspace permissions and decide whether the current `projects` module is suitable for issue linkage
+- [x] Implement the `issues` feature with Mongoose schemas, DTOs, repository, service, controller, module, and seed support
+- [x] Add lightweight `cycles` and `views` backend modules to establish the feature structure for Linear-style project management
+- [x] Register the new modules in `AppModule` and package scripts where needed
+- [x] Verify the new backend feature with targeted tests or type/build checks
+
+### Result
+
+- Kept the existing `apps/api/src/projects` module as the canonical project backend because it already provides workspace-scoped project access suitable for issue linkage, so no duplicate `project-management/projects` module was introduced.
+- Added a full `issues` feature under `apps/api/src/issues` with strict workspace-scoped Mongoose schemas, DTOs, repository, service, controller, module, and a workspace-seeded identifier sequence for `ISS-*` issue numbers.
+- Added `ISSUE_READ` and `ISSUE_WRITE` workspace permissions, protected the issue routes with the same JWT + workspace access + workspace permission guard stack used by `tasks`, and updated the workspace-permissions spec coverage.
+- Added lightweight `apps/api/src/cycles/cycles.module.ts` and `apps/api/src/views/views.module.ts` scaffolds so the backend feature layout now includes `issues`, `cycles`, and `views`.
+- Registered `IssuesModule`, `CyclesModule`, and `ViewsModule` in `AppModule`, and added issue seeding support via `IssueSeeder`, `tools/seeds/seed-issues.ts`, `seed:issues`, and `seed:issues:clear`.
+- Verified with `pnpm --dir apps/api exec jest src/workspaces/workspace-permissions.spec.ts --runInBand`, `pnpm --dir apps/api exec jest --runInBand --passWithNoTests src/issues`, and a filtered `pnpm --dir apps/api exec tsc --noEmit -p tsconfig.json` check that returned no issue-module-specific errors. Repo-wide API typecheck may still have unrelated existing failures outside this new feature.
+
 ## Current Task: Apply Light Green Theme Preset
 
 - [x] Inspect the current green preset metadata and CSS token overrides
