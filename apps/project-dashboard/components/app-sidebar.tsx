@@ -93,6 +93,7 @@ const navItemIcons: Record<
   "habit-logs": TargetIcon,
   journal: NotebookIcon,
   goals: FlagIcon,
+  issues: FlagIcon,
 };
 
 const footerItemIcons: Record<
@@ -206,6 +207,8 @@ export function AppSidebar() {
       return buildWorkspacePath(currentWorkspaceId, "/tasks");
     if (id === "projects")
       return buildWorkspacePath(currentWorkspaceId, "/projects");
+    if (id === "issues")
+      return buildWorkspacePath(currentWorkspaceId, "/issues");
     if (id === "inbox") return buildWorkspacePath(currentWorkspaceId, "/inbox");
     if (id === "clients")
       return buildWorkspacePath(currentWorkspaceId, "/clients");
@@ -226,6 +229,7 @@ export function AppSidebar() {
     if (id === "journal")
       return buildWorkspacePath(currentWorkspaceId, "/journal");
     if (id === "goals") return buildWorkspacePath(currentWorkspaceId, "/goals");
+
     return "#";
   };
 
@@ -235,6 +239,9 @@ export function AppSidebar() {
     }
     if (id === "projects") {
       return scopedPathname.startsWith("/projects");
+    }
+    if (id === "issues") {
+      return scopedPathname.startsWith("/issues");
     }
     if (id === "my-tasks") {
       return scopedPathname.startsWith("/tasks");
@@ -272,6 +279,7 @@ export function AppSidebar() {
     if (id === "goals") {
       return scopedPathname.startsWith("/goals");
     }
+
     return false;
   };
 

@@ -12,7 +12,8 @@ export type NavItemId =
   | "habits"
   | "habit-logs"
   | "journal"
-  | "goals";
+  | "goals"
+  | "issues";
 
 export type SidebarFooterItemId = "settings" | "templates" | "help";
 
@@ -32,6 +33,10 @@ export const navItems: NavItem[] = [
   { id: "dashboard", label: "Dashboard", isActive: true },
   { id: "inbox", label: "Inbox" },
   { id: "my-tasks", label: "My task" },
+  {
+    id: "issues",
+    label: "Issues",
+  },
   { id: "projects", label: "Projects" },
   { id: "clients", label: "Clients" },
   { id: "members", label: "Members" },
