@@ -2,7 +2,7 @@
 
 import { use, Suspense } from "react";
 import { JoinWorkspacePage } from "@/components/workspaces/JoinWorkspacePage";
-import { Loader2 } from "@phosphor-icons/react/dist/ssr";
+import { Loader2 } from "lucide-react";
 
 interface JoinWorkspaceRouteProps {
   params: Promise<{

@@ -8,10 +8,7 @@ import { Spinner } from "@phosphor-icons/react/dist/ssr";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { EmptyStateInline } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,7 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { InlineFeedbackBanner, type InlineInviteFeedback } from "@/components/settings/shared/InlineFeedbackBanner";
+import {
+  InlineFeedbackBanner,
+  type InlineInviteFeedback,
+} from "@/components/settings/shared/InlineFeedbackBanner";
 import {
   formatDateLabel,
   formatRelativeDate,
@@ -385,8 +385,8 @@ export function TeammatesSettingsPane() {
         </div>
         <div className="divide-y divide-border">
           {invitationsQuery.isPending ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Loading pending invitations...
+            <div className="flex items-center justify-center px-4 py-8">
+              <Spinner className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : pendingInvitations.length === 0 ? (
             <EmptyStateInline

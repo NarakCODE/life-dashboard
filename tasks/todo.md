@@ -1,5 +1,108 @@
 # Tasks TODO List
 
+## Current Task: Remove API Onboarding Feature
+
+- [x] Trace onboarding dependencies in auth and app module wiring
+- [x] Replace auth-facing onboarding DTO/service dependency with a static summary DTO
+- [x] Remove the onboarding module and API artifacts
+- [x] Verify the API starts past the previous Swagger crash
+
+### Result
+
+- Removed `OnboardingModule` from `AppModule` and `AuthModule`.
+- Deleted the entire `apps/api/src/onboarding` feature and removed the onboarding Postman collection from the API bundle.
+- Added `src/common/dto/user-onboarding-summary.dto.ts` so `/auth/me` and user DTOs keep an onboarding-shaped payload without importing the removed onboarding module.
+- Updated `ProfileService` to build a static completed onboarding summary from the user record instead of calling `OnboardingService`.
+- Verified `pnpm start` now progresses past the previous Nest Swagger circular-dependency crash; the remaining startup failures in this sandbox are database and Redis connection errors, not onboarding/Swagger errors.
+
+## Current Task: Fix Project Dashboard App API Dev Error
+
+- [x] Reproduce the `pnpm dev` error in `apps/project-dashboard`
+- [x] Trace the failing `app/api` route or import path
+- [x] Implement the minimal fix for the dev-time failure
+- [x] Verify the app starts past the original error
+
+### Result
+
+- `pnpm dev` could not be fully exercised in the sandbox because binding `0.0.0.0:3000` is blocked with `listen EPERM`, so verification relied on targeted compile/type checks instead of a live dev server.
+- Confirmed the `app/api/ai/write/route.ts` route is structurally valid and still type-generates correctly.
+- Fixed the actual frontend compile failure in `app/(protected)/workspaces/join/[token]/page.tsx` by replacing the invalid `@phosphor-icons/react/dist/ssr` `Loader2` import with the correct `lucide-react` import.
+- Targeted ESLint passed for the join route and `app/api/ai/write/route.ts`.
+- Targeted TypeScript grep no longer reports errors for `app/api/ai/write/route.ts`, `workspaces/join/[token]/page.tsx`, or `Loader2`.
+
+## Current Task: Fix Nest Swagger Circular Dependency Error
+
+- [x] Trace the Swagger schema error source for `property key: "PROFILE"`
+- [x] Normalize the offending DTO Swagger enum metadata
+- [x] Verify the touched DTO passes targeted lint
+
+### Result
+
+- Identified `apps/api/src/onboarding/dto/update-onboarding-step.dto.ts` as the likely Swagger failure source because `nextStep` used `enum: Object.values(OnboardingStep)`.
+- Updated that decorator to `enum: OnboardingStep` with `enumName: 'OnboardingStep'`, matching the rest of the onboarding DTOs and avoiding Swagger's object-literal recursion into enum keys like `PROFILE`.
+- Added an explicit `@ApiParam` for `onboarding.controller.ts` route param `:step` using `enum: OnboardingStep` and `enumName: 'OnboardingStep'` so Swagger stops inferring the enum-typed param schema from the method signature.
+- Targeted ESLint passed for the touched DTO.
+
+## Current Task: Fix Chat Removal Relationship Errors
+
+- [x] Inspect remaining chat-related references and current compiler failures
+- [x] Remove stale route shells and generated type references left behind by chat deletion
+- [x] Verify chat-related frontend compile errors are gone
+
+### Result
+
+- Removed the empty leftover route directories `app/(protected)/w/[workspaceId]/chat`, `app/(protected)/w/[workspaceId]/chats`, and `app/w/[workspaceId]/chat` that were still causing Next to treat chat as an active route.
+- Regenerated Next route types with `pnpm exec next typegen`.
+- Deleted the stale generated `.next/types` chat page entries that still referenced the removed route files.
+- Verified `pnpm exec tsc --noEmit` no longer reports any `/chat` or `/chats` missing-module errors; only unrelated pre-existing frontend type errors remain.
+
+## Current Task: Remove Frontend Chat Feature
+
+- [x] Inspect frontend chat routes, shared client code, and navigation references
+- [x] Remove the chat UI/client implementation from `apps/project-dashboard`
+- [x] Remove shared navigation and notification references that still expose chat
+- [x] Verify the touched frontend package after the removal
+
+### Result
+
+- Removed both workspace chat pages, the entire `apps/project-dashboard/lib/chat` client stack, and all chat UI components under `apps/project-dashboard/components/chat`.
+- Removed chat and chats entries from sidebar navigation and stripped chat-specific route handling from the app sidebar.
+- Removed the frontend `chat_message` notification type and associated label/icon mappings to match the backend removal.
+- Verified there are no remaining product-chat references in `apps/project-dashboard` apart from the unrelated AI provider `/chat/completions` call in `app/api/ai/write/route.ts`.
+- Targeted ESLint passed for the touched shared frontend files.
+- `pnpm exec tsc --noEmit` still fails because `.next` contains stale generated references to the deleted chat pages and because the package already has unrelated pre-existing type errors in editor, auth, performance, and other frontend files.
+
+## Current Task: Remove API Chat Feature
+
+- [x] Inspect the API chat module and identify all registration and artifact references
+- [x] Remove the chat feature implementation from `apps/api`
+- [x] Remove API-facing chat collections/docs references
+- [x] Verify the API package after the removal
+
+### Result
+
+- Removed the entire `apps/api/src/chat` feature and unregistered `ChatModule` from the Nest app root.
+- Removed the chat Postman collection and deleted the bundled `13 - Chat` section from `apps/api/postman/life-dashboard.json`.
+- Removed chat-specific notification enum/seed entries and updated notification seeder docs totals from 22 to 20.
+- Verified no `chat` references remain under `apps/api/src`, `apps/api/docs`, or `apps/api/postman`.
+- Added `apps/api/tools/maintenance/drop-chat-collections.ts` and `pnpm run drop:chat-collections` for repeatable Mongo cleanup.
+- Dropped the leftover MongoDB collections: `chat_channels`, `chat_messages`, `chat_channel_members`, and `chat_configs`.
+- `pnpm exec tsc --noEmit -p tsconfig.json` still fails due to pre-existing `workspaces.service.spec.ts` constructor-arity errors.
+- `pnpm exec jest --runInBand --passWithNoTests` still fails from pre-existing `workspaces`, `auth`, and `habits` spec failures unrelated to chat removal.
+
+## Current Task: Task Quick Create Assignee Members
+
+- [x] Inspect the quick-create modal and existing members query/client pattern
+- [x] Update the task quick-create assignee dropdown to load workspace members
+- [x] Preserve modal state correctly while async member data resolves
+- [x] Verify the touched frontend file with a targeted check
+
+### Result
+
+- The quick-create task assignee picker now uses the workspace members query instead of hardcoding the authenticated user, so the dropdown lists all available workspace members for assignment.
+- Added async-selection sync so create mode keeps the current form state intact while members load, and edit mode upgrades the temporary assignee value to the canonical workspace member option once the query resolves.
+- Targeted ESLint passed for `apps/project-dashboard/components/tasks/TaskQuickCreateModal.tsx`.
+
 ## Current Task: Projects Mockup Seeder
 
 - [x] Inspect the existing projects module and current seeder/CLI pattern

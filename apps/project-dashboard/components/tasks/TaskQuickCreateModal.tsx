@@ -24,6 +24,7 @@ import { ProjectDescriptionEditor } from "@/components/project-wizard/ProjectDes
 import { QuickCreateModalLayout } from "@/components/QuickCreateModalLayout";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useWorkspaceMembersQuery } from "@/lib/members/members-query";
 import { useTaskProjectsQuery } from "@/lib/projects/projects-query";
 import { getErrorMessage } from "@/components/auth/auth-error";
 import {
@@ -224,6 +225,9 @@ export function TaskQuickCreateModal({
   const auth = useAuth();
   const { workspaceId } = useWorkspaceScope();
   const { data: projects = [] } = useTaskProjectsQuery(workspaceId ?? "", open);
+  const membersQuery = useWorkspaceMembersQuery(workspaceId ?? "", {
+    enabled: open && !!workspaceId,
+  });
   const createTaskMutation = useCreateTaskMutation(workspaceId ?? "");
   const updateTaskMutation = useUpdateTaskMutation(workspaceId ?? "");
   const [title, setTitle] = useState("");
@@ -240,10 +244,28 @@ export function TaskQuickCreateModal({
   );
 
   const assigneeOptions = useMemo<AssigneeOption[]>(() => {
-    if (!auth.user) return [];
+    const workspaceAssignees = (membersQuery.data ?? []).map((member) => ({
+      id: member.user.id,
+      name: member.user.displayName,
+    }));
+
+    if (workspaceAssignees.length > 0) {
+      return workspaceAssignees;
+    }
+
+    if (!auth.user) {
+      return [];
+    }
 
     return [{ id: auth.user.id, name: auth.user.displayName }];
-  }, [auth.user]);
+  }, [auth.user, membersQuery.data]);
+
+  const defaultAssignee = useMemo(
+    () =>
+      assigneeOptions.find((option) => option.id === auth.user?.id) ??
+      assigneeOptions[0],
+    [assigneeOptions, auth.user?.id],
+  );
 
   const [assignee, setAssignee] = useState<AssigneeOption | undefined>(
     undefined,
@@ -289,10 +311,10 @@ export function TaskQuickCreateModal({
       setIsDescriptionExpanded(false);
 
       if (editingTask.assignee) {
-        const assigneeOption = assigneeOptions.find(
-          (a) => a.id === editingTask.assignee?.id,
-        );
-        setAssignee(assigneeOption);
+        setAssignee({
+          id: editingTask.assignee.id,
+          name: editingTask.assignee.name,
+        });
       } else {
         setAssignee(undefined);
       }
@@ -331,20 +353,41 @@ export function TaskQuickCreateModal({
     setDescription(undefined);
     setCreateMore(false);
     setIsDescriptionExpanded(false);
-    setAssignee(assigneeOptions[0]);
+    setAssignee(undefined);
     setStatus(DEFAULT_STATUS_OPTION);
     setStartDate(new Date());
     setTargetDate(undefined);
     setPriority(DEFAULT_PRIORITY_OPTION);
     setSelectedTag(undefined);
-  }, [
-    open,
-    context,
-    editingTask,
-    assigneeOptions,
-    projectOptions,
-    projectWorkstreams,
-  ]);
+  }, [open, context, editingTask, projectOptions, projectWorkstreams]);
+
+  useEffect(() => {
+    if (!open || editingTask) {
+      return;
+    }
+
+    setAssignee((currentAssignee) => currentAssignee ?? defaultAssignee);
+  }, [defaultAssignee, editingTask, open]);
+
+  useEffect(() => {
+    if (!open || !editingTask?.assignee) {
+      return;
+    }
+
+    const matchedAssignee = assigneeOptions.find(
+      (option) => option.id === editingTask.assignee?.id,
+    );
+
+    if (!matchedAssignee) {
+      return;
+    }
+
+    setAssignee((currentAssignee) =>
+      currentAssignee?.id === matchedAssignee.id
+        ? currentAssignee
+        : matchedAssignee,
+    );
+  }, [assigneeOptions, editingTask, open]);
 
   const workstreamOptions = useMemo(() => {
     const project = projects.find((item) => item.id === projectId);
@@ -578,12 +621,17 @@ export function TaskQuickCreateModal({
             </div>
           )}
           trigger={
-            <button className="bg-muted flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors">
+            <button
+              className="bg-muted flex gap-2 h-9 items-center px-3 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors disabled:opacity-60"
+              disabled={membersQuery.isLoading || assigneeOptions.length === 0}
+            >
               <div className="size-4 rounded-full bg-background flex items-center justify-center text-[10px] font-medium">
                 {assignee?.name.charAt(0) ?? "?"}
               </div>
               <span className="font-medium text-foreground text-sm leading-5">
-                {assignee?.name ?? "Assignee"}
+                {membersQuery.isLoading
+                  ? "Loading members..."
+                  : assignee?.name ?? "Assignee"}
               </span>
             </button>
           }
