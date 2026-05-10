@@ -6,17 +6,12 @@ import { QueryNotificationDto } from './dto/query-notification.dto';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { NotificationResponseDto } from './dto/notification-response.dto';
 import { WorkspaceRequestContext } from '../workspaces/interfaces/workspace-context.interface';
-import { NotificationsGateway } from './gateways/notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(
-    private readonly notificationsRepo: NotificationsRepository,
-    private readonly notificationsGateway: NotificationsGateway,
-  ) {}
-
+  constructor(private readonly notificationsRepo: NotificationsRepository) {}
   /**
    * Create a new notification for a user.
    * Used by the system or other modules to notify users.
@@ -55,29 +50,7 @@ export class NotificationsService {
       }: ${dto.type}`,
     );
 
-    // Emit real-time notification if user is online
-    const responseDto = this.mapToResponseDto(notification);
-    
-    if (this.notificationsGateway.isUserOnline(recipientUserId)) {
-      this.notificationsGateway.sendNotificationToUser(recipientUserId, {
-        id: responseDto.id,
-        type: responseDto.type,
-        title: responseDto.title,
-        body: responseDto.body,
-        data: responseDto.data,
-        createdAt: responseDto.createdAt,
-      });
-
-      // Update unread count
-      const workspaceId = options?.workspaceId ?? '';
-      const unreadCount = await this.notificationsRepo.countUnread({
-        workspaceId,
-        userId: recipientUserId,
-      });
-      this.notificationsGateway.updateUnreadCount(recipientUserId, unreadCount);
-    }
-
-    return responseDto;
+    return this.mapToResponseDto(notification);
   }
 
   /**

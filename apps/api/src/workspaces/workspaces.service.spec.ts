@@ -28,6 +28,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       {} as UsersService,
       workspaceProvisioningService as never,
     );
@@ -55,6 +56,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       membershipModel as never,
+      {} as never,
       {} as UsersService,
       workspaceProvisioningService as never,
     );
@@ -72,6 +74,7 @@ describe('WorkspacesService', () => {
     };
 
     const service = new WorkspacesService(
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -117,6 +120,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       membershipModel as never,
+      {} as never,
       {} as UsersService,
       {} as never,
     );
@@ -143,6 +147,7 @@ describe('WorkspacesService', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       {} as UsersService,
       {} as never,
     );
@@ -161,6 +166,7 @@ describe('WorkspacesService', () => {
 
   it('rejects acceptInvitation with an invalid invitation id instead of throwing a 500', async () => {
     const service = new WorkspacesService(
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -223,7 +229,9 @@ describe('WorkspacesService', () => {
       {
         findOne: jest.fn().mockReturnValue(execMock(Promise.resolve(null))),
       } as never,
+      {} as never,
       {
+        findById: jest.fn(),
         findByEmail: jest.fn().mockResolvedValue(null),
       } as never,
       {} as never,
@@ -294,6 +302,7 @@ describe('WorkspacesService', () => {
     const service = new WorkspacesService(
       {} as never,
       invitationModel as never,
+      {} as never,
       {} as never,
       {} as UsersService,
       {} as never,

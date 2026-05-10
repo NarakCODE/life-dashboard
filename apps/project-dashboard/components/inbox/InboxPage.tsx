@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { formatDistanceToNow } from "date-fns"
-import { toast } from "sonner"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import {
   Check,
   Circle,
@@ -12,11 +12,11 @@ import {
   EnvelopeSimple,
   EnvelopeOpen,
   Spinner,
-} from "@phosphor-icons/react/dist/ssr"
+} from "@phosphor-icons/react/dist/ssr";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -24,10 +24,10 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +38,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { PageHeader, PageToolbarResponsive, PageLayout } from "@/components/page-layout"
-import { InboxFilterPopover, type InboxFilters } from "./InboxFilterPopover"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/alert-dialog";
+import {
+  PageHeader,
+  PageToolbarResponsive,
+  PageLayout,
+} from "@/components/page-layout";
+import { InboxFilterPopover, type InboxFilters } from "./InboxFilterPopover";
+import { cn } from "@/lib/utils";
 import {
   getNotificationContextValues,
   getNotificationHref,
   getNotificationIcon,
   getNotificationTypeLabel,
-} from "@/lib/notifications/notification-utils"
+} from "@/lib/notifications/notification-utils";
 import {
   notificationKeys,
   useMarkAllNotificationsReadMutation,
@@ -55,94 +59,95 @@ import {
   useNotificationsInfiniteQuery,
   useUnreadNotificationCountQuery,
   useDeleteNotificationMutation,
-} from "@/lib/notifications/notifications-query"
-import type { Notification } from "@/lib/notifications/types"
-import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope"
-import { useNotificationsSocket } from "@/hooks/use-notifications-socket"
-import { useQueryClient } from "@tanstack/react-query"
+} from "@/lib/notifications/notifications-query";
+import type { Notification } from "@/lib/notifications/types";
+import { useWorkspaceScope } from "@/lib/workspaces/use-workspace-scope";
+import { useQueryClient } from "@tanstack/react-query";
 
-type InboxTab = "all" | "unread"
+type InboxTab = "all" | "unread";
 
-const NOTIFICATIONS_PAGE_SIZE = 20
+const NOTIFICATIONS_PAGE_SIZE = 20;
 
-const emptyNotifications: Notification[] = []
+const emptyNotifications: Notification[] = [];
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) {
-    return error.message
+    return error.message;
   }
 
-  return fallback
+  return fallback;
 }
 
 function renderNotificationBody(body: string) {
   return body.split("\n").map((line, index, allLines) => {
-    const trimmed = line.trim()
+    const trimmed = line.trim();
 
     if (!trimmed) {
-      return <div key={index} className="h-2" />
+      return <div key={index} className="h-2" />;
     }
 
-    const next = (allLines[index + 1] ?? "").trim()
-    const isBullet = trimmed.startsWith("-")
-    const isHeading = !isBullet && next.startsWith("-")
+    const next = (allLines[index + 1] ?? "").trim();
+    const isBullet = trimmed.startsWith("-");
+    const isHeading = !isBullet && next.startsWith("-");
 
     if (isHeading) {
       return (
         <p key={index} className="mt-2 text-xs font-semibold text-foreground">
           {trimmed}
         </p>
-      )
+      );
     }
 
     if (isBullet) {
-      const content = trimmed.replace(/^[-]+\s*/, "")
+      const content = trimmed.replace(/^[-]+\s*/, "");
       return (
         <p key={index} className="pl-4 text-[13px]">
           <span className="mr-1">•</span>
           {content}
         </p>
-      )
+      );
     }
 
     return (
       <p key={index} className="text-[13px]">
         {trimmed}
       </p>
-    )
-  })
+    );
+  });
 }
 
 export function InboxPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { workspaceId } = useWorkspaceScope()
-  const [tab, setTab] = useState<InboxTab>("all")
-  const [filters, setFilters] = useState<InboxFilters>({ types: [] })
-  const listRef = useRef<HTMLDivElement>(null)
-  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { workspaceId } = useWorkspaceScope();
+  const [tab, setTab] = useState<InboxTab>("all");
+  const [filters, setFilters] = useState<InboxFilters>({ types: [] });
+  const listRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // Get selectedId from URL query param
-  const selectedIdFromUrl = searchParams.get("notificationId")
-  const [selectedId, setSelectedId] = useState<string | null>(selectedIdFromUrl)
+  const selectedIdFromUrl = searchParams.get("notificationId");
+  const [selectedId, setSelectedId] = useState<string | null>(
+    selectedIdFromUrl,
+  );
 
   // Sync URL with selectedId
   const updateSelectedId = useCallback(
     (id: string | null) => {
-      setSelectedId(id)
-      const params = new URLSearchParams(searchParams.toString())
+      setSelectedId(id);
+      const params = new URLSearchParams(searchParams.toString());
       if (id) {
-        params.set("notificationId", id)
+        params.set("notificationId", id);
       } else {
-        params.delete("notificationId")
+        params.delete("notificationId");
       }
-      router.push(`?${params.toString()}`, { scroll: false })
+      router.push(`?${params.toString()}`, { scroll: false });
     },
     [router, searchParams],
-  )
+  );
 
-  const isEnabled = Boolean(workspaceId)
-  
+  const isEnabled = Boolean(workspaceId);
+
   // Use infinite query for pagination
   const infiniteQuery = useNotificationsInfiniteQuery(
     workspaceId ?? "",
@@ -152,103 +157,93 @@ export function InboxPage() {
       sortOrder: "desc",
     },
     isEnabled,
-  )
-  
+  );
+
   const unreadCountQuery = useUnreadNotificationCountQuery(
     workspaceId ?? "",
     isEnabled,
-  )
+  );
   const markNotificationReadMutation = useMarkNotificationReadMutation(
     workspaceId ?? "",
-  )
+  );
   const markAllReadMutation = useMarkAllNotificationsReadMutation(
     workspaceId ?? "",
-  )
+  );
   const deleteNotificationMutation = useDeleteNotificationMutation(
     workspaceId ?? "",
-  )
-  const queryClient = useQueryClient()
+  );
+  const queryClient = useQueryClient();
 
   // Flatten all pages into a single array
   const allNotifications = useMemo(() => {
-    return infiniteQuery.data?.pages.flatMap((page: { data: Notification[] }) => page.data) ?? emptyNotifications
-  }, [infiniteQuery.data])
+    return (
+      infiniteQuery.data?.pages.flatMap(
+        (page: { data: Notification[] }) => page.data,
+      ) ?? emptyNotifications
+    );
+  }, [infiniteQuery.data]);
 
   // Get total count from first page
-  const totalCount = infiniteQuery.data?.pages[0]?.meta.pagination.total ?? 0
-  const hasNextPage = infiniteQuery.hasNextPage
-  const isFetchingNextPage = infiniteQuery.isFetchingNextPage
+  const totalCount = infiniteQuery.data?.pages[0]?.meta.pagination.total ?? 0;
+  const hasNextPage = infiniteQuery.hasNextPage;
+  const isFetchingNextPage = infiniteQuery.isFetchingNextPage;
 
-  // Real-time notification updates via WebSocket
-  useNotificationsSocket({
-    workspaceId: workspaceId ?? undefined,
-    onNewNotification: () => {
-      // Invalidate queries to refresh the list
-      queryClient.invalidateQueries({
-        queryKey: [...notificationKeys.all(workspaceId ?? ""), "list"],
-      })
-      queryClient.invalidateQueries({
-        queryKey: [...notificationKeys.all(workspaceId ?? ""), "unread-count"],
-      })
-    },
-    onUnreadCountUpdate: (count: number) => {
-      // Optimistically update the unread count
-      queryClient.setQueryData(
-        [...notificationKeys.all(workspaceId ?? ""), "unread-count"],
-        { count }
-      )
-    },
-    enabled: isEnabled,
-  })
-
-  const unreadCount = unreadCountQuery.data?.count ?? 0
+  const unreadCount = unreadCountQuery.data?.count ?? 0;
 
   // Filter notifications client-side
   const items = useMemo(() => {
-    let nextItems = allNotifications
+    let nextItems = allNotifications;
 
     if (tab === "unread") {
-      nextItems = nextItems.filter((item: Notification) => !item.isRead)
+      nextItems = nextItems.filter((item: Notification) => !item.isRead);
     }
 
     if (filters.types.length > 0) {
-      nextItems = nextItems.filter((item: Notification) => filters.types.includes(item.type))
+      nextItems = nextItems.filter((item: Notification) =>
+        filters.types.includes(item.type),
+      );
     }
 
-    return nextItems
-  }, [filters.types, allNotifications, tab])
+    return nextItems;
+  }, [filters.types, allNotifications, tab]);
 
   // Handle URL-based selection
   useEffect(() => {
-    if (selectedIdFromUrl && items.some((item) => item.id === selectedIdFromUrl)) {
-      setSelectedId(selectedIdFromUrl)
+    if (
+      selectedIdFromUrl &&
+      items.some((item) => item.id === selectedIdFromUrl)
+    ) {
+      setSelectedId(selectedIdFromUrl);
     } else if (!selectedIdFromUrl && items.length > 0) {
       // Auto-select first item if none selected
-      setSelectedId(items[0]?.id ?? null)
+      setSelectedId(items[0]?.id ?? null);
     } else if (items.length === 0) {
-      setSelectedId(null)
+      setSelectedId(null);
     }
-  }, [items, selectedIdFromUrl])
+  }, [items, selectedIdFromUrl]);
 
   const selected = useMemo(() => {
-    if (!selectedId) return null
-    return allNotifications.find((item) => item.id === selectedId) ?? null
-  }, [allNotifications, selectedId])
+    if (!selectedId) return null;
+    return allNotifications.find((item) => item.id === selectedId) ?? null;
+  }, [allNotifications, selectedId]);
 
   // Get selected index for keyboard navigation
   const selectedIndex = useMemo(() => {
-    if (!selectedId) return -1
-    return items.findIndex((item) => item.id === selectedId)
-  }, [items, selectedId])
+    if (!selectedId) return -1;
+    return items.findIndex((item) => item.id === selectedId);
+  }, [items, selectedId]);
 
   async function updateNotificationReadState(
     notificationId: string,
     isRead: boolean,
   ) {
-    if (!workspaceId) return
+    if (!workspaceId) return;
 
     try {
-      await markNotificationReadMutation.mutateAsync({ notificationId, isRead })
+      await markNotificationReadMutation.mutateAsync({
+        notificationId,
+        isRead,
+      });
     } catch (error) {
       toast.error(
         getErrorMessage(
@@ -257,40 +252,42 @@ export function InboxPage() {
             ? "Unable to mark the notification as read"
             : "Unable to mark the notification as unread",
         ),
-      )
+      );
     }
   }
 
   async function handleMarkAllAsRead() {
-    if (!workspaceId || unreadCount === 0) return
+    if (!workspaceId || unreadCount === 0) return;
 
     try {
-      const response = await markAllReadMutation.mutateAsync()
+      const response = await markAllReadMutation.mutateAsync();
       toast.success(
         response.markedCount > 0
           ? `Marked ${response.markedCount} notifications as read`
           : "All notifications are already read",
-      )
+      );
     } catch (error) {
-      toast.error(getErrorMessage(error, "Unable to mark all notifications as read"))
+      toast.error(
+        getErrorMessage(error, "Unable to mark all notifications as read"),
+      );
     }
   }
 
   async function handleDeleteNotification(notificationId: string) {
-    if (!workspaceId) return
+    if (!workspaceId) return;
 
     try {
-      await deleteNotificationMutation.mutateAsync(notificationId)
-      toast.success("Notification deleted")
+      await deleteNotificationMutation.mutateAsync(notificationId);
+      toast.success("Notification deleted");
 
       // Select next item if deleted was selected
       if (selectedId === notificationId) {
-        const index = items.findIndex((item) => item.id === notificationId)
-        const nextItem = items[index + 1] ?? items[index - 1]
-        updateSelectedId(nextItem?.id ?? null)
+        const index = items.findIndex((item) => item.id === notificationId);
+        const nextItem = items[index + 1] ?? items[index - 1];
+        updateSelectedId(nextItem?.id ?? null);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Unable to delete notification"))
+      toast.error(getErrorMessage(error, "Unable to delete notification"));
     }
   }
 
@@ -302,83 +299,89 @@ export function InboxPage() {
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement
       ) {
-        return
+        return;
       }
 
       switch (event.key) {
         case "ArrowDown": {
-          event.preventDefault()
-          const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : 0
-          const nextItem = items[nextIndex]
+          event.preventDefault();
+          const nextIndex =
+            selectedIndex < items.length - 1 ? selectedIndex + 1 : 0;
+          const nextItem = items[nextIndex];
           if (nextItem) {
-            updateSelectedId(nextItem.id)
-            itemRefs.current.get(nextItem.id)?.scrollIntoView({ block: "nearest" })
+            updateSelectedId(nextItem.id);
+            itemRefs.current
+              .get(nextItem.id)
+              ?.scrollIntoView({ block: "nearest" });
             if (!nextItem.isRead) {
-              void updateNotificationReadState(nextItem.id, true)
+              void updateNotificationReadState(nextItem.id, true);
             }
           }
-          break
+          break;
         }
         case "ArrowUp": {
-          event.preventDefault()
-          const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : items.length - 1
-          const prevItem = items[prevIndex]
+          event.preventDefault();
+          const prevIndex =
+            selectedIndex > 0 ? selectedIndex - 1 : items.length - 1;
+          const prevItem = items[prevIndex];
           if (prevItem) {
-            updateSelectedId(prevItem.id)
-            itemRefs.current.get(prevItem.id)?.scrollIntoView({ block: "nearest" })
+            updateSelectedId(prevItem.id);
+            itemRefs.current
+              .get(prevItem.id)
+              ?.scrollIntoView({ block: "nearest" });
             if (!prevItem.isRead) {
-              void updateNotificationReadState(prevItem.id, true)
+              void updateNotificationReadState(prevItem.id, true);
             }
           }
-          break
+          break;
         }
         case "Enter": {
-          event.preventDefault()
+          event.preventDefault();
           if (selected?.id) {
-            const href = getNotificationHref(selected, workspaceId)
+            const href = getNotificationHref(selected, workspaceId);
             if (href) {
-              router.push(href)
+              router.push(href);
             }
           }
-          break
+          break;
         }
         case "r":
         case "R": {
-          event.preventDefault()
+          event.preventDefault();
           if (selected?.id) {
-            void updateNotificationReadState(selected.id, !selected.isRead)
+            void updateNotificationReadState(selected.id, !selected.isRead);
           }
-          break
+          break;
         }
         case "Delete":
         case "Backspace": {
           if (selected?.id && event.key === "Delete") {
-            event.preventDefault()
-            void handleDeleteNotification(selected.id)
+            event.preventDefault();
+            void handleDeleteNotification(selected.id);
           }
-          break
+          break;
         }
         case "Escape": {
-          event.preventDefault()
-          updateSelectedId(null)
-          break
+          event.preventDefault();
+          updateSelectedId(null);
+          break;
         }
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [items, selectedIndex, selected, workspaceId, router, updateSelectedId])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [items, selectedIndex, selected, workspaceId, router, updateSelectedId]);
 
   const selectedHref = selected
     ? getNotificationHref(selected, workspaceId)
-    : null
+    : null;
   const selectedContextValues = selected
     ? getNotificationContextValues(selected)
-    : []
+    : [];
 
   // Count of displayed items (filtered)
-  const displayedCount = items.length
+  const displayedCount = items.length;
 
   return (
     <PageLayout>
@@ -387,7 +390,10 @@ export function InboxPage() {
         actions={
           <>
             {unreadCount > 0 ? (
-              <Badge variant="secondary" className="rounded-full px-2 py-1 text-[11px]">
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2 py-1 text-[11px]"
+              >
                 {unreadCount} unread
               </Badge>
             ) : null}
@@ -403,7 +409,9 @@ export function InboxPage() {
         }
         toolbar={
           <PageToolbarResponsive
-            left={<InboxFilterPopover filters={filters} onChange={setFilters} />}
+            left={
+              <InboxFilterPopover filters={filters} onChange={setFilters} />
+            }
             right={
               <Tabs
                 value={tab}
@@ -449,7 +457,10 @@ export function InboxPage() {
 
             {!infiniteQuery.isPending && infiniteQuery.isError ? (
               <div className="p-2 text-sm text-destructive">
-                {getErrorMessage(infiniteQuery.error, "Unable to load notifications")}
+                {getErrorMessage(
+                  infiniteQuery.error,
+                  "Unable to load notifications",
+                )}
               </div>
             ) : null}
 
@@ -459,7 +470,10 @@ export function InboxPage() {
               <Empty className="min-h-[18rem] border-none">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <Badge variant="secondary" className="rounded-full px-2 py-1">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full px-2 py-1"
+                    >
                       Inbox
                     </Badge>
                   </EmptyMedia>
@@ -474,8 +488,8 @@ export function InboxPage() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      setFilters({ types: [] })
-                      setTab("all")
+                      setFilters({ types: [] });
+                      setTab("all");
                     }}
                   >
                     Reset filters
@@ -487,25 +501,25 @@ export function InboxPage() {
             {!infiniteQuery.isPending && !infiniteQuery.isError ? (
               <div className="flex flex-col gap-1 py-2">
                 {items.map((item) => {
-                  const Icon = getNotificationIcon(item.type)
-                  const isSelected = item.id === selectedId
-                  const contextValues = getNotificationContextValues(item)
+                  const Icon = getNotificationIcon(item.type);
+                  const isSelected = item.id === selectedId;
+                  const contextValues = getNotificationContextValues(item);
 
                   return (
                     <button
                       key={item.id}
                       ref={(el) => {
                         if (el) {
-                          itemRefs.current.set(item.id, el)
+                          itemRefs.current.set(item.id, el);
                         }
                       }}
                       type="button"
                       role="option"
                       aria-selected={isSelected}
                       onClick={() => {
-                        updateSelectedId(item.id)
+                        updateSelectedId(item.id);
                         if (!item.isRead) {
-                          void updateNotificationReadState(item.id, true)
+                          void updateNotificationReadState(item.id, true);
                         }
                       }}
                       className={cn(
@@ -551,7 +565,7 @@ export function InboxPage() {
                         </div>
                       </div>
                     </button>
-                  )
+                  );
                 })}
 
                 {/* Load More Button */}
@@ -701,8 +715,8 @@ export function InboxPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete notification?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete
-                        the notification from your inbox.
+                        This action cannot be undone. This will permanently
+                        delete the notification from your inbox.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -733,5 +747,5 @@ export function InboxPage() {
         </div>
       </div>
     </PageLayout>
-  )
+  );
 }

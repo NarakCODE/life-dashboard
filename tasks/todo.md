@@ -1,5 +1,84 @@
 # Tasks TODO List
 
+## Current Task: Apply Light Green Theme Preset
+
+- [x] Inspect the current green preset metadata and CSS token overrides
+- [x] Replace the green preset with the supplied Light Green theme values and rename it in the selector UI
+- [x] Verify formatting and build for the dashboard app
+
+### Result
+
+- Replaced the existing `green` preset token overrides in `apps/project-dashboard/app/globals.css` with the supplied Light Green light and dark values, including background, surface, accent, chart, sidebar, and radius tokens that the dashboard theme system consumes.
+- Renamed the visible selector option in `apps/project-dashboard/lib/theme/theme-preset.ts` from `Green` to `Light Green` and updated its preview swatches, while keeping the stored preset value as `green` for compatibility with existing selections.
+- Verified with `pnpm exec prettier --check lib/theme/theme-preset.ts app/globals.css` and a successful `pnpm run build` in `apps/project-dashboard`.
+
+## Current Task: Move Theme Mode To Preferences
+
+- [x] Inspect the settings dialog preferences pane and current sidebar theme entry point
+- [x] Move the theme selector into the Preferences settings pane as its own section
+- [x] Remove the sidebar theme trigger and verify the dashboard app
+
+### Result
+
+- Removed the theme trigger from `apps/project-dashboard/components/app-sidebar.tsx`, so the sidebar header no longer exposes theme controls directly.
+- Added a dedicated `Appearance` section to `apps/project-dashboard/components/settings/panels/PreferencesSettingsPane.tsx` and placed the existing `ThemePresetSelector` there.
+- Verified with `pnpm exec prettier --check components/app-sidebar.tsx components/settings/panels/PreferencesSettingsPane.tsx` and a successful `pnpm run build` in `apps/project-dashboard`.
+
+## Current Task: Remove Project Dashboard Websocket
+
+- [x] Inspect websocket-related frontend hooks, UI usage, and package references in `apps/project-dashboard`
+- [x] Remove websocket hook usage and supporting app-local socket types/dependencies
+- [x] Verify the dashboard app no longer references websocket code and still builds
+
+### Result
+
+- Removed the inbox websocket integration by deleting `hooks/use-notifications-socket.ts` and removing its usage from `components/inbox/InboxPage.tsx`.
+- Removed the app-local `socket.io-client` shim at `types/socket.io-client.d.ts` and dropped `socket.io-client` from `apps/project-dashboard/package.json`.
+- Refreshed the workspace lockfile with `pnpm install --lockfile-only`, confirmed there are no remaining websocket or `socket.io-client` references under `apps/project-dashboard`, and verified `pnpm run build` still passes for the dashboard app.
+
+## Current Task: Fix Workspace Provisioning Spec
+
+- [x] Inspect `apps/api/src/workspaces/workspace-provisioning.service.spec.ts` against the current service contract
+- [x] Update the spec mocks and assertions to match the current workspace provisioning behavior
+- [x] Verify the spec with a targeted API test or compile check
+
+### Result
+
+- Confirmed `apps/api/src/workspaces/workspace-provisioning.service.spec.ts` was already passing against the current `WorkspaceProvisioningService` contract.
+- Identified the actual failing workspace tests in `apps/api/src/workspaces/workspaces.service.spec.ts`, where the constructor setup was missing the `joinRequestModel` dependency added to `WorkspacesService`.
+- Updated those test instantiations to pass the correct six constructor arguments and filled the expired-invitation user stub with the required `findByEmail` method.
+- Verified both `pnpm --dir apps/api exec jest src/workspaces/workspaces.service.spec.ts --runInBand` and `pnpm --dir apps/api exec jest src/workspaces/workspace-provisioning.service.spec.ts --runInBand` pass.
+
+## Current Task: Move Theme Selector To Sidebar
+
+- [x] Inspect the existing sidebar header and current theme selector placement
+- [x] Move the theme selector entry point to the top sidebar with a compact control
+- [x] Remove the duplicate account-settings placement and verify the affected app
+
+### Result
+
+- Moved the theme selector entry point to the top sidebar header, directly below the workspace switcher.
+- Wrapped the existing selector in a compact popover trigger so the sidebar stays narrow while preserving preset swatches and mode controls.
+- Removed the duplicate appearance section from account settings so the selector has a single primary location.
+- Verified with targeted ESLint for the touched components and a successful `pnpm run build` in `apps/project-dashboard`.
+
+## Current Task: Project Dashboard Theme Selector
+
+- [x] Inspect the current theme provider, global CSS tokens, settings UI, and unused mode toggle path
+- [x] Add a preset-theme state layer with root attribute application and localStorage restore
+- [x] Extend the token CSS with Default, Slate, Zinc, Stone, Blue, Green, Orange, Rose, and Violet presets for light and dark mode
+- [x] Replace the plain appearance select with a theme selector that shows swatches, active state, and preserves light/dark/system mode controls
+- [x] Verify the affected app with targeted lint/type/build checks
+
+### Result
+
+- Added a preset theme layer on top of the existing `next-themes` mode provider, using `data-theme` on the root element plus `localStorage` restore via an inline pre-hydration script.
+- Extended `apps/project-dashboard/app/globals.css` with token overrides for `default`, `slate`, `zinc`, `stone`, `blue`, `green`, `orange`, `rose`, and `violet`, while preserving the existing `dark` class behavior.
+- Replaced the plain appearance select in account settings with a richer selector that includes mode toggles, preview swatches, and a visible active state.
+- Updated the Sonner toaster to follow the resolved light/dark mode instead of forcing light theme.
+- Verified with targeted ESLint on the touched TS/TSX files and a successful `pnpm run build` in `apps/project-dashboard`.
+- `pnpm exec tsc --noEmit` still reports pre-existing unrelated errors in editor and auth files outside this change set.
+
 ## Current Task: Remove API Onboarding Feature
 
 - [x] Trace onboarding dependencies in auth and app module wiring

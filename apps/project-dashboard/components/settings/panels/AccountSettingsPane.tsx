@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import {
   CheckCircle,
@@ -17,13 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { SettingRow } from "@/components/settings/shared/SettingRow";
 import { SettingSection } from "@/components/settings/shared/SettingSection";
@@ -41,13 +33,7 @@ export function AccountSettingsPane() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { theme, setTheme } = useTheme();
-  const [isMounted, setIsMounted] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (user?.displayName) {
@@ -352,26 +338,6 @@ export function AccountSettingsPane() {
               Change password
             </Button>
           </div>
-        </SettingRow>
-      </SettingSection>
-
-      <Separator />
-
-      <SettingSection title="Appearance">
-        <SettingRow label="Theme">
-          <Select
-            value={isMounted ? (theme ?? "system") : "system"}
-            onValueChange={(value) => setTheme(value)}
-          >
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Select theme" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="system">System default</SelectItem>
-              <SelectItem value="light">Light</SelectItem>
-              <SelectItem value="dark">Dark</SelectItem>
-            </SelectContent>
-          </Select>
         </SettingRow>
       </SettingSection>
 

@@ -14,10 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemePresetSelector } from "@/components/theme-preset-selector";
 import { SettingSection } from "@/components/settings/shared/SettingSection";
 import { SettingRow } from "@/components/settings/shared/SettingRow";
 import { ManageWorkspaceDialog } from "@/components/workspaces/ManageWorkspaceDialog";
@@ -44,28 +42,31 @@ import type { Workspace } from "@/lib/workspaces/workspace-types";
 
 export function PreferencesSettingsPane() {
   const router = useRouter();
-  const { workspaceId: activeWorkspaceId, workspaceContext } = useWorkspaceScope();
-  
+  const { workspaceId: activeWorkspaceId, workspaceContext } =
+    useWorkspaceScope();
+
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<
+    string | undefined
+  >();
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
   // Data fetching
   const { data: workspaces = [], isLoading } = useWorkspacesQuery();
   const switchWorkspace = useSwitchWorkspaceMutation();
-  
+
   const currentWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
   const isOwner = workspaceContext?.role === "OWNER";
-  
+
   // Clear copied state after delay
   useEffect(() => {
     if (!copiedId) return;
     const timeout = setTimeout(() => setCopiedId(null), 1500);
     return () => clearTimeout(timeout);
   }, [copiedId]);
-  
+
   const handleCopyId = async (id: string) => {
     try {
       await navigator.clipboard.writeText(id);
@@ -75,22 +76,22 @@ export function PreferencesSettingsPane() {
       toast.error("Failed to copy");
     }
   };
-  
+
   const handleCreateWorkspace = () => {
     setDialogMode("create");
     setSelectedWorkspaceId(undefined);
     setIsDialogOpen(true);
   };
-  
+
   const handleEditWorkspace = (workspaceId: string) => {
     setDialogMode("edit");
     setSelectedWorkspaceId(workspaceId);
     setIsDialogOpen(true);
   };
-  
+
   const handleSwitchWorkspace = async (workspace: Workspace) => {
     if (workspace.id === activeWorkspaceId) return;
-    
+
     try {
       await switchWorkspace.mutateAsync(workspace.id);
       toast.success(`Switched to ${workspace.name}`);
@@ -99,21 +100,33 @@ export function PreferencesSettingsPane() {
       toast.error("Failed to switch workspace");
     }
   };
-  
+
   const otherWorkspaces = workspaces.filter((w) => w.id !== activeWorkspaceId);
-  
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <DialogTitle className="text-xl">Preferences</DialogTitle>
         <DialogDescription className="mt-1">
-          Manage your workspace settings, switch between workspaces, and configure preferences.
+          Manage your workspace settings, switch between workspaces, and
+          configure preferences.
         </DialogDescription>
       </div>
-      
+
       <Separator />
-      
+
+      <SettingSection title="Appearance">
+        <SettingRow
+          label="Theme"
+          description="Choose light, dark, or system mode and select your preferred color preset."
+        >
+          <ThemePresetSelector />
+        </SettingRow>
+      </SettingSection>
+
+      <Separator />
+
       {/* Current Workspace */}
       <SettingSection title="Current Workspace">
         {isLoading ? (
@@ -134,17 +147,21 @@ export function PreferencesSettingsPane() {
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
                 <Building2 className="h-6 w-6" />
               </div>
-              
+
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <Badge variant={currentWorkspace.type === "solo" ? "secondary" : "default"}>
+                  <Badge
+                    variant={
+                      currentWorkspace.type === "solo" ? "secondary" : "default"
+                    }
+                  >
                     {currentWorkspace.type === "solo" ? "Personal" : "Team"}
                   </Badge>
                   <Badge variant="outline" className="font-mono text-[10px]">
                     {currentWorkspace.id.slice(0, 8)}...
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {isOwner && (
                     <Button
@@ -180,9 +197,9 @@ export function PreferencesSettingsPane() {
           </div>
         )}
       </SettingSection>
-      
+
       <Separator />
-      
+
       {/* Workspace Switcher */}
       <SettingSection title="Switch Workspace">
         <SettingRow
@@ -196,7 +213,8 @@ export function PreferencesSettingsPane() {
             </div>
           ) : otherWorkspaces.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              You only have one workspace. Create another to switch between them.
+              You only have one workspace. Create another to switch between
+              them.
             </div>
           ) : (
             <div className="space-y-2">
@@ -219,7 +237,7 @@ export function PreferencesSettingsPane() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
@@ -230,7 +248,7 @@ export function PreferencesSettingsPane() {
                     >
                       Switch
                     </Button>
-                    
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -248,7 +266,8 @@ export function PreferencesSettingsPane() {
                           <Copy className="mr-2 h-4 w-4" />
                           Copy ID
                         </DropdownMenuItem>
-                        {workspace.ownerId === workspaceContext?.actorUserId && (
+                        {workspace.ownerId ===
+                          workspaceContext?.actorUserId && (
                           <DropdownMenuItem
                             onClick={() => handleEditWorkspace(workspace.id)}
                           >
@@ -263,7 +282,7 @@ export function PreferencesSettingsPane() {
               ))}
             </div>
           )}
-          
+
           <Button
             variant="outline"
             className="w-full"
@@ -274,7 +293,7 @@ export function PreferencesSettingsPane() {
           </Button>
         </SettingRow>
       </SettingSection>
-      
+
       {/* Workspace Management Dialog */}
       <ManageWorkspaceDialog
         open={isDialogOpen}
@@ -292,7 +311,7 @@ export function PreferencesSettingsPane() {
         onDeleteSuccess={() => {
           toast.success("Workspace deleted");
           const remainingWorkspace = workspaces.find(
-            (w) => w.id !== selectedWorkspaceId && w.id !== activeWorkspaceId
+            (w) => w.id !== selectedWorkspaceId && w.id !== activeWorkspaceId,
           );
           if (remainingWorkspace) {
             void handleSwitchWorkspace(remainingWorkspace);

@@ -1,22 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { Building2, ChevronDown, Plus, Settings2 } from "lucide-react";
+import { Building2, ChevronsUpDown, Plus, Settings2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Workspace } from "@/lib/workspaces/workspace-types";
 import { useWorkspacesQuery } from "@/lib/workspaces/workspace-query";
@@ -68,7 +70,8 @@ export function WorkspaceCombobox({
   contentClassName,
   placeholder = "Select workspace",
 }: WorkspaceComboboxProps) {
-  // Use selectedId if provided, otherwise fall back to user's activeWorkspaceId from /me
+  const { isMobile } = useSidebar();
+
   const effectiveSelectedId = selectedId ?? userActiveWorkspaceId;
 
   const selectedWorkspace = React.useMemo(
@@ -77,148 +80,152 @@ export function WorkspaceCombobox({
   );
 
   const handleSelect = React.useCallback(
-    (workspaceId: string) => {
-      if (workspaceId === effectiveSelectedId) {
+    (workspace: Workspace) => {
+      if (workspace.id === effectiveSelectedId) {
         return;
       }
 
-      const workspace = workspaces.find((item) => item.id === workspaceId);
-      if (workspace) {
-        onSelect(workspace);
-      }
+      onSelect(workspace);
     },
-    [onSelect, effectiveSelectedId, workspaces],
+    [effectiveSelectedId, onSelect],
   );
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 p-2">
-        <Skeleton className="size-10 rounded-xl" />
-        <div className="flex flex-1 flex-col gap-2">
-          <Skeleton className="h-4 w-24 rounded-md" />
-          <Skeleton className="h-3 w-36 rounded-md" />
-        </div>
-      </div>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <Skeleton className="aspect-square size-8 rounded-lg" />
+            <div className="grid flex-1 gap-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
     );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled}
-          size={"lg"}
-          className={cn(triggerClassName)}
-        >
-          <div className="flex w-full flex-1 items-center justify-between gap-3">
-            <Avatar>
-              <AvatarFallback className="rounded-xl bg-sidebar-primary/12 text-sidebar-primary">
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              disabled={disabled}
+              className={cn(
+                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                triggerClassName,
+              )}
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 {selectedWorkspace ? (
-                  getWorkspaceInitials(selectedWorkspace.name)
+                  <span className="text-xs font-medium">
+                    {getWorkspaceInitials(selectedWorkspace.name)}
+                  </span>
                 ) : (
-                  <Building2 />
+                  <Building2 className="size-4" />
                 )}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-sm font-semibold">
-                {selectedWorkspace?.name ?? placeholder}
-              </span>
-            </div>
-            <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/60" />
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        sideOffset={8}
-        className={cn("w-80 rounded-2xl p-2", contentClassName)}
-      >
-        <DropdownMenuLabel className="px-2 py-2">
-          <div className="flex items-center gap-3">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="text-sm font-semibold">Switch workspace</span>
-              <span className="truncate text-xs font-normal text-muted-foreground">
-                {workspaces.length} available workspace
-                {workspaces.length === 1 ? "" : "s"}
-              </span>
-            </div>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuRadioGroup
-            value={selectedWorkspace?.id}
-            onValueChange={handleSelect}
+              </div>
+
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">
+                  {selectedWorkspace?.name ?? placeholder}
+                </span>
+                <span className="truncate text-xs">
+                  {selectedWorkspace
+                    ? getWorkspaceTypeLabel(selectedWorkspace.type)
+                    : "Workspace"}
+                </span>
+              </div>
+
+              <ChevronsUpDown className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            className={cn(
+              "w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg",
+              contentClassName,
+            )}
+            align="start"
+            side={isMobile ? "bottom" : "right"}
+            sideOffset={4}
           >
-            {workspaces.map((workspace) => {
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Workspaces
+            </DropdownMenuLabel>
+
+            {workspaces.map((workspace, index) => {
               const isSelected = workspace.id === selectedWorkspace?.id;
 
               return (
-                <DropdownMenuRadioItem
+                <DropdownMenuItem
                   key={workspace.id}
-                  value={workspace.id}
-                  disabled={isSelected}
-                  className="min-h-14 rounded-xl pr-2 pl-8"
+                  onClick={() => handleSelect(workspace)}
+                  className={cn("gap-2 p-2", isSelected && "bg-card")}
                 >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <Avatar className="size-9 rounded-xl border border-border/60">
-                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary">
-                        {getWorkspaceInitials(workspace.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-sm font-medium">
-                        {workspace.name}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {getWorkspaceTypeLabel(workspace.type)}
-                      </span>
-                    </div>
-                    {/* <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                        {workspace.owner.displayName}
-                      </span>
-                    </div> */}
+                  <div className="flex size-6 items-center justify-center rounded-md border">
+                    <span className="text-[10px] font-medium">
+                      {getWorkspaceInitials(workspace.name)}
+                    </span>
                   </div>
-                </DropdownMenuRadioItem>
+
+                  <div className="grid min-w-0 flex-1 text-sm leading-tight">
+                    <span className="truncate">{workspace.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {getWorkspaceTypeLabel(workspace.type)}
+                    </span>
+                  </div>
+
+                  {!isSelected ? (
+                    <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                  ) : null}
+                </DropdownMenuItem>
               );
             })}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        {(onCreateNew || onManageWorkspaces) && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              {onCreateNew ? (
-                <DropdownMenuItem
-                  onSelect={onCreateNew}
-                  className="rounded-xl py-2"
-                >
-                  <Plus />
-                  Create workspace
-                </DropdownMenuItem>
-              ) : null}
-              {onManageWorkspaces ? (
-                <DropdownMenuItem
-                  onSelect={onManageWorkspaces}
-                  className="rounded-xl py-2"
-                >
-                  <Settings2 />
-                  Manage workspaces
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuGroup>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+            {(onCreateNew || onManageWorkspaces) && (
+              <>
+                <DropdownMenuSeparator />
+
+                {onCreateNew ? (
+                  <DropdownMenuItem onClick={onCreateNew} className="gap-2 p-2">
+                    <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                      <Plus className="size-4" />
+                    </div>
+                    <div className="font-medium text-muted-foreground">
+                      Create workspace
+                    </div>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {onManageWorkspaces ? (
+                  <DropdownMenuItem
+                    onClick={onManageWorkspaces}
+                    className="gap-2 p-2"
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                      <Settings2 className="size-4" />
+                    </div>
+                    <div className="font-medium text-muted-foreground">
+                      Manage workspaces
+                    </div>
+                  </DropdownMenuItem>
+                ) : null}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 
 export interface UseWorkspaceComboboxProps {
   selectedId?: string | null;
+  userActiveWorkspaceId?: string | null;
   onSelect: (workspace: Workspace) => void;
   onCreateNew?: () => void;
   onManageWorkspaces?: () => void;

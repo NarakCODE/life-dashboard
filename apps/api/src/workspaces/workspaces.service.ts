@@ -445,7 +445,10 @@ export class WorkspacesService {
   async getJoinLink(
     workspaceId: string,
   ): Promise<WorkspaceJoinLinkResponse | null> {
-    const workspace = await this.workspaceModel.findById(workspaceId).lean().exec();
+    const workspace = await this.workspaceModel
+      .findById(workspaceId)
+      .lean()
+      .exec();
     if (!workspace || !workspace.joinLinkToken) return null;
 
     return {
